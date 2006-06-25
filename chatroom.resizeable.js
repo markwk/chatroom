@@ -1,3 +1,8 @@
+/**
+ * $Id$ 
+ * large sections of this code taken from misc/textarea.js 
+ */
+
 if (isJsEnabled()) {
   addLoadEvent(chatroomMsgBoardAutoAttach);
 }
