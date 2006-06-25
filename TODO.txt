@@ -21,4 +21,4 @@ I'd like for chatroom's to be easily integrated into as many other cool
 Drupal modules as possible. If you maintain a module and have an idea
 or suggestion, let me know!
 
-
+4. Code comments and documentation
