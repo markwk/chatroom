@@ -7,7 +7,7 @@ $Id$
 2. Change the ownership of the chat_cache directory so it is writable by
 your webserver. 
 
-3. Copy the chatroom.php file from the chatroom directory into the base
+3. Copy the chatroomread.php file from the chatroom directory into the base
 Drupal install directory. It should sit next to the Drupal index.php file.
 
 4. Enable the module in the administer->modules screen.
