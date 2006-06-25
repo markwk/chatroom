@@ -112,7 +112,7 @@ function chatroom_form(&$node) {
   if (count($node->chatroom->chats) && user_access('administer chatrooms')) {
     foreach ($node->chatroom->chats as $chat) {
       if ($chat->section != 'archives') {
-        $options[$chat->ccid] = check_plain($chat->name);
+        $options[$chat->ccid] = check_plain($chat->chatname);
       }
     }
     $form['chatroom_chats'] = array(
