@@ -1,0 +1,99 @@
+<?php
+/* $Id$ */
+/**
+ * Implementation of hook_install()
+ */
+function chatroom_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ok = db_query("CREATE TABLE {chatroom} (
+        crid int(11) NOT NULL AUTO_INCREMENT,
+        nid int(11) NOT NULL,
+        poll_freq int(2) NOT NULL default '3000',
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY (crid),
+        KEY nid (nid)
+      ) TYPE=MyISAM;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_chat} (
+        ccid int(11) NOT NULL AUTO_INCREMENT,
+        crid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        chatname varchar(255) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        when_archived int(11) default NULL,
+        PRIMARY KEY  (ccid),
+        KEY crid (crid),
+        KEY modified (modified)
+      ) TYPE=MyISAM;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg} (
+        cmid int(11) NOT NULL AUTO_INCREMENT,
+        ccid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        msg longtext NOT NULL,
+        session_id varchar(255) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY  (cmid),
+        KEY ccid (ccid),
+        KEY session_id (session_id),
+        KEY modified (modified)
+      ) TYPE=MyISAM;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg_archive} (
+        cmid int(11) NOT NULL,
+        ccid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        msg longtext NOT NULL,
+        session_id varchar(255) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY  (cmid),
+        KEY ccid (ccid,uid,modified)
+      ) TYPE=MyISAM;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
+        coid int(11) NOT NULL AUTO_INCREMENT,
+        ccid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        session_id varchar(255) NOT NULL,
+        guest_id int(11) NOT NULL default '1',
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY  (coid),
+        KEY update_time (ccid,uid,session_id)
+      ) TYPE=MyISAM;");
+      break;
+  }
+  $error = false;
+  if (!$ok) {
+    $error = 'A database operation failed when setting up chatroom';
+    db_query('DROP TABLE {chatroom}');
+    db_query('DROP TABLE {chatroom_chat}');
+    db_query('DROP TABLE {chatroom_msg}');
+    db_query('DROP TABLE {chatroom_msg_archive}');
+    db_query('DROP TABLE {chatroom_online_list}');
+  }
+  else {
+    $cache_dir = drupal_get_path('module', 'chatroom') .'/chat_cache';
+    $errors = array();
+    $path = realpath(dirname($_SERVER['SCRIPT_FILENAME'])) .'/chatroom.php';
+    if (!file_exists($path)) {
+      $errors[] = "$path Please copy chatroom.php from the chatroom module directory into your Drupal base directory"; 
+    } 
+    if (!@is_dir($cache_dir)) {
+      $errors[] = "$cache_dir directory does not exist. Please create it"; 
+    }
+    if (!@is_writable($cache_dir)) {
+      $errors[] = "$cache_dir directory is not writable by php. Please correct this";
+    }
+    if (count($errors)) {
+      $error = implode('<br />', $errors);
+    }
+  }
+  if ($error) {
+    drupal_set_message(t($error), 'error');
+    db_query("UPDATE {system} SET status = 0 WHERE name = 'chatroom'");
+  }
+  else {
+    drupal_set_message(t('chatroom module is ready to go'));
+  }
+}
+
+/* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */
+?>

@@ -1,0 +1,24 @@
+TODO
+----
+$Id$
+
+First, I'm keen to give other developers control over this project.
+
+I don't intend to maintain this as a one-person show, so if you can
+show me that you're interested in this module and willing to put some
+work in, then your say and your code will count.
+
+1. Postgres support
+There is none at the moment, and its the first thing on this list because I
+see it as the most important thing to add.
+
+2. Better UI for the chat screen
+I'm not a CSS or UI guru, so anyone with lots of skill in these areas is
+welcome to send suggestions, patches, etc.
+
+3. Integration with other Drupal modules
+I'd like for chatroom's to be easily integrated into as many other cool
+Drupal modules as possible. If you maintain a module and have an idea
+or suggestion, let me know!
+
+

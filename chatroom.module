@@ -1,0 +1,868 @@
+<?php
+/**
+ * $Id$
+ * 
+ * @file
+ * Enable chatroom support in Drupal
+ */
+
+/**
+ * Implementation of hook_node_info().
+ */
+function chatroom_node_info() {
+  return array('chatroom' => array('name' => t('chatroom'), 'base' => 'chatroom'));
+}
+
+/**
+ * Implementation of hook_help().
+ */
+function chatroom_help($section) {
+  switch ($section) {
+    case 'admin/modules#description':
+      return t('Enables chatrooms in Drupal.');
+    case 'node/add#chatroom':
+      return t('If you want to add a chatroom.');
+  }
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function chatroom_perm() {
+  return array('access chatrooms', 'create chatrooms', 'edit own chatrooms', 'administer chatrooms', 'create chats');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function chatroom_menu($may_cache) {
+  $items = array();
+  if ($may_cache) {
+    $items[] = array('path' => 'node/add/chatroom',
+      'title' => t('chatroom'),
+      'access' => user_access('create chatrooms'));
+  }
+  else {
+    $items[] = array('path' => 'chatroom/writemsg',
+      'callback' => 'chatroom_chat_write_msg',
+      'access' => user_access('access chatrooms'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'chatrooms',
+      'callback' => 'chatroom_home',
+      'access' => user_access('access chatrooms'),
+      'title' => 'Chatrooms',
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'chatrooms/chat',
+      'callback' => 'chatroom_chat',
+      'access' => user_access('access chatrooms'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'chatrooms/archives',
+      'callback' => 'chatroom_chat_archive',
+      'access' => user_access('access chatrooms'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'chatrooms/room',
+      'callback' => 'chatroom_room',
+      'access' => user_access('access chatrooms'),
+      'type' => MENU_CALLBACK);
+  }
+  return $items;
+}
+
+/**
+ * Implementation of hook_access().
+ */
+function chatroom_access($op, $node) {
+  global $user;
+  if ($op == 'create') {
+    return user_access('create chatrooms');
+  }
+  if ($op == 'update' || $op == 'delete') {
+    if (user_access('edit own chatrooms') && ($user->uid == $node->uid)) {
+      return TRUE;
+    }
+  }
+}
+
+/**
+ * Implementation of hook_form().
+ */
+function chatroom_form(&$node) {
+  global $user;
+  $form['title'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Name'), 
+    '#default_value' => check_plain($node->title), 
+    '#required' => TRUE
+  );
+  $form['chatroom_poll_freq'] = array(
+    '#type' => 'select',
+    '#title' => t('Chatroom update frequency, in seconds'),
+    '#default_value' => 2,
+    '#options' => drupal_map_assoc(range(1,10)),
+    '#description' => t('How many seconds between each request for updates to the server.'),
+  );
+  $form['body_filter']['body'] = array(
+    '#type' => 'textarea', 
+    '#title' => t('Description'), 
+    '#default_value' => check_plain($node->body), 
+    '#rows' => 3, 
+    '#description' => t('Describe your chatroom so other people will know if they want to join.'),
+    '#required' => TRUE
+  );
+  if (count($node->chatroom->chats) && user_access('administer chatrooms')) {
+    foreach ($node->chatroom->chats as $chat) {
+      if ($chat->section != 'archives') {
+        $options[$chat->ccid] = check_plain($chat->name);
+      }
+    }
+    $form['chatroom_chats'] = array(
+      '#type' => 'fieldset', 
+      '#title' => t('Manage open chats'), 
+      '#collapsible' => TRUE, 
+      '#collapsed' => FALSE, 
+      '#weight' => 20
+    );
+    $form['chatroom_chats']['chat_list'] = array(
+      '#type' => 'checkboxes', 
+      '#options' => $options,
+      '#description' => t('Check the chats you would like to close')
+    );
+  }
+  return $form;
+}
+
+/**
+ * Implementation of hook_update()
+ */
+function chatroom_update($node) {
+  db_query("UPDATE {chatroom} SET poll_freq = %d WHERE nid = %d", 
+            1000 * $node->chatroom_poll_freq, $node->nid);
+  if (isset($node->chat_list)) {
+    $archive = array();
+    foreach ($node->chat_list as $chat_id) {
+      if ($chat_id > 0) {
+        chatroom_archive_chat($chat_id);
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_insert()
+ */
+function chatroom_insert($node) {
+  db_query("INSERT INTO {chatroom} (nid, poll_freq) VALUES (%d, %d)", 
+            $node->nid, 1000 * $node->chatroom_poll_freq);
+}
+
+/**
+ * Implementation of hook_delete().
+ */
+function chatroom_delete(&$node) {
+  db_query('DELETE FROM chatroom WHERE nid = %d', $node->nid);
+  if (isset($node->chatroom) && count($node->chatroom->chats)) {
+    $ccids = implode(',', array_keys($node->chatroom->chats));
+    db_query('DELETE FROM chatroom_chat WHERE crid IN (%s)', $ccids);
+    db_query('DELETE FROM chatroom_msg WHERE ccid IN (%s)', $ccids);
+    db_query('DELETE FROM chatroom_online_list WHERE ccid IN (%s)', $ccids);
+    db_query('DELETE FROM chatroom_msg_archive WHERE ccid IN (%s)', $ccids);
+  }
+}
+
+/**
+ * Implementation of hook_load().
+ */
+function chatroom_load($node) {
+  $c['chatroom'] = db_fetch_object(db_query('SELECT * FROM {chatroom} WHERE nid = %d', $node->nid));
+  if ($c['chatroom']) {
+    $c['chatroom']->chats = chatroom_get_room_summary($c['chatroom']->crid);
+  }
+  return $c;
+}
+
+/**
+ * Implementation of hook_view().
+ */
+function chatroom_view(&$node) {
+  if ($node->type == 'chatroom') {
+    $bc = drupal_get_breadcrumb();
+    if (count($bc)) {
+      $bc[] = l('Chatrooms', 'chatrooms/');
+      drupal_set_breadcrumb($bc);
+    }
+  }
+  if (user_access('create chats')) {
+    $node->body .= chatroom_create_chat_form($node->chatroom->crid);
+  }
+  if (count($node->chatroom->chats) > 0) {
+    foreach ($node->chatroom->chats as $chat) {
+      $type = $chat->section == 'chat' ? 'open' : 'archived';
+      $rows[$type][] = array(
+        array('data' => l(check_plain($chat->chatname), "chatrooms/$chat->section/$chat->ccid")), 
+        array('data' => $chat->msg_count),
+        array('data' => $chat->msg_info)
+      );
+    }
+    if (count($rows['open'])) {
+      $node->body .= '<h2>' . t('Open chats in this room') . '</h2>';
+      $node->body .= theme('table', array(t('Chat name'), t('Message count'), t('Last message')), $rows['open']); 
+    }
+    if (count($rows['archived'])) {
+      $node->body .= '<h2>' . t('Archived chats in this room') . '</h2>';
+      $node->body .= theme('table', array(t('Chat name'), t('Message count'), t('When archived')), $rows['archived']); 
+    }
+  }
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
+  $type = $delta == 0 ? 'chats' : 'chatrooms';
+  $options = range(2, $delta ? 20 : 10);
+  switch ($op) {
+    case 'list':
+      $blocks[0]['info'] = t('Active chats');
+      $blocks[1]['info'] = t('Active chatrooms');
+      return $blocks;
+    case 'configure':
+      $form["chatroom_block_$type"] = array(
+        '#type' => 'select', 
+        '#title' => t("Number of $type to display"), 
+        '#default_value' => variable_get("chatroom_block_$type", '5'), 
+        '#options' => drupal_map_assoc($options)
+      );
+      return $form;
+    case 'save':
+      variable_set("chatroom_block_$type", $edit["chatroom_block_$type"]);
+      break;
+    case 'view':
+      $content = '';
+      $title = '';
+      if (user_access('access chatrooms') && $_GET['q'] != 'chatrooms') {
+        switch ($type) {
+          case 'chats':
+            $sql = 'SELECT     cc.*,
+                               nr.title AS room_name,
+                               cr.nid
+                    FROM       {chatroom_chat} AS cc
+                    INNER JOIN {chatroom} AS cr
+                    ON         cr.crid = cc.crid
+                    INNER JOIN {node_revisions} AS nr
+                    ON         nr.nid = cr.nid
+                    WHERE      cc.when_archived IS NULL 
+                    ORDER BY   cc.modified DESC';
+            $result = db_query_range($sql, 0, variable_get('chatroom_block_chats', '5'));
+            if (db_num_rows($result)) {
+              $title = t('Active chats');
+              $content .= '<ul class="menu">';
+              while ($chat = db_fetch_object($result)) {
+                $content .= '<li>'. l(check_plain($chat->name), "chatrooms/chat/$chat->ccid") 
+                          . '<br /><i><small>in room '. l(check_plain($chat->room_name), "node/$chat->nid") 
+                          .'</small></i></li>';
+              }
+              $content .= '</ul>';
+            }
+            break;
+          case 'chatrooms':
+            $sql = 'SELECT     cr.nid, 
+                               nr.title,
+                               COUNT(cc.ccid) AS chat_count
+                    FROM       {chatroom} AS cr
+                    INNER JOIN {node_revisions} AS nr
+                    ON         nr.nid = cr.nid
+                    LEFT JOIN  {chatroom_chat} AS cc
+                    ON         cc.crid = cr.crid
+                    WHERE      cc.when_archived IS NULL
+                    GROUP BY   cr.nid';
+            $result = db_query_range($sql, 0, variable_get('chatroom_block_chatrooms', '5'));
+            if (db_num_rows($result)) {
+              $title = t('Active chatrooms');
+              $content .= '<ul class="menu">';
+              while ($room = db_fetch_object($result)) {
+                $content .= '<li>'. l(check_plain($room->title), "node/$room->nid") .'</li>';
+              }
+              $content .= '</ul>';
+            }
+            break;
+        }
+        $block['subject'] = $title;
+        $block['content'] = $content;
+        return $block;
+     }
+  }
+}
+
+/**
+ * archive all msgs in a chat
+ */
+function chatroom_archive_chat($chat_id) {
+  db_query('UPDATE {chatroom_chat} 
+            SET when_archived = UNIX_TIMESTAMP() 
+            WHERE ccid = %d', $chat_id);
+  $result = db_query('INSERT INTO {chatroom_msg_archive} 
+                      (cmid, ccid, uid, msg, session_id, modified)
+                          SELECT *
+                          FROM   {chatroom_msg} 
+                          WHERE  ccid = %d', $chat_id);
+  if ($result) {
+    db_query('DELETE FROM {chatroom_msg} WHERE ccid = %d', $chat_id);
+  }
+  else {
+    db_query('UPDATE {chatroom_chat} 
+              SET when_archived = NULL 
+              WHERE ccid = %d', $chat_id);
+  }
+  return $result;
+}
+
+/**
+ * creates a chat
+ */
+function chatroom_create_chat_submit($f_id, $f_values) {
+  global $user;
+  $created = db_query("INSERT INTO {chatroom_chat} (crid, uid, chatname) VALUES (%d, %d, '%s')", 
+                      $f_values['room_id'], $user->uid, $f_values['chat_name']);
+  if (!$created) {
+    drupal_set_message(t("There was an error creating your chat"), 'error');
+  }
+}
+
+/**
+ * validates attempt to create chat - checks this name is not already in use
+ */
+function chatroom_create_chat_validate($f_id, $f_values) {
+  $crid = $f_values['room_id'];
+  $name = $f_values['chat_name'];
+  if (db_num_rows(db_query("SELECT ccid FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s'", $crid, $name))) {
+    form_set_error('chatroom_chat_name', t("A chat called '$name' already exists"));
+  }
+}
+
+/**
+ * handles requests that write a message into a chat
+ */
+function chatroom_create_chat_form($room_id) {
+  $form['chatroom_create_chat'] = array(
+    '#type' => 'fieldset', 
+    '#title' => t('Create a new chat'), 
+    '#collapsible' => TRUE, 
+    '#collapsed' => FALSE 
+  );
+  $form['chatroom_create_chat']['chat_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Chat name'),
+    '#size' => 30,
+    '#required' => TRUE,
+    '#description' => t('Enter the name for the chat'),
+  );
+  $form['chatroom_create_chat']['room_id'] = array(
+    '#type' => 'hidden',
+    '#value' => $room_id
+  );
+  $form['chatroom_create_chat']['submit'] = array(
+    '#type' => 'submit', 
+    '#value' => t('Create chat')
+  );
+  return drupal_get_form('chatroom_create_chat', $form);
+}
+
+/**
+ * updates chat's cache file modified time
+ */
+function chatroom_set_chat_cache($chat_id) {
+  $cache_file = chatroom_get_cache_file_path($chat_id);
+  if (!@file_exists($cache_file)) {
+    @touch($cache_file);
+  }
+}
+
+/**
+ * gets the chat cache file path
+ */
+function chatroom_get_cache_file_path($chat_id) {
+  if ($_SERVER['PHP_SELF'] == '/index.php') {
+    $site_path = '';
+  }
+  else {
+    $site_path = substr($_SERVER['PHP_SELF'], 1, -strlen('/index.php'));
+    $site_path = str_replace(array('/', '.', ' '), array('_', '_', '-'), $site_path) .'_';
+  }
+  return drupal_get_path('module', 'chatroom') .'/chat_cache/'. $site_path .'chat_'. $chat_id;
+}
+
+/**
+ * updates chat's cache file modified time
+ */
+function chatroom_update_chat_cache($chat_id) {
+  $cache_file = chatroom_get_cache_file_path($chat_id);
+  if (@touch($cache_file)) {
+    return @filemtime($cache_file);
+  }
+  return false;
+}
+
+/**
+ * handles requests that write a message into a chat
+ */
+function chatroom_chat_write_msg($chat_id = FALSE, $last_msg_id = NULL) {
+  global $user;
+  if ($chat_id && !is_null($last_msg_id) && !empty($_POST['chatroomMsg'])) {
+    $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg, session_id, modified) 
+                        VALUES (%d, %d, '%s', '%s', UNIX_TIMESTAMP())",
+                        $chat_id, $user->uid, filter_xss($_POST['chatroomMsg']), session_id()); 
+    if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
+      $msg_js = chatroom_get_latest_msgs_js($msgs);
+    }
+    else {
+      $msg_js = '[]';
+    }
+    $cache_js = '';
+    if ($result && $cache_timestamp = chatroom_update_chat_cache($chat_id)) {
+      $cache_js = ",{cacheTimestamp:$cache_timestamp}";
+    }
+  }
+  $self = "/** {$_SERVER['PHP_SELF']} **/";
+  return chatroom_send_ajax_response("[$msg_js, [] $cache_js] $self");
+}
+
+/**
+ * handles update or insert for user when loading a chatroom
+ */
+function chatroom_chat_register_user($chat_id) {
+  global $user;
+  $session_id = session_id();
+  $result = db_query("SELECT coid
+                      FROM   {chatroom_online_list} 
+                      WHERE  ccid = %d 
+                      AND    uid = %d
+                      AND    session_id = '%s'",
+            $chat_id, $user->uid, $session_id);
+
+  if (db_num_rows($result)) {
+    chatroom_update_online_time($chat_id, $user->uid, $session_id);
+  }
+  else {
+    db_query("INSERT INTO {chatroom_online_list} (ccid, uid, session_id, guest_id, modified) 
+                  SELECT %d, %d, '%s', COALESCE(MAX(guest_id) + 1, 1), UNIX_TIMESTAMP()
+                  FROM   {chatroom_online_list} 
+                  WHERE  ccid = %d",
+              $chat_id, $user->uid, $session_id, $chat_id);
+  }
+}
+
+/**
+ * takes an array of online users and formats as js
+ */
+function chatroom_get_online_list_js($users) {
+  $js = '';
+  $i = 0;
+  $user_count = count($users);
+  foreach ($users as $user) {
+    $name = $user->name ? $user->name : "guest-{$user->guest_id}";
+    $js .= '{user:"'. check_plain($name) .'",sessionId:"'. $user->session_id .'",uid:'. $user->uid .'}';
+    $js .= ++$i == $user_count ? '' : ',';
+  }
+  return "[$js]";
+}
+
+/**
+ * takes an array of msgs and formats as js
+ */
+function chatroom_get_latest_msgs_js($msgs) {
+  $js = '';
+  $i = 0;
+  $msg_count = count($msgs);
+  foreach ($msgs as $msg) {
+    $name = $msg->name ? $msg->name : "guest-{$msg->guest_id}";
+    $time = date('G:i', $msg->modified);
+    $js .= '{id:'. $msg->cmid .',text:"'. str_replace('"', '\"', $msg->msg);
+    $js .= '",user:"'. $name .'",time:"'. $time .'"}' . (++$i == $msg_count ? '' : ',');
+  }
+  return "[$js]";
+}
+
+/**
+ * update a users online timestamp value
+ */
+function chatroom_update_online_time($chat_id, $uid, $session_id) {
+   db_query("UPDATE {chatroom_online_list} 
+             SET modified = UNIX_TIMESTAMP() 
+             WHERE ccid = %d 
+             AND uid = %d 
+             AND session_id = '%s'",
+             $chat_id, $uid, $session_id);
+}
+
+/**
+ * handles request for new messages from cache script
+ */
+function chatroom_chat_read_msgs_cache($chat_id, $last_msg_id, $update_count) {
+  global $user;
+  if (!user_access('access chatrooms')) {
+    return chatroom_send_ajax_response('/** UR3l33T! **/');
+  }
+  return chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count);
+}
+
+/**
+ * handles requests that read info about a chat
+ */
+function chatroom_chat_read_msgs($chat_id = FALSE, $last_msg_id = NULL, $update_count = NULL) {
+  global $user;
+  $msg_js = '[]';
+  $users_js = '[]';
+  if ($chat_id && !is_null($last_msg_id) && !is_null($update_count)) {
+    chatroom_update_online_time($chat_id, $user->uid, session_id());
+    if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
+      $msg_js = chatroom_get_latest_msgs_js($msgs);
+    }
+    if ($update_count == 1 || $update_count % 4 == 0) {
+      if ($users = chatroom_get_online_list($chat_id)) {
+        $users_js = chatroom_get_online_list_js($users);
+      }
+    }
+  }
+  $cache_timestamp = @filemtime(drupal_get_path('module', 'chatroom') .'/chat_cache/chat_'. $chat_id);
+  $cache_js = '';
+  if ($cache_timestamp) {
+    $cache_js = ",{cacheTimestamp:$cache_timestamp}";
+  }
+  return chatroom_send_ajax_response("[$msg_js, $users_js $cache_js]");
+}
+
+/**
+ * gets a list of online users in a given chat
+ */
+function chatroom_get_online_list($chat_id) {
+  $result = db_query("SELECT    col.uid, 
+                                col.session_id,
+                                col.guest_id,
+                                du.name
+                      FROM      {chatroom_online_list} AS col
+                      LEFT JOIN {users} AS du
+                      ON        du.uid = col.uid
+                      WHERE     ccid = %d 
+                      AND       modified > (UNIX_TIMESTAMP() - 5)
+                      ORDER BY  col.session_id",
+                      $chat_id);
+  $users = array(); 
+  while ($row = db_fetch_object($result)) {
+    $users[] = $row;
+  }
+  return count($users) ? $users : FALSE; 
+}
+
+/**
+ * get all msgs for a given chat
+ */
+function chatroom_get_all_msgs($chat_id, $archive = FALSE) {
+  $table = $archive ? 'chatroom_msg_archive' : 'chatroom_msg';
+  $result = db_query('SELECT     cm.*,
+                                 du.name,
+                                 col.guest_id
+                      FROM       {' . $table . '} AS cm
+                      INNER JOIN {chatroom_online_list} AS col
+                      ON         col.session_id = cm.session_id AND col.ccid = cm.ccid
+                      LEFT JOIN  {users} AS du 
+                      ON         du.uid = cm.uid
+                      WHERE      cm.ccid = %d
+                      ORDER BY   cm.cmid ASC',
+                      $chat_id);
+  $msgs = array();
+  while ($msg = db_fetch_object($result)) {
+    $msgs[] = $msg;
+  }
+  return count($msgs) ? $msgs : FALSE;
+}
+
+/**
+ * get all msg for chatroom after last message
+ */
+function chatroom_get_latest_msgs($chat_id, $last_msg_id) {
+  $result = db_query('SELECT     cm.*,
+                                 du.name,
+                                 col.guest_id
+                      FROM       {chatroom_msg} AS cm
+                      INNER JOIN {chatroom_online_list} AS col
+                      ON         col.session_id = cm.session_id AND col.ccid = cm.ccid
+                      LEFT JOIN  {users} AS du 
+                      ON         du.uid = cm.uid
+                      WHERE      cm.ccid = %d
+                      AND        cm.cmid > %d
+                      ORDER BY   cm.cmid ASC',
+                      $chat_id, $last_msg_id);
+  $msgs = array();
+  while ($msg = db_fetch_object($result)) {
+    $msgs[] = $msg;
+  }
+  return count($msgs) ? $msgs : FALSE;
+}
+
+/**
+ * helper function to add some js to the page head
+ */
+function chatroom_add_chat_state_js($chat, $session_id) {
+  $users_js = '[]';
+  if ($users = chatroom_get_online_list($chat->ccid)) {
+    $users_js = chatroom_get_online_list_js($users);
+  }
+  $url_start = variable_get('clean_url', 0) ? '' : '?q=';
+  $debug = variable_get('chatroom_debug', 'true');
+  $timestamp = time() - (60 * 60);
+  $js = <<<JS
+var chatroom = {chatId         : $chat->ccid, 
+                lastMsgId      : 0, 
+                cacheTimestamp : $timestamp, 
+                updateCount    : 0, 
+                debugMode      : $debug, 
+                cacheMisses    : 0, 
+                readUrl        : 'chatroom.php',
+                writeUrl       : '{$url_start}chatroom/writemsg/',
+                userUrl        : '{$url_start}user/',
+                updateInterval : $chat->poll_freq,
+                userList       : $users_js,
+                userColours    : [],
+                sessionId      : '$session_id'};
+JS;
+  drupal_set_html_head('<script type="text/javascript">' . $js . '</script>');
+}
+
+/**
+ * loads an archived chat
+ */
+function chatroom_chat_archive($chat_id = false) {
+  if ($chat_id === false || !($chat = chatroom_get_chat_id($chat_id))) {
+    return drupal_not_found();
+  } 
+  drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", "href" => "/modules/chatroom/chatroom.css"));
+  $bc = drupal_get_breadcrumb();
+  $bc[] = l(check_plain($chat->chatroom_name), "node/$chat->nid");
+  drupal_set_breadcrumb($bc);
+  drupal_set_title(check_plain($chat->chatname));
+  $html = '<p>' . t('This chat was archived on ') . date("F j, Y, g:i a", $chat->when_archived) .'</p>';
+  $html .= '<div id="chatroom-container-archive">';
+  if ($msgs = chatroom_get_all_msgs($chat->ccid, TRUE)) {
+    foreach ($msgs as $msg) {
+      $name = $msg->name ? $msg->name : 'guest-'. $msg->guest_id;
+      $html .= '<p><span class="chatroom-archive-user">['. date('G:i', $msg->modified) .'] ';
+      $html .= $name . ': </span>'. $msg->msg .'</p>';
+    }
+  }
+  else {
+    $html .= '<p>' . t('This chat contains no messages') .'</p>';
+  }
+  return $html . '</div>';
+}
+
+/**
+ * loads the UI for a chat, and registers this user as online
+ */
+function chatroom_chat($chat_id = false) {
+  if ($chat_id === false || !($chat = chatroom_get_chat_id($chat_id))) {
+    return drupal_not_found();
+  } 
+
+  chatroom_chat_register_user($chat->ccid);
+  chatroom_set_chat_cache($chat->ccid);
+  drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
+                        "href" => "modules/chatroom/chatroom.css"));
+  drupal_add_js('modules/chatroom/chatroom.js');
+  drupal_add_js('modules/chatroom/chatroom.resizeable.js');
+  chatroom_add_chat_state_js($chat, session_id());
+
+  $bc = drupal_get_breadcrumb();
+  $bc[] = l(check_plain($chat->chatroom_name), "node/$chat->nid");
+  drupal_set_breadcrumb($bc);
+
+  drupal_set_title(check_plain($chat->chatname));
+  $html = '<div id="chatroom-container">';
+  $html .= chatroom_get_chat_board_html($chat);
+  $html .= chatroom_get_online_list_html($chat);
+  $html .= chatroom_get_textentry_html();
+  $html .= chatroom_get_debug_html();
+  $html .= '</div>';
+  return $html;
+}
+
+/**
+ * output debug html
+ */
+function chatroom_get_debug_html() {
+  return '<div id="chatroom-debug">
+          <p id="chatroom-debug-cache-stats"></p>
+          <p id="chatroom-debug-msg-info"></p>
+          </div>';
+}
+
+/**
+ * chatroom module home
+ */
+function chatroom_home() {
+  global $user;
+  if ($node->type == 'chatroom') {
+    $bc = drupal_get_breadcrumb();
+    $bc[] = l('Chatrooms', 'chatrooms/');
+    drupal_set_breadcrumb($bc);
+  }
+  $out = '';
+  if (user_access('create chatrooms')) {
+    $out .= '<ul><li>' . l(t('create a chatroom'), "node/add/chatroom") . '</li></ul>';
+  }
+  if ($chatrooms = chatroom_get_chatroom_list()) {
+    $header = array(t('Name'), t('Description'), t('Active chats'));
+    foreach ($chatrooms as $room) {
+      $rows[] = array(
+        array('data' => l(check_plain($room->title), "node/$room->nid")),
+        array('data' => check_plain($room->body)),
+        array('data' => $room->chat_count)
+      );
+    }
+    $out .= theme('table', $header, $rows); 
+  } 
+  else {
+    $out .= '<h2>' . t('There are no chatrooms'). '</h2>';
+  }
+  return $out;
+}
+
+/**
+ * send response to ajax requests
+ */
+function chatroom_send_ajax_response($response) {
+  header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+  header("Cache-Control: no-store, no-cache, must-revalidate");
+  header("Cache-Control: post-check=0, pre-check=0", false);
+  header("Pragma: no-cache");
+  echo $response;
+}
+
+/**
+ * returns a chatroom object for $chat_id
+ */
+function chatroom_get_chat_id($chat_id) {
+  $result = db_query('SELECT     cc.*, 
+                                 n.title AS chatroom_name,
+                                 n.nid,
+                                 cr.poll_freq
+                      FROM       {chatroom_chat} AS cc
+                      INNER JOIN {chatroom} AS cr 
+                      ON         cr.crid = cc.crid
+                      INNER JOIN {node} AS n 
+                      ON         n.nid = cr.nid
+                      WHERE      cc.ccid = %d', 
+                      $chat_id);
+  if ($result && db_num_rows($result)) {
+    return db_fetch_object($result);
+  }
+  return FALSE;
+}
+
+/**
+ * returns html for the message board
+ */
+function chatroom_get_chat_board_html() {
+  return '<div id="chatroom-board"></div>';
+}
+
+/**
+ * format a msg for display in a summary table
+ */
+function chatroom_get_msg_info($msg) {
+  $user = $msg->uid ? l(check_plain($msg->name), "user/$msg->uid") : t('Anonymous');
+  return check_plain($msg->msg) . "<br />Posted by <b>$user</b>, ". date('F j, Y, g:i a', $msg->modified); 
+}
+
+/**
+ * returns a the list of chats for a given room
+ */
+function chatroom_get_room_summary($room_id) {
+  $result = db_query('SELECT     COUNT(cm.cmid) AS msg_count,
+                                 MAX(cm.cmid) AS last_cmid,
+                                 cc.ccid,
+                                 cc.chatname,
+                                 cc.when_archived
+                      FROM       {chatroom} AS cr
+                      INNER JOIN {chatroom_chat} AS cc
+                      ON         cc.crid = cr.crid
+                      LEFT JOIN  {chatroom_msg} AS cm
+                      ON         cm.ccid = cc.ccid
+                      WHERE      cr.crid =  %d
+                      GROUP BY   cc.ccid', 
+                      $room_id);
+  $chats = array();
+  $msg_ids = array();
+  while ($chat = db_fetch_object($result)) {
+    if ($chat->when_archived) {
+      $chat->section = 'archives';
+      $chat->msg_info = t('This chat was archived on ') . date("F j, Y, g:i a", $chat->when_archived); 
+    }
+    else {
+      $chat->section = 'chat';
+      if ($chat->last_cmid) {
+        $msg_ids[] = $chat->last_cmid;
+      }
+      else {
+        $chat->msg_info = t('No messages');
+      }
+    }
+    $chats[$chat->ccid] = $chat;
+  }
+  if (count($msg_ids)) {
+    $result = db_query('SELECT    cm.*, 
+                                  u.name 
+                        FROM      {chatroom_msg} AS cm
+                        LEFT JOIN {users} AS u 
+                        ON        u.uid = cm.uid 
+                        WHERE     cmid IN (%s)', 
+                        implode(',', $msg_ids));
+    while ($msg = db_fetch_object($result)) {
+      foreach ($chats as $i => $chat) {
+        if ($chat->last_cmid == $msg->cmid) {
+          $chats[$i]->msg_info = chatroom_get_msg_info($msg);
+        }
+      }
+    }
+  }
+  return $chats;
+}
+
+/**
+ * returns the list of available chatrooms
+ */
+function chatroom_get_chatroom_list() {
+  $result = db_query('SELECT     nr.*,
+                                 COUNT(cc.ccid) AS chat_count
+                      FROM       {chatroom} AS cr
+                      INNER JOIN {node_revisions} AS nr
+                      ON         nr.nid = cr.nid
+                      LEFT JOIN  {chatroom_chat} AS cc
+                      ON         cc.crid = cr.crid
+                      WHERE      cc.when_archived IS NULL
+                      GROUP BY   cr.crid');
+  if ($result && db_num_rows($result)) {
+    while ($room = db_fetch_object($result)) {
+      $rooms[] = $room;
+    }
+    return $rooms;
+  }
+  return false;
+}
+
+/**
+ * returns html for the text entry widget
+ */
+function chatroom_get_textentry_html() {
+  return '<div class="clear-both"></div><div id="chatroom-textentry">' . "\n"
+        . '<input type="text" id="chatroom-msg-input" size="50" />'  . "\n"
+        . '<input type="submit" id="chatroom-msg-submit" value="Send" />' . "\n</div>\n";
+}
+
+/**
+ * returns html for the whois online widget
+ */
+function chatroom_get_online_list_html($chat) {
+  return '<div id="chatroom-online"><h4>'. t('online list') .'</h4></div>';
+}
+
+/* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */
