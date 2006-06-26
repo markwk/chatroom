@@ -14,7 +14,8 @@ see it as the most important thing to add.
 
 2. Better UI for the chat screen
 I'm not a CSS or UI guru, so anyone with lots of skill in these areas is
-welcome to send suggestions, patches, etc.
+welcome to send suggestions, patches, etc. It would be nice to have
+smileys, for example.
 
 3. Integration with other Drupal modules
 I'd like for chatroom's to be easily integrated into as many other cool
@@ -22,3 +23,18 @@ Drupal modules as possible. If you maintain a module and have an idea
 or suggestion, let me know!
 
 4. Code comments and documentation
+Enough said.
+
+5. Benchmarking
+I'd like to write some scripts to benchmark the chatroom. The main
+focus should be making the read operations cached (DONE), and faster
+when there's a cache miss. I suspect that it may be worth sidestepping 
+a full drupal bootstrap and doing just a db or session bootstrap, 
+then modifying the module code such that the read msgs part doesn't
+use anything that relys on a full bootstrap.
+
+6. Check out the phpfreechat module
+This may include helping them port to 4.7. There's likely a lot to learn
+from this, and I'm not convinced yet whether phpfreechat can't achieve
+what I wanted to achieve with this module.
+
