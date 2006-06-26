@@ -24,17 +24,19 @@ var chatroomAddEvents = function() {
 var chatroomCallback = function(responseText, HttpRequest, chatroomDummyParam) {
   if (HttpRequest.responseText) {
     var resArray = eval(HttpRequest.responseText);
-    if (chatroom.debugMode) {
-      chatroomUpdateDebugInfo(HttpRequest, resArray[0].length);
-    }
-    if (resArray[0].length) {
-      chatroomUpdateMsgList(resArray[0]);
-    }
-    if (resArray[1].length) {
-      chatroomUpdateOnlineList(resArray[1]);
-    }
-    if (typeof resArray[2].cacheTimestamp != 'undefined') {
-
+    if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
+      if (chatroom.debugMode) {
+        chatroomUpdateDebugInfo(HttpRequest, resArray[0].length);
+      }
+      if (resArray[0].length) {
+        chatroomUpdateMsgList(resArray[0]);
+      }
+      if (resArray[1].length) {
+        chatroomUpdateOnlineList(resArray[1]);
+      }
+      if (typeof resArray[2].cacheTimestamp != 'undefined') {
+        chatroom.cacheTimestamp = resArray[2].cacheTimestamp;
+      }
     }
   }
   return;
