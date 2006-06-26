@@ -72,9 +72,9 @@ function chatroom_install() {
   else {
     $cache_dir = drupal_get_path('module', 'chatroom') .'/chat_cache';
     $errors = array();
-    $path = realpath(dirname($_SERVER['SCRIPT_FILENAME'])) .'/chatroom.php';
+    $path = realpath(dirname($_SERVER['SCRIPT_FILENAME'])) .'/chatroomread.php';
     if (!file_exists($path)) {
-      $errors[] = "$path Please copy chatroom.php from the chatroom module directory into your Drupal base directory"; 
+      $errors[] = "Please copy chatroomread.php from the chatroom module directory into your Drupal base directory"; 
     } 
     if (!@is_dir($cache_dir)) {
       $errors[] = "$cache_dir directory does not exist. Please create it"; 
