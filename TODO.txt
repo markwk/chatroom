@@ -38,3 +38,7 @@ This may include helping them port to 4.7. There's likely a lot to learn
 from this, and I'm not convinced yet whether phpfreechat can't achieve
 what I wanted to achieve with this module.
 
+7. Fix up the debug code
+I would like to make this module easy to hack on, so the debug stuff
+needs to be easily configured and offer up more information.
+
