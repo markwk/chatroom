@@ -151,7 +151,7 @@ function chatroom_update($node) {
  * Implementation of hook_insert()
  */
 function chatroom_insert($node) {
-  db_query("INSERT INTO {chatroom} (nid, poll_freq) VALUES (%d, %d)", 
+  db_query("INSERT INTO {chatroom} (nid, poll_freq, modified) VALUES (%d, %d, UNIX_TIMESTAMP())", 
             $node->nid, 1000 * $node->chatroom_poll_freq);
 }
 
@@ -321,7 +321,8 @@ function chatroom_archive_chat($chat_id) {
  */
 function chatroom_create_chat_submit($f_id, $f_values) {
   global $user;
-  $created = db_query("INSERT INTO {chatroom_chat} (crid, uid, chatname) VALUES (%d, %d, '%s')", 
+  $created = db_query("INSERT INTO {chatroom_chat} (crid, uid, chatname, modified) 
+                       VALUES (%d, %d, '%s', UNIX_TIMESTAMP())", 
                       $f_values['room_id'], $user->uid, $f_values['chat_name']);
   if (!$created) {
     drupal_set_message(t("There was an error creating your chat"), 'error');
@@ -422,8 +423,7 @@ function chatroom_chat_write_msg($chat_id = FALSE, $last_msg_id = NULL) {
       $cache_js = ",{cacheTimestamp:$cache_timestamp}";
     }
   }
-  $self = "/** {$_SERVER['PHP_SELF']} **/";
-  return chatroom_send_ajax_response("[$msg_js, [] $cache_js] $self");
+  return chatroom_send_ajax_response("[$msg_js, [] $cache_js]");
 }
 
 /**
@@ -602,12 +602,14 @@ function chatroom_get_latest_msgs($chat_id, $last_msg_id) {
 /**
  * helper function to add some js to the page head
  */
-function chatroom_add_chat_state_js($chat, $session_id) {
+function chatroom_add_chat_state_js($chat, $session_id, $clean_urls) {
   $users_js = '[]';
   if ($users = chatroom_get_online_list($chat->ccid)) {
     $users_js = chatroom_get_online_list_js($users);
   }
-  $url_start = variable_get('clean_url', 0) ? '' : '?q=';
+  $read_url  = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
+  $write_url = ($clean_urls ? '../../' : '?q=') . 'chatroom/writemsg/';
+  $user_url  = ($clean_urls ? '../../' : '?q=') . 'user/';
   $debug = variable_get('chatroom_debug', 'true');
   $timestamp = time() - (60 * 60);
   $js = <<<JS
@@ -617,15 +619,15 @@ var chatroom = {chatId         : $chat->ccid,
                 updateCount    : 0, 
                 debugMode      : $debug, 
                 cacheMisses    : 0, 
-                readUrl        : 'chatroom.php',
-                writeUrl       : '{$url_start}chatroom/writemsg/',
-                userUrl        : '{$url_start}user/',
+                readUrl        : '$read_url',
+                writeUrl       : '$write_url',
+                userUrl        : '$user_url',
                 updateInterval : $chat->poll_freq,
                 userList       : $users_js,
                 userColours    : [],
                 sessionId      : '$session_id'};
 JS;
-  drupal_set_html_head('<script type="text/javascript">' . $js . '</script>');
+  drupal_set_html_head('<script type="text/javascript">'. $js .'</script>');
 }
 
 /**
@@ -665,11 +667,12 @@ function chatroom_chat($chat_id = false) {
 
   chatroom_chat_register_user($chat->ccid);
   chatroom_set_chat_cache($chat->ccid);
+  $clean_urls = variable_get('clean_url', 0);
   drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
-                        "href" => "modules/chatroom/chatroom.css"));
+                        "href" => ($clean_urls ? '/' : '') . 'modules/chatroom/chatroom.css'));
   drupal_add_js('modules/chatroom/chatroom.js');
   drupal_add_js('modules/chatroom/chatroom.resizeable.js');
-  chatroom_add_chat_state_js($chat, session_id());
+  chatroom_add_chat_state_js($chat, session_id(), $clean_urls);
 
   $bc = drupal_get_breadcrumb();
   $bc[] = l(check_plain($chat->chatroom_name), "node/$chat->nid");
