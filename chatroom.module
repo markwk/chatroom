@@ -778,10 +778,15 @@ function chatroom_get_msg_info($msg) {
 
 /**
  * returns a the list of chats for a given room
+ * 
+ * patch applied to fix archived msg count from here:
+ * http://drupal.org/node/70771
+ * thanks jun :-)
+ *
  */
 function chatroom_get_room_summary($room_id) {
-  $result = db_query('SELECT     COUNT(cm.cmid) AS msg_count,
-                                 MAX(cm.cmid) AS last_cmid,
+  $result = db_query('SELECT     GREATEST(COUNT(cm.cmid), COUNT(cma.cmid)) AS msg_count,
+                                 GREATEST(MAX(cm.cmid),MAX(cma.cmid)) AS last_cmid,
                                  cc.ccid,
                                  cc.chatname,
                                  cc.when_archived
@@ -790,6 +795,8 @@ function chatroom_get_room_summary($room_id) {
                       ON         cc.crid = cr.crid
                       LEFT JOIN  {chatroom_msg} AS cm
                       ON         cm.ccid = cc.ccid
+                      LEFT JOIN  {chatroom_msg_archive} AS cma
+                      ON         cma.ccid = cc.ccid
                       WHERE      cr.crid =  %d
                       GROUP BY   cc.ccid', 
                       $room_id);
