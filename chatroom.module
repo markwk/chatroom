@@ -382,14 +382,14 @@ function chatroom_set_chat_cache($chat_id) {
  * gets the chat cache file path
  */
 function chatroom_get_cache_file_path($chat_id) {
-  if ($_SERVER['PHP_SELF'] == '/index.php') {
+  if ($_SERVER['PHP_SELF'] == '/chatroomread.php') {
     $site_path = '';
   }
   else {
-    $site_path = substr($_SERVER['PHP_SELF'], 1, -strlen('/index.php'));
+    $site_path = substr($_SERVER['PHP_SELF'], 1, -strlen('/chatroomread.php'));
     $site_path = str_replace(array('/', '.', ' '), array('_', '_', '-'), $site_path) .'_';
   }
-  return drupal_get_path('module', 'chatroom') .'/chat_cache/'. $site_path .'chat_'. $chat_id;
+  return "modules/chatroom/chat_cache/{$site_path}chat_$chat_id";
 }
 
 /**
@@ -406,22 +406,21 @@ function chatroom_update_chat_cache($chat_id) {
 /**
  * handles requests that write a message into a chat
  */
-function chatroom_chat_write_msg($chat_id = FALSE, $last_msg_id = NULL) {
+function chatroom_chat_write_msg($chat_id, $last_msg_id) {
   global $user;
-  if ($chat_id && !is_null($last_msg_id) && !empty($_POST['chatroomMsg'])) {
-    $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg, session_id, modified) 
-                        VALUES (%d, %d, '%s', '%s', UNIX_TIMESTAMP())",
-                        $chat_id, $user->uid, filter_xss($_POST['chatroomMsg']), session_id()); 
-    if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
-      $msg_js = chatroom_get_latest_msgs_js($msgs);
-    }
-    else {
-      $msg_js = '[]';
-    }
-    $cache_js = '';
-    if ($result && $cache_timestamp = chatroom_update_chat_cache($chat_id)) {
-      $cache_js = ",{cacheTimestamp:$cache_timestamp}";
-    }
+  $clean_msg = strip_tags(htmlentities(urldecode($_POST['chatroomMsg']), ENT_NOQUOTES));
+  $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg, session_id, modified) 
+                      VALUES (%d, %d, '%s', '%s', UNIX_TIMESTAMP())",
+                      $chat_id, $user->uid, $clean_msg, session_id()); 
+  if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
+    $msg_js = chatroom_get_latest_msgs_js($msgs);
+  }
+  else {
+    $msg_js = '[]';
+  }
+  $cache_js = '';
+  if ($result && $cache_timestamp = chatroom_update_chat_cache($chat_id)) {
+    $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
   return chatroom_send_ajax_response("[$msg_js, [] $cache_js]");
 }
@@ -495,35 +494,25 @@ function chatroom_update_online_time($chat_id, $uid, $session_id) {
 }
 
 /**
- * handles request for new messages from cache script
+ * handles requests that read info about a chat
  */
-function chatroom_chat_read_msgs_cache($chat_id, $last_msg_id, $update_count) {
-  global $user;
+function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count) {
   if (!user_access('access chatrooms')) {
     return chatroom_send_ajax_response('/** UR3l33T! **/');
   }
-  return chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count);
-}
-
-/**
- * handles requests that read info about a chat
- */
-function chatroom_chat_read_msgs($chat_id = FALSE, $last_msg_id = NULL, $update_count = NULL) {
   global $user;
-  $msg_js = '[]';
+  $msg_js   = '[]';
   $users_js = '[]';
-  if ($chat_id && !is_null($last_msg_id) && !is_null($update_count)) {
-    chatroom_update_online_time($chat_id, $user->uid, session_id());
-    if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
-      $msg_js = chatroom_get_latest_msgs_js($msgs);
-    }
-    if ($update_count == 1 || $update_count % 4 == 0) {
-      if ($users = chatroom_get_online_list($chat_id)) {
-        $users_js = chatroom_get_online_list_js($users);
-      }
+  chatroom_update_online_time($chat_id, $user->uid, session_id());
+  if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
+    $msg_js = chatroom_get_latest_msgs_js($msgs);
+  }
+  if ($update_count == 1 || $update_count % 4 == 0) {
+    if ($users = chatroom_get_online_list($chat_id)) {
+      $users_js = chatroom_get_online_list_js($users);
     }
   }
-  $cache_timestamp = @filemtime(drupal_get_path('module', 'chatroom') .'/chat_cache/chat_'. $chat_id);
+  $cache_timestamp = @filemtime('chat_cache/chat_'. $chat_id);
   $cache_js = '';
   if ($cache_timestamp) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
@@ -786,7 +775,7 @@ function chatroom_get_msg_info($msg) {
  */
 function chatroom_get_room_summary($room_id) {
   $result = db_query('SELECT     GREATEST(COUNT(cm.cmid), COUNT(cma.cmid)) AS msg_count,
-                                 GREATEST(MAX(cm.cmid),MAX(cma.cmid)) AS last_cmid,
+                                 MAX(cm.cmid) AS last_cmid,
                                  cc.ccid,
                                  cc.chatname,
                                  cc.when_archived

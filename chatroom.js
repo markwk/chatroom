@@ -34,7 +34,7 @@ var chatroomCallback = function(responseText, HttpRequest, chatroomDummyParam) {
       if (resArray[1].length) {
         chatroomUpdateOnlineList(resArray[1]);
       }
-      if (typeof resArray[2].cacheTimestamp != 'undefined') {
+      if (resArray.length > 2) {
         chatroom.cacheTimestamp = resArray[2].cacheTimestamp;
       }
     }
@@ -108,6 +108,7 @@ function chatroomSendMessage() {
   $('chatroom-msg-input').value = '';
   $('chatroom-msg-input').focus();
   if (msg.chatroomMsg) {
+    msg.chatroomMsg = escape(msg.chatroomMsg);
     chatroom.skipUpdate = true;
     chatroom.updateCount++;
     HTTPPost(chatroomGetUrl('write'), chatroomCallback, false, msg);
@@ -123,7 +124,7 @@ function chatroomGetUrl(type) {
       return chatroom.readUrl +'?chat_id='+ chatroom.chatId +'&last_msg_id='+ chatroom.lastMsgId 
              +'&update_count='+ chatroom.updateCount +'&timestamp='+ chatroom.cacheTimestamp;
     case 'write':
-      return chatroom.writeUrl + chatroom.chatId + '/' + chatroom.lastMsgId;
+      return chatroom.readUrl +'?chat_id='+ chatroom.chatId +'&last_msg_id='+ chatroom.lastMsgId;
     case 'user':
       return chatroom.userUrl;
   }
