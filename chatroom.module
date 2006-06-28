@@ -257,7 +257,7 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
               $title = t('Active chats');
               $content .= '<ul class="menu">';
               while ($chat = db_fetch_object($result)) {
-                $content .= '<li>'. l(check_plain($chat->name), "chatrooms/chat/$chat->ccid") 
+                $content .= '<li>'. l(check_plain($chat->chatname), "chatrooms/chat/$chat->ccid") 
                           . '<br /><i><small>in room '. l(check_plain($chat->room_name), "node/$chat->nid") 
                           .'</small></i></li>';
               }
@@ -381,7 +381,7 @@ function chatroom_set_chat_cache($chat_id) {
 /**
  * gets the chat cache file path
  */
-function chatroom_get_cache_file_path($chat_id) {
+function chatroom_get_cache_file_path($chat_id, $path = false) {
   if ($_SERVER['PHP_SELF'] == '/chatroomread.php') {
     $site_path = '';
   }
@@ -389,7 +389,11 @@ function chatroom_get_cache_file_path($chat_id) {
     $site_path = substr($_SERVER['PHP_SELF'], 1, -strlen('/chatroomread.php'));
     $site_path = str_replace(array('/', '.', ' '), array('_', '_', '-'), $site_path) .'_';
   }
-  return "modules/chatroom/chat_cache/{$site_path}chat_$chat_id";
+  if ($path === false) {
+    $file = db_result(db_query("SELECT filename FROM {system} WHERE name = '%s' AND type = '%s'", 'chatroom', 'module'));
+    $path = dirname($file);
+  }
+  return "./$path/chat_cache/{$site_path}chat_$chat_id";
 }
 
 /**
@@ -458,8 +462,8 @@ function chatroom_get_online_list_js($users) {
   $i = 0;
   $user_count = count($users);
   foreach ($users as $user) {
-    $name = $user->name ? $user->name : "guest-{$user->guest_id}";
-    $js .= '{user:"'. check_plain($name) .'",sessionId:"'. $user->session_id .'",uid:'. $user->uid .'}';
+    $name = $user->name ? check_plain($user->name) : "guest-{$user->guest_id}";
+    $js .= '{user:"'. $name .'",sessionId:"'. $user->session_id .'",uid:'. $user->uid .'}';
     $js .= ++$i == $user_count ? '' : ',';
   }
   return "[$js]";
@@ -599,14 +603,12 @@ function chatroom_add_chat_state_js($chat, $session_id, $clean_urls) {
   $read_url  = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
   $write_url = ($clean_urls ? '../../' : '?q=') . 'chatroom/writemsg/';
   $user_url  = ($clean_urls ? '../../' : '?q=') . 'user/';
-  $debug = variable_get('chatroom_debug', 'true');
   $timestamp = time() - (60 * 60);
   $js = <<<JS
 var chatroom = {chatId         : $chat->ccid, 
                 lastMsgId      : 0, 
                 cacheTimestamp : $timestamp, 
                 updateCount    : 0, 
-                debugMode      : $debug, 
                 cacheMisses    : 0, 
                 readUrl        : '$read_url',
                 writeUrl       : '$write_url',
@@ -657,10 +659,11 @@ function chatroom_chat($chat_id = false) {
   chatroom_chat_register_user($chat->ccid);
   chatroom_set_chat_cache($chat->ccid);
   $clean_urls = variable_get('clean_url', 0);
+  $css_path = (dirname($_SERVER['PHP_SELF']) == '/' ? '' : dirname($_SERVER['PHP_SELF'])) . '/';
   drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
-                        "href" => ($clean_urls ? '/' : '') . 'modules/chatroom/chatroom.css'));
-  drupal_add_js('modules/chatroom/chatroom.js');
-  drupal_add_js('modules/chatroom/chatroom.resizeable.js');
+                        "href" => $css_path . drupal_get_path('module', 'chatroom') .'/chatroom.css'));
+  drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.js');
+  drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.resizeable.js');
   chatroom_add_chat_state_js($chat, session_id(), $clean_urls);
 
   $bc = drupal_get_breadcrumb();
@@ -672,19 +675,8 @@ function chatroom_chat($chat_id = false) {
   $html .= chatroom_get_chat_board_html($chat);
   $html .= chatroom_get_online_list_html($chat);
   $html .= chatroom_get_textentry_html();
-  $html .= chatroom_get_debug_html();
   $html .= '</div>';
   return $html;
-}
-
-/**
- * output debug html
- */
-function chatroom_get_debug_html() {
-  return '<div id="chatroom-debug">
-          <p id="chatroom-debug-cache-stats"></p>
-          <p id="chatroom-debug-msg-info"></p>
-          </div>';
 }
 
 /**

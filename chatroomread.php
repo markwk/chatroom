@@ -24,15 +24,6 @@ if ($write_request === false) {
   } 
 }
 
-// need to get the path from the webroot, so that multi-site installs work
-if ($_SERVER['PHP_SELF'] == '/chatroomread.php') {
-  $site_path = '';
-}
-else {
-  $site_path = substr($_SERVER['PHP_SELF'], 1, -strlen('/chatroomread.php'));
-  $file_site_path = str_replace(array('/', '.', ' '), array('_', '_', '-'), $site_path) .'_';
-}
-
 // get the query values we're interested in
 $browser_timestamp = $_GET['timestamp'];
 $update_count      = $_GET['update_count'];
@@ -40,7 +31,12 @@ $chat_id           = $_GET['chat_id'];
 $last_msg_id       = $_GET['last_msg_id'];
 
 // setup path to file
-$cache_file = './modules/chatroom/chat_cache/'. $file_site_path .'chat_'. $chat_id;
+require './includes/bootstrap.inc';
+drupal_bootstrap(DRUPAL_BOOTSTRAP_DATABASE);
+$chatroom_module = db_result(db_query("SELECT filename FROM {system} WHERE name = '%s' AND type = '%s'", 
+                                      'chatroom', 'module'));
+require $chatroom_module;
+$cache_file = chatroom_get_cache_file_path($chat_id, dirname($chatroom_module));
 
 // are we just reading?
 if ($write_request === false) {
@@ -52,16 +48,14 @@ if ($write_request === false) {
       header("Cache-Control: no-store, no-cache, must-revalidate");
       header("Cache-Control: post-check=0, pre-check=0", false);
       header("Pragma: no-cache");
-      echo "[[],[]] /* $site_path {$_SERVER['PHP_SELF']} */";
+      echo "[[],[]]";
       exit;
     }
   }
 }
 
 // cache miss, so bootstrap drupal
-require './includes/bootstrap.inc';
 require './modules/user.module';
-require './modules/chatroom/chatroom.module';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 
 // are we writing?

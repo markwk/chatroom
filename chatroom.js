@@ -25,11 +25,8 @@ var chatroomCallback = function(responseText, HttpRequest, chatroomDummyParam) {
   if (HttpRequest.responseText) {
     var resArray = eval(HttpRequest.responseText);
     if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
-      if (chatroom.debugMode) {
-        chatroomUpdateDebugInfo(HttpRequest, resArray[0].length);
-      }
       if (resArray[0].length) {
-        chatroomUpdateMsgList(resArray[0]);
+        var scroll = chatroomUpdateMsgList(resArray[0]);
       }
       if (resArray[1].length) {
         chatroomUpdateOnlineList(resArray[1]);
@@ -39,22 +36,11 @@ var chatroomCallback = function(responseText, HttpRequest, chatroomDummyParam) {
       }
     }
   }
-  return;
-}
-
-/**
- * displays debug info
- */
-function chatroomUpdateDebugInfo(HttpRequest, cacheMiss) {
-  if (cacheMiss) {
-    chatroom.cacheMisses++;
+  if (scroll) {
+    var msgBoard = $('chatroom-board');
+    msgBoard.scrollTop = msgBoard.scrollHeight;
   }
-  $('chatroom-debug').removeChild($('chatroom-debug-cache-stats'));
-  var p = document.createElement('p');
-  p.id = 'chatroom-debug-cache-stats';
-  var cacheInfo = 'updates: ' + chatroom.updateCount + ' cache misses: ' + chatroom.cacheMisses;
-  p.appendChild(document.createTextNode(cacheInfo));
-  $('chatroom-debug').appendChild(p);
+  return;
 }
 
 /**
@@ -135,6 +121,7 @@ function chatroomGetUrl(type) {
  */
 function chatroomUpdateMsgList(msgs) {
   var msgBoard = $('chatroom-board');
+  var scroll = false;
   for (i = 0; i < msgs.length; i++) {
     if (chatroomUpdateLastMsg(msgs[i].id)) {
       var span = document.createElement('span');
@@ -143,7 +130,7 @@ function chatroomUpdateMsgList(msgs) {
         span.style.fontWeight = 'bold';
       }
       span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ': '));
-      var scroll = true;
+      scroll = true;
       var p = document.createElement('p');
       p.className = 'chatroom-msg';
       p.appendChild(span);
@@ -154,9 +141,7 @@ function chatroomUpdateMsgList(msgs) {
       msgBoard.appendChild(p);
     }
   }
-  if (scroll) {
-    msgBoard.scrollTop = msgBoard.scrollHeight;
-  }
+  return scroll;
 }
 
 /**

@@ -2,6 +2,15 @@ CHANGELOG
 ---------
 $Id$
 
+June 29, 2006
+- applied fix from drupal user groovy - thanks!
+  http://drupal.org/node/71247 - chat names not displaying in block
+- changed chatroomread.php, which now does a drupal database bootstrap
+  even for cache hits, because we need to get the path to the chatroom
+  module file
+- more path fixes, this time for this issue:
+  http://drupal.org/node/71226 - thanks again groovy!
+
 June 28, 2006
 - speed ups: write messages use chatroomread.php, and no ajax operations 
   incur more than a drupal session bootstrap. might be time to change the
