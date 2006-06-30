@@ -2,6 +2,13 @@ CHANGELOG
 ---------
 $Id$
 
+June 30, 2006
+- changed code again, sending module path and chatroom cache file
+  to brower, so can avoid session bootstrap on cache hit again
+- applied changes to make a query compatible with mysql 3.23 - thanks pacheco
+  http://drupal.org/node/70949
+- probably wont do much more until i've got the port to jQuery done
+
 June 29, 2006
 - applied fix from drupal user groovy - thanks!
   http://drupal.org/node/71247 - chat names not displaying in block

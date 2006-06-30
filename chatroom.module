@@ -369,38 +369,40 @@ function chatroom_create_chat_form($room_id) {
 }
 
 /**
- * updates chat's cache file modified time
+ * sets the chat's cache file by touching it
  */
 function chatroom_set_chat_cache($chat_id) {
-  $cache_file = chatroom_get_cache_file_path($chat_id);
-  if (!@file_exists($cache_file)) {
-    @touch($cache_file);
-  }
+  @touch(chatroom_get_cache_file_path($chat_id));
 }
 
 /**
- * gets the chat cache file path
+ * gets the chat cache file path. this function is called when loading the 
+ * chatroom UI, and the vaule is stored in the browser. this allows the
+ * common ajax operations to check the cache before loading up Drupal
  */
-function chatroom_get_cache_file_path($chat_id, $path = false) {
-  if ($_SERVER['PHP_SELF'] == '/chatroomread.php') {
+function chatroom_get_cache_file_path($chat_id) {
+  $cache_file = chatroom_get_cache_file_name($chat_id);
+  return './'. drupal_get_path('module', 'chatroom') ."/chat_cache/$cache_file";
+}
+
+/**
+ * get the chat's cache file name
+ */
+function chatroom_get_cache_file_name($chat_id) {
+  if ($_SERVER['PHP_SELF'] == '/index.php') {
     $site_path = '';
   }
   else {
-    $site_path = substr($_SERVER['PHP_SELF'], 1, -strlen('/chatroomread.php'));
+    $site_path = substr($_SERVER['PHP_SELF'], 1, -strlen('/index.php'));
     $site_path = str_replace(array('/', '.', ' '), array('_', '_', '-'), $site_path) .'_';
   }
-  if ($path === false) {
-    $file = db_result(db_query("SELECT filename FROM {system} WHERE name = '%s' AND type = '%s'", 'chatroom', 'module'));
-    $path = dirname($file);
-  }
-  return "./$path/chat_cache/{$site_path}chat_$chat_id";
+  return $site_path .'chat_'. $chat_id;
 }
 
 /**
  * updates chat's cache file modified time
  */
-function chatroom_update_chat_cache($chat_id) {
-  $cache_file = chatroom_get_cache_file_path($chat_id);
+function chatroom_update_chat_cache($chat_id, $cache_file) {
   if (@touch($cache_file)) {
     return @filemtime($cache_file);
   }
@@ -410,7 +412,7 @@ function chatroom_update_chat_cache($chat_id) {
 /**
  * handles requests that write a message into a chat
  */
-function chatroom_chat_write_msg($chat_id, $last_msg_id) {
+function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file) {
   global $user;
   $clean_msg = strip_tags(htmlentities(urldecode($_POST['chatroomMsg']), ENT_NOQUOTES));
   $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg, session_id, modified) 
@@ -423,7 +425,7 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id) {
     $msg_js = '[]';
   }
   $cache_js = '';
-  if ($result && $cache_timestamp = chatroom_update_chat_cache($chat_id)) {
+  if ($result && $cache_timestamp = chatroom_update_chat_cache($chat_id, $cache_file)) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
   return chatroom_send_ajax_response("[$msg_js, [] $cache_js]");
@@ -431,6 +433,9 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id) {
 
 /**
  * handles update or insert for user when loading a chatroom
+ *
+ * mysql 3.23 compatability patch form pacheco - thanks!
+ * http://drupal.org/node/70949
  */
 function chatroom_chat_register_user($chat_id) {
   global $user;
@@ -446,11 +451,17 @@ function chatroom_chat_register_user($chat_id) {
     chatroom_update_online_time($chat_id, $user->uid, $session_id);
   }
   else {
-    db_query("INSERT INTO {chatroom_online_list} (ccid, uid, session_id, guest_id, modified) 
-                  SELECT %d, %d, '%s', COALESCE(MAX(guest_id) + 1, 1), UNIX_TIMESTAMP()
-                  FROM   {chatroom_online_list} 
-                  WHERE  ccid = %d",
-              $chat_id, $user->uid, $session_id, $chat_id);
+    db_lock_table('chatroom_online_list');
+    $result = db_query("SELECT COALESCE(MAX(guest_id) + 1, 1) 
+                        FROM {chatroom_online_list}
+                        WHERE  ccid = %d", 
+                        $chat_id);              
+    if ($result && db_num_rows($result)) {          
+      db_query("INSERT INTO {chatroom_online_list} (ccid, uid, session_id, guest_id, modified) 
+                VALUES (%d, %d, '%s', %d, UNIX_TIMESTAMP())",
+                $chat_id, $user->uid, $session_id, db_result($result));
+    }
+    db_unlock_tables();
   }
 }
 
@@ -600,19 +611,20 @@ function chatroom_add_chat_state_js($chat, $session_id, $clean_urls) {
   if ($users = chatroom_get_online_list($chat->ccid)) {
     $users_js = chatroom_get_online_list_js($users);
   }
-  $read_url  = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
-  $write_url = ($clean_urls ? '../../' : '?q=') . 'chatroom/writemsg/';
-  $user_url  = ($clean_urls ? '../../' : '?q=') . 'user/';
-  $timestamp = time() - (60 * 60);
+  $chat_url    = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
+  $user_url    = ($clean_urls ? '../../' : '?q=') . 'user/';
+  $module_base = drupal_get_path('module', 'chatroom');
+  $cache_file  = chatroom_get_cache_file_name($chat->ccid);
+  $timestamp   = time() - (60 * 60);
   $js = <<<JS
 var chatroom = {chatId         : $chat->ccid, 
                 lastMsgId      : 0, 
                 cacheTimestamp : $timestamp, 
                 updateCount    : 0, 
-                cacheMisses    : 0, 
-                readUrl        : '$read_url',
-                writeUrl       : '$write_url',
+                chatUrl        : '$chat_url',
+                moduleBase     : '$module_base',
                 userUrl        : '$user_url',
+                cacheFile      : '$cache_file',
                 updateInterval : $chat->poll_freq,
                 userList       : $users_js,
                 userColours    : [],
@@ -663,6 +675,9 @@ function chatroom_chat($chat_id = false) {
   drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
                         "href" => $css_path . drupal_get_path('module', 'chatroom') .'/chatroom.css'));
   drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.js');
+  /**
+   * TODO: get rid of this and replace with native drupal resizeable text area
+   */
   drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.resizeable.js');
   chatroom_add_chat_state_js($chat, session_id(), $clean_urls);
 
@@ -747,6 +762,11 @@ function chatroom_get_chat_id($chat_id) {
  */
 function chatroom_get_chat_board_html() {
   return '<div id="chatroom-board"></div>';
+  /**
+   * would like to convert this to a "native" drupal resizeable...
+   * $form['chatroom_msg_board'] = array('#type' => 'textarea');
+   * return '<div id="chatroom-board-div">'. drupal_get_form('chatroom-board', $form) .'</div>';
+   */
 }
 
 /**

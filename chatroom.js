@@ -3,9 +3,10 @@
  * function to add chatroom events handlers to the onscreen widgets
  */
 var chatroomAddEvents = function() {
+  chatroom.cachePath = chatroom.moduleBase + chatroom.cacheFile;
   chatroomLoadHexColours();
   $('chatroom-msg-submit').onclick= function() {
-    chatroomSendMessage('button');
+    chatroomSendMessage();
     return false;
   }
   $('chatroom-msg-input').onkeyup = function(e) { 
@@ -81,7 +82,7 @@ function chatroomInputOnkeyup(input, e) {
   }
   switch (e.keyCode) {
     case 13:  // return/enter 
-      chatroomSendMessage('enter');
+      chatroomSendMessage();
       break;
   }
 }
@@ -94,9 +95,13 @@ function chatroomSendMessage() {
   $('chatroom-msg-input').value = '';
   $('chatroom-msg-input').focus();
   if (msg.chatroomMsg) {
-    msg.chatroomMsg = escape(msg.chatroomMsg);
     chatroom.skipUpdate = true;
     chatroom.updateCount++;
+
+    msg.module_base = chatroom.moduleBase;
+    msg.chatroomMsg = escape(msg.chatroomMsg);
+    msg.chat_id     = chatroom.chatId;
+    msg.last_msg_id = chatroom.lastMsgId;
     HTTPPost(chatroomGetUrl('write'), chatroomCallback, false, msg);
   }
 }
@@ -107,10 +112,8 @@ function chatroomSendMessage() {
 function chatroomGetUrl(type) {
   switch (type) {
     case 'read':
-      return chatroom.readUrl +'?chat_id='+ chatroom.chatId +'&last_msg_id='+ chatroom.lastMsgId 
-             +'&update_count='+ chatroom.updateCount +'&timestamp='+ chatroom.cacheTimestamp;
     case 'write':
-      return chatroom.readUrl +'?chat_id='+ chatroom.chatId +'&last_msg_id='+ chatroom.lastMsgId;
+      return chatroom.chatUrl;
     case 'user':
       return chatroom.userUrl;
   }
@@ -197,8 +200,13 @@ function chatroomGetUpdates() {
     chatroom.skipUpdate = false;
     return;
   }
-  chatroom.updateCount++;
-  return HTTPGet(chatroomGetUrl('read'), chatroomCallback, false);
+  var postData = {chat_id:chatroom.chatId};
+  postData.last_msg_id  = chatroom.lastMsgId;
+  postData.timestamp    = chatroom.cacheTimestamp;
+  postData.update_count = ++chatroom.updateCount;
+  postData.module_base  = chatroom.moduleBase;
+  postData.cache_file   = chatroom.cacheFile;
+  return HTTPPost(chatroomGetUrl('read'), chatroomCallback, false, postData);
 }
 
 /**
