@@ -9,6 +9,7 @@ if (!isset($_POST['chat_id'])                     ||
     !isset($_POST['module_base'])                 ||
     !preg_match('/^\d+$/', $_POST['chat_id'])     ||
     !preg_match('/^\d+$/', $_POST['last_msg_id'])) { 
+
   echo '/** UR3l33t! first **/';
   exit;
 } 
@@ -21,6 +22,7 @@ if ($write_request === false) {
       !isset($_POST['update_count'])                 ||
       !preg_match('/^\d+$/', $_POST['timestamp'])    || 
       !preg_match('/^\d+$/', $_POST['update_count'])) {
+
     echo '/** UR3l33t! second **/';
     exit;
   } 
@@ -28,7 +30,10 @@ if ($write_request === false) {
 
 // if doesn't exist, or real path to module base doesn't start with 'modules', just exit
 $module_base = urldecode($_POST['module_base']);
-if (!$module_base || substr($module_base, 0, strlen('modules')) != 'modules') {
+if (!$module_base                                           || 
+    substr($module_base, 0, strlen('modules')) != 'modules' || 
+    strpos($module_base, '..') !== FALSE)                    {
+
   echo "/** UR3l33t! module **/";
   exit;
 }
