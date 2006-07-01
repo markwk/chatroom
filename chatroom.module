@@ -185,12 +185,10 @@ function chatroom_load($node) {
  * Implementation of hook_view().
  */
 function chatroom_view(&$node) {
-  if ($node->type == 'chatroom') {
-    $bc = drupal_get_breadcrumb();
-    if (count($bc)) {
-      $bc[] = l('Chatrooms', 'chatrooms/');
-      drupal_set_breadcrumb($bc);
-    }
+  $bc = drupal_get_breadcrumb();
+  if (count($bc)) {
+    $bc[] = l('Chatrooms', 'chatrooms/');
+    drupal_set_breadcrumb($bc);
   }
   if (user_access('create chats')) {
     $node->body .= chatroom_create_chat_form($node->chatroom->crid);
@@ -272,10 +270,13 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
                     FROM       {chatroom} AS cr
                     INNER JOIN {node_revisions} AS nr
                     ON         nr.nid = cr.nid
+                    INNER JOIN {node} AS n
+                    ON         n.nid = nr.nid
                     LEFT JOIN  {chatroom_chat} AS cc
                     ON         cc.crid = cr.crid
                     WHERE      cc.when_archived IS NULL
-                    GROUP BY   cr.nid';
+                    GROUP BY   cr.nid
+                    ORDER BY n.sticky DESC, nr.timestamp DESC';
             $result = db_query_range($sql, 0, variable_get('chatroom_block_chatrooms', '5'));
             if (db_num_rows($result)) {
               $title = t('Active chatrooms');
@@ -848,10 +849,13 @@ function chatroom_get_chatroom_list() {
                       FROM       {chatroom} AS cr
                       INNER JOIN {node_revisions} AS nr
                       ON         nr.nid = cr.nid
+                      INNER JOIN {node} AS n
+                      ON         n.nid = nr.nid
                       LEFT JOIN  {chatroom_chat} AS cc
                       ON         cc.crid = cr.crid
                       WHERE      cc.when_archived IS NULL
-                      GROUP BY   cr.crid');
+                      GROUP BY   cr.crid
+                      ORDER BY   n.sticky DESC, nr.timestamp DESC');
   if ($result && db_num_rows($result)) {
     while ($room = db_fetch_object($result)) {
       $rooms[] = $room;
