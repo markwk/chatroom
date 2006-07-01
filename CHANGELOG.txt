@@ -2,6 +2,10 @@ CHANGELOG
 ---------
 $Id$
 
+July 1, 2006
+- added input filter widget to chatroom form
+  http://drupal.org/node/71658 - thanks jason
+
 June 30, 2006
 - changed code again, sending module path and chatroom cache file
   to brower, so can avoid session bootstrap on cache hit again
