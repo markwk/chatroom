@@ -714,7 +714,7 @@ function chatroom_home() {
     foreach ($chatrooms as $room) {
       $rows[] = array(
         array('data' => l(check_plain($room->title), "node/$room->nid")),
-        array('data' => check_plain($room->body)),
+        array('data' => filter_xss($room->body)),
         array('data' => $room->chat_count)
       );
     }
