@@ -104,7 +104,7 @@ function chatroom_form(&$node) {
   $form['body_filter']['body'] = array(
     '#type' => 'textarea', 
     '#title' => t('Description'), 
-    '#default_value' => check_plain($node->body), 
+    '#default_value' => filter_xss($node->body), 
     '#rows' => 3, 
     '#description' => t('Describe your chatroom so other people will know if they want to join.'),
     '#required' => TRUE
