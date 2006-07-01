@@ -109,6 +109,7 @@ function chatroom_form(&$node) {
     '#description' => t('Describe your chatroom so other people will know if they want to join.'),
     '#required' => TRUE
   );
+  $form['body_filter']['format'] = filter_form($node->format);
   if (count($node->chatroom->chats) && user_access('administer chatrooms')) {
     foreach ($node->chatroom->chats as $chat) {
       if ($chat->section != 'archives') {
