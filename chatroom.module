@@ -43,10 +43,6 @@ function chatroom_menu($may_cache) {
       'access' => user_access('create chatrooms'));
   }
   else {
-    $items[] = array('path' => 'chatroom/writemsg',
-      'callback' => 'chatroom_chat_write_msg',
-      'access' => user_access('access chatrooms'),
-      'type' => MENU_CALLBACK);
     $items[] = array('path' => 'chatrooms',
       'callback' => 'chatroom_home',
       'access' => user_access('access chatrooms'),
@@ -62,6 +58,10 @@ function chatroom_menu($may_cache) {
       'type' => MENU_CALLBACK);
     $items[] = array('path' => 'chatrooms/room',
       'callback' => 'chatroom_room',
+      'access' => user_access('access chatrooms'),
+      'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'chatroom/command',
+      'callback' => 'chatroom_chat_command',
       'access' => user_access('access chatrooms'),
       'type' => MENU_CALLBACK);
   }
@@ -303,7 +303,7 @@ function chatroom_archive_chat($chat_id) {
             SET when_archived = UNIX_TIMESTAMP() 
             WHERE ccid = %d', $chat_id);
   $result = db_query('INSERT INTO {chatroom_msg_archive} 
-                      (cmid, ccid, uid, msg, session_id, modified)
+                      (cmid, ccid, uid, msg_type, msg, session_id, recipient, modified)
                           SELECT *
                           FROM   {chatroom_msg} 
                           WHERE  ccid = %d', $chat_id);
@@ -343,7 +343,7 @@ function chatroom_create_chat_validate($f_id, $f_values) {
 }
 
 /**
- * handles requests that write a message into a chat
+ * returns a create chat form
  */
 function chatroom_create_chat_form($room_id) {
   $form['chatroom_create_chat'] = array(
@@ -412,14 +412,29 @@ function chatroom_update_chat_cache($chat_id, $cache_file) {
 }
 
 /**
+ * handles command requests from a chat
+ */
+function chatroom_chat_command() {
+  global $user;
+  switch ($_POST['cmd']) {
+    case 'msg':
+      $session_id = $_POST['sessionId'];
+      $msg_text   = $_POST['msg'];
+      break;
+    default:
+      $js = '/** UR3l33t! **/';
+  }
+  return chatroom_send_ajax_response($js);
+}
+
+/**
  * handles requests that write a message into a chat
  */
-function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file) {
+function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $recipient = null, $type = null) {
   global $user;
-  $clean_msg = strip_tags(htmlentities(urldecode($_POST['chatroomMsg']), ENT_NOQUOTES));
-  $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg, session_id, modified) 
-                      VALUES (%d, %d, '%s', '%s', UNIX_TIMESTAMP())",
-                      $chat_id, $user->uid, $clean_msg, session_id()); 
+  $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg_type, msg, session_id, recipient, modified) 
+                      VALUES (%d, %d, '%s', '%s', '%s', '%s', UNIX_TIMESTAMP())",
+                      $chat_id, $user->uid, $type, $msg, session_id(), $recipient); 
   if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
     $msg_js = chatroom_get_latest_msgs_js($msgs);
   }
@@ -430,7 +445,7 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file) {
   if ($result && $cache_timestamp = chatroom_update_chat_cache($chat_id, $cache_file)) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
-  return chatroom_send_ajax_response("[$msg_js, [] $cache_js]");
+  return chatroom_send_ajax_response("[$msg_js, [] $cache_js]/** $recipient **/");
 }
 
 /**
@@ -493,7 +508,8 @@ function chatroom_get_latest_msgs_js($msgs) {
     $name = $msg->name ? $msg->name : "guest-{$msg->guest_id}";
     $time = date('G:i', $msg->modified);
     $js .= '{id:'. $msg->cmid .',text:"'. str_replace('"', '\"', $msg->msg);
-    $js .= '",user:"'. $name .'",time:"'. $time .'"}' . (++$i == $msg_count ? '' : ',');
+    $js .= '",user:"'. $name .'",time:"'. $time .'",recipient:"'. $msg->recipient .'",'; 
+    $js .= 'type:"'. $msg->msg_type .'"}'. (++$i == $msg_count ? '' : ',');
   }
   return "[$js]";
 }
@@ -586,7 +602,8 @@ function chatroom_get_all_msgs($chat_id, $archive = FALSE) {
  * get all msg for chatroom after last message
  */
 function chatroom_get_latest_msgs($chat_id, $last_msg_id) {
-  $result = db_query('SELECT     cm.*,
+  $session_id = session_id();
+  $result = db_query("SELECT     cm.*,
                                  du.name,
                                  col.guest_id
                       FROM       {chatroom_msg} AS cm
@@ -596,8 +613,9 @@ function chatroom_get_latest_msgs($chat_id, $last_msg_id) {
                       ON         du.uid = cm.uid
                       WHERE      cm.ccid = %d
                       AND        cm.cmid > %d
-                      ORDER BY   cm.cmid ASC',
-                      $chat_id, $last_msg_id);
+                      AND        (cm.recipient = '' || cm.recipient = '%s' || cm.session_id = '%s')
+                      ORDER BY   cm.cmid ASC",
+                      $chat_id, $last_msg_id, $session_id, $session_id);
   $msgs = array();
   while ($msg = db_fetch_object($result)) {
     $msgs[] = $msg;

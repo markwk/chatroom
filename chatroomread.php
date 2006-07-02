@@ -30,7 +30,7 @@ if ($write_request === false) {
 
 // if doesn't exist, or real path to module base doesn't start with 'modules', just exit
 $module_base = urldecode($_POST['module_base']);
-if (!$module_base                                           || 
+if (!is_dir($module_base)                                   || 
     substr($module_base, 0, strlen('modules')) != 'modules' || 
     strpos($module_base, '..') !== FALSE)                    {
 
@@ -72,7 +72,10 @@ drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 
 // are we writing?
 if ($write_request) {
-  chatroom_chat_write_msg($chat_id, $last_msg_id, $update_count);
+  $msg       = strip_tags(htmlentities(urldecode($_POST['chatroomMsg']), ENT_NOQUOTES));
+  $recipient = empty($_POST['recipient']) ? "" : $_POST['recipient'];
+  $type      = is_null($_POST['type']) ? "msg" : $_POST['type'];
+  chatroom_chat_write_msg($chat_id, $last_msg_id, $chat_cache_file, $msg, $recipient, $type);
 }
 else {
   chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count);

@@ -20,9 +20,9 @@ var chatroomAddEvents = function() {
 }
 
 /**
- * handles response from HTTP requests
+ * handles response from msg HTTP requests
  */
-var chatroomCallback = function(responseText, HttpRequest, chatroomDummyParam) {
+var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam) {
   if (HttpRequest.responseText) {
     var resArray = eval(HttpRequest.responseText);
     if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
@@ -44,6 +44,15 @@ var chatroomCallback = function(responseText, HttpRequest, chatroomDummyParam) {
   return;
 }
 
+/**
+ * handles response from command HTTP requests
+ */
+var chatroomCmdCallback = function(responseText, HttpRequest, chatroomDummyParam) {
+  if (HttpRequest.responseText) {
+    alert(HttpRequest.responseText);
+  }
+  return;
+}
 /**
  * function to load initial user list on page load
  */
@@ -91,18 +100,72 @@ function chatroomInputOnkeyup(input, e) {
  * sends text of message to the server
  */
 function chatroomSendMessage() {
-  var msg = {chatroomMsg:$('chatroom-msg-input').value.replace(/^\s+|\s+$/, '')};
+  var text = $('chatroom-msg-input').value.replace(/^\s+/g, '');
+  if (text.search(/^\/(me|whois|away|msg)/) != -1) {
+    return chatroomSendCommand(text);
+  }
+  else if (text == '') {
+    return;
+  }
+  var msg = {chatroomMsg:text};
   $('chatroom-msg-input').value = '';
   $('chatroom-msg-input').focus();
-  if (msg.chatroomMsg) {
-    chatroom.skipUpdate = true;
-    chatroom.updateCount++;
+  chatroom.skipUpdate = true;
+  chatroom.updateCount++;
 
-    msg.module_base = chatroom.moduleBase;
-    msg.chatroomMsg = escape(msg.chatroomMsg);
-    msg.chat_id     = chatroom.chatId;
-    msg.last_msg_id = chatroom.lastMsgId;
-    HTTPPost(chatroomGetUrl('write'), chatroomCallback, false, msg);
+  msg.module_base = chatroom.moduleBase;
+  msg.chatroomMsg = escape(msg.chatroomMsg);
+  msg.chat_id     = chatroom.chatId;
+  msg.last_msg_id = chatroom.lastMsgId;
+  HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
+}
+
+/**
+ * process a command and sends it to the server
+ */
+function chatroomSendCommand(text) {
+  $('chatroom-msg-input').value = '';
+  $('chatroom-msg-input').focus();
+
+  var cmd  = text.replace(/^\//, '').split(' ')[0];
+  var args = text.replace(/^\//, '').split(' ').slice(1);
+
+  switch (cmd) {
+    case 'msg':
+      if (args.length < 2) {
+        return;
+      }
+      else {
+        var user = args.shift();
+      }
+      for (i =0; i < chatroom.userList.length; i++) {
+        if (chatroom.userList[i].user == user) {
+          if (chatroom.userList[i].sessionId == chatroom.sessionId) {
+            return;
+          }
+          var msg = {chatroomMsg:escape(args.join(' '))};
+          msg.module_base = chatroom.moduleBase;
+          msg.chat_id     = chatroom.chatId;
+          msg.last_msg_id = chatroom.lastMsgId;
+          msg.recipient   = chatroom.userList[i].sessionId;
+          return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
+        }
+      }
+      break;
+
+    case 'me':
+      if (args.length == 0) {
+        return;
+      }
+      else {
+        var msg = {chatroomMsg:escape(args.join(' '))};
+        msg.module_base = chatroom.moduleBase;
+        msg.chat_id     = chatroom.chatId;
+        msg.last_msg_id = chatroom.lastMsgId;
+        msg.type        = 'me';
+        return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
+      }
+      break;
   }
 }
 
@@ -113,6 +176,7 @@ function chatroomGetUrl(type) {
   switch (type) {
     case 'read':
     case 'write':
+    case 'command':
       return chatroom.chatUrl;
     case 'user':
       return chatroom.userUrl;
@@ -132,14 +196,33 @@ function chatroomUpdateMsgList(msgs) {
         span.style.color = chatroomGetUserColour(msgs[i].user);
         span.style.fontWeight = 'bold';
       }
-      span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ': '));
+      if (msgs[i].recipient) {
+        span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ' private: '));
+      }
+      else if (msgs[i].type == 'me') {
+        span.appendChild(document.createTextNode('* ' + msgs[i].user + ' ' + msgs[i].text));
+        span.style.fontStyle = 'italic';
+        if (chatroom.updateCount != 1) {
+          span.style.color = '#7777FF';
+        }
+      }
+      else {
+        span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ':'));
+      }
       scroll = true;
       var p = document.createElement('p');
-      p.className = 'chatroom-msg';
-      p.appendChild(span);
-      p.appendChild(document.createTextNode(msgs[i].text));
       if (chatroom.updateCount == 1) {
         addClass(p, 'chatroom-old-msg');
+      }
+      else if (msgs[i].type == 'me') {
+        addClass(p, 'chatroom-me-msg');
+      }
+      else {
+        addClass(p, 'chatroom-msg');
+      }
+      p.appendChild(span);
+      if (msgs[i].type != 'me') {
+        p.appendChild(document.createTextNode(msgs[i].text));
       }
       msgBoard.appendChild(p);
     }
@@ -206,7 +289,7 @@ function chatroomGetUpdates() {
   postData.update_count = ++chatroom.updateCount;
   postData.module_base  = chatroom.moduleBase;
   postData.cache_file   = chatroom.cacheFile;
-  return HTTPPost(chatroomGetUrl('read'), chatroomCallback, false, postData);
+  return HTTPPost(chatroomGetUrl('read'), chatroomMsgCallback, false, postData);
 }
 
 /**

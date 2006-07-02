@@ -2,6 +2,18 @@ CHANGELOG
 ---------
 $Id$
 
+July 2, 2006
+- added first hacky implementation of '/msg' and '/me'. code is not
+  the cleanest and UI could do with some work. usage:
+
+  /msg <username> <msg text>
+  the following message will show up in <user_name>'s chat only:
+  [<time>] <sending_username> private: <msg text>
+
+  /me <msg text>
+  will show up italicised in all users chats:
+  * <username> <msg text>
+
 July 1, 2006
 - added input filter widget to chatroom form
   http://drupal.org/node/71658 - thanks jason

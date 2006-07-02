@@ -30,23 +30,31 @@ function chatroom_install() {
         cmid int(11) NOT NULL AUTO_INCREMENT,
         ccid int(11) NOT NULL,
         uid int(11) NOT NULL,
+        msg_type varchar(64) NOT NULL,
         msg longtext NOT NULL,
         session_id varchar(255) NOT NULL,
+        recipient varchar(255) NOT NULL,
         modified int(11) NOT NULL default '0',
         PRIMARY KEY  (cmid),
         KEY ccid (ccid),
         KEY session_id (session_id),
+        KEY recipient (recipient),
         KEY modified (modified)
       ) TYPE=MyISAM;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_msg_archive} (
         cmid int(11) NOT NULL,
         ccid int(11) NOT NULL,
         uid int(11) NOT NULL,
+        msg_type varchar(64) NOT NULL,
         msg longtext NOT NULL,
         session_id varchar(255) NOT NULL,
+        recipient varchar(255) NOT NULL,
         modified int(11) NOT NULL default '0',
         PRIMARY KEY  (cmid),
-        KEY ccid (ccid,uid,modified)
+        KEY ccid (ccid),
+        KEY session_id (session_id),
+        KEY recipient (recipient),
+        KEY modified (modified)
       ) TYPE=MyISAM;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
         coid int(11) NOT NULL AUTO_INCREMENT,
