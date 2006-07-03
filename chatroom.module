@@ -312,7 +312,7 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
                 $content .= "<li><strong>$username online in:</strong>";
                 $content .= '<ul>';
                 foreach ($chats as $chat) {
-                  $content .= '<li>'. l(check_plain($chat->chatname), "chatroom/chat/$chat->ccid") .'</li>';
+                  $content .= '<li>'. l(check_plain($chat->chatname), "chatrooms/chat/$chat->ccid") .'</li>';
                 }
                 $content .= '</ul></li>';
               }
