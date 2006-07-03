@@ -217,29 +217,30 @@ function chatroom_view(&$node) {
  * Implementation of hook_block().
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
-  $type = $delta == 0 ? 'chats' : 'chatrooms';
-  $options = range(2, $delta ? 20 : 10);
+  $types = array(array('chats',             'active chats'),
+                 array('chatrooms',         'active chatrooms'),
+                 array('online_chat_users', 'online chat users'));
   switch ($op) {
     case 'list':
-      $blocks[0]['info'] = t('Active chats');
-      $blocks[1]['info'] = t('Active chatrooms');
+      $blocks[0]['info'] = t($types[0][1]);
+      $blocks[1]['info'] = t($types[1][1]);
+      $blocks[2]['info'] = t($types[2][1]);
       return $blocks;
     case 'configure':
-      $form["chatroom_block_$type"] = array(
+      $form["chatroom_block_{$types[$delta][0]}"] = array(
         '#type' => 'select', 
-        '#title' => t("Number of $type to display"), 
-        '#default_value' => variable_get("chatroom_block_$type", '5'), 
-        '#options' => drupal_map_assoc($options)
+        '#title' => t("Number of {$types[$delta][1]} to display"), 
+        '#default_value' => variable_get("chatroom_block_{$types[$delta][0]}", '5'), 
+        '#options' => drupal_map_assoc(range(1, 15))
       );
       return $form;
     case 'save':
-      variable_set("chatroom_block_$type", $edit["chatroom_block_$type"]);
+      variable_set("chatroom_block_{$types[$delta][0]}", $edit["chatroom_block_{$types[$delta][0]}"]);
       break;
     case 'view':
       $content = '';
-      $title = '';
       if (user_access('access chatrooms') && $_GET['q'] != 'chatrooms') {
-        switch ($type) {
+        switch ($types[$delta][0]) {
           case 'chats':
             $sql = 'SELECT     cc.*,
                                nr.title AS room_name,
@@ -251,9 +252,8 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
                     ON         nr.nid = cr.nid
                     WHERE      cc.when_archived IS NULL 
                     ORDER BY   cc.modified DESC';
-            $result = db_query_range($sql, 0, variable_get('chatroom_block_chats', '5'));
+            $result = db_query_range($sql, 0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
             if (db_num_rows($result)) {
-              $title = t('Active chats');
               $content .= '<ul class="menu">';
               while ($chat = db_fetch_object($result)) {
                 $content .= '<li>'. l(check_plain($chat->chatname), "chatrooms/chat/$chat->ccid") 
@@ -277,9 +277,8 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
                     WHERE      cc.when_archived IS NULL
                     GROUP BY   cr.nid
                     ORDER BY n.sticky DESC, nr.timestamp DESC';
-            $result = db_query_range($sql, 0, variable_get('chatroom_block_chatrooms', '5'));
+            $result = db_query_range($sql, 0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
             if (db_num_rows($result)) {
-              $title = t('Active chatrooms');
               $content .= '<ul class="menu">';
               while ($room = db_fetch_object($result)) {
                 $content .= '<li>'. l(check_plain($room->title), "node/$room->nid") .'</li>';
@@ -287,8 +286,41 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
               $content .= '</ul>';
             }
             break;
+          case 'online_chat_users':
+            $sql = 'SELECT     u.name, 
+                               u.uid,
+                               cc.chatname,
+                               cc.ccid
+                    FROM       {chatroom_online_list} AS col
+                    INNER JOIN {chatroom_chat} AS cc 
+                    ON         cc.ccid = col.ccid
+                    INNER JOIN {chatroom} AS cr
+                    ON         cr.crid = cc.crid
+                    INNER JOIN {users} AS u 
+                    ON         u.uid = col.uid
+                    WHERE      col.modified > (UNIX_TIMESTAMP() - 7)
+                    AND        col.uid != 0
+                    ORDER BY   u.name';
+            $result = db_query_range($sql, 0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
+            if (db_num_rows($result)) {
+              $users = array();
+              while ($ol_user = db_fetch_object($result)) {
+                $users[$ol_user->name][] = $ol_user;
+              }
+              $content .= '<ul class="menu">';
+              foreach ($users as $username => $chats) {
+                $content .= "<li><strong>$username online in:</strong>";
+                $content .= '<ul>';
+                foreach ($chats as $chat) {
+                  $content .= '<li>'. l(check_plain($chat->chatname), "chatroom/chat/$chat->ccid") .'</li>';
+                }
+                $content .= '</ul></li>';
+              }
+              $content .= '</ul>';
+            }
+            break;
         }
-        $block['subject'] = $title;
+        $block['subject'] = $content ? t($types[$delta][1]) : '';
         $block['content'] = $content;
         return $block;
      }
