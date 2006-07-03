@@ -207,7 +207,7 @@ function chatroomUpdateMsgList(msgs) {
         }
       }
       else {
-        span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ':'));
+        span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ': '));
       }
       scroll = true;
       var p = document.createElement('p');
