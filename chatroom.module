@@ -152,8 +152,11 @@ function chatroom_update($node) {
  * Implementation of hook_insert()
  */
 function chatroom_insert($node) {
-  db_query("INSERT INTO {chatroom} (nid, poll_freq, modified) VALUES (%d, %d, UNIX_TIMESTAMP())", 
-            $node->nid, 1000 * $node->chatroom_poll_freq);
+  $result = db_query("INSERT INTO {chatroom} (nid, poll_freq, modified) VALUES (%d, %d, UNIX_TIMESTAMP())", 
+                     $node->nid, 1000 * $node->chatroom_poll_freq);
+  if ($result) {
+    chatroom_block_update_cache('chatrooms');
+  }
 }
 
 /**
@@ -168,6 +171,7 @@ function chatroom_delete(&$node) {
     db_query('DELETE FROM chatroom_online_list WHERE ccid IN (%s)', $ccids);
     db_query('DELETE FROM chatroom_msg_archive WHERE ccid IN (%s)', $ccids);
   }
+  chatroom_block_update_cache('chatrooms');
 }
 
 /**
@@ -217,15 +221,19 @@ function chatroom_view(&$node) {
  * Implementation of hook_block().
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
+  static $block_state_set;
+
   $types = array(array('chats',             'active chats'),
                  array('chatrooms',         'active chatrooms'),
-                 array('online_chat_users', 'online chat users'));
+                 array('online_chat_users', 'chat online list'));
+
   switch ($op) {
     case 'list':
       $blocks[0]['info'] = t($types[0][1]);
       $blocks[1]['info'] = t($types[1][1]);
       $blocks[2]['info'] = t($types[2][1]);
       return $blocks;
+
     case 'configure':
       $form["chatroom_block_{$types[$delta][0]}"] = array(
         '#type' => 'select', 
@@ -234,97 +242,103 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
         '#options' => drupal_map_assoc(range(1, 15))
       );
       return $form;
+
     case 'save':
       variable_set("chatroom_block_{$types[$delta][0]}", $edit["chatroom_block_{$types[$delta][0]}"]);
       break;
+
     case 'view':
+      /**
+       * hack to set up cache files - can't find a way to do this on 
+       * enable/disable of chatroom blocks
+       */
+      if ($types[$delta][0] != 'online_chat_users' && !@file_exists(chatroom_block_get_cache_file($types[$delta][0]))) {
+        chatroom_block_update_cache($types[$delta][0]);
+      }
+      $css_path = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . '/');
+      drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
+                            "href" => $css_path . drupal_get_path('module', 'chatroom') .'/chatroom.css'));
+
       $content = '';
-      if (user_access('access chatrooms') && $_GET['q'] != 'chatrooms') {
+      if (user_access('access chatrooms')) {
         switch ($types[$delta][0]) {
+
           case 'chats':
-            $sql = 'SELECT     cc.*,
-                               nr.title AS room_name,
-                               cr.nid
-                    FROM       {chatroom_chat} AS cc
-                    INNER JOIN {chatroom} AS cr
-                    ON         cr.crid = cc.crid
-                    INNER JOIN {node_revisions} AS nr
-                    ON         nr.nid = cr.nid
-                    WHERE      cc.when_archived IS NULL 
-                    ORDER BY   cc.modified DESC';
-            $result = db_query_range($sql, 0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
-            if (db_num_rows($result)) {
-              $content .= '<ul class="menu">';
-              while ($chat = db_fetch_object($result)) {
-                $content .= '<li>'. l(check_plain($chat->chatname), "chatrooms/chat/$chat->ccid") 
-                          . '<br /><i><small>in room '. l(check_plain($chat->room_name), "node/$chat->nid") 
-                          .'</small></i></li>';
+            $content .= '<ul class="menu" id="chatroom-sitewide-chats">';
+            $chats = chatroom_get_active_chats(0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
+            if ($chats) {
+              foreach ($chats as $chat) {
+                $chat_link = l(check_plain($chat->chatname), "chatrooms/chat/$chat->ccid");
+                $room_link = l(check_plain($chat->room_name), "node/$chat->nid");
+                $content .= '<li id="chat_'. $chat->ccid .'">'. $chat_link .'<br />';
+                $content .= '<span class="chatroomLink">in room '. $room_link .'</span></li>';
               }
-              $content .= '</ul>';
             }
+            else {
+              $content .= '<li id="chat_empty"><em>There are no active chats</em></li>';
+            }
+            $content .= '</ul>';
+            $block['subject'] = $content ? t($types[$delta][1]) : false;
             break;
+
           case 'chatrooms':
-            $sql = 'SELECT     cr.nid, 
-                               nr.title,
-                               COUNT(cc.ccid) AS chat_count
-                    FROM       {chatroom} AS cr
-                    INNER JOIN {node_revisions} AS nr
-                    ON         nr.nid = cr.nid
-                    INNER JOIN {node} AS n
-                    ON         n.nid = nr.nid
-                    LEFT JOIN  {chatroom_chat} AS cc
-                    ON         cc.crid = cr.crid
-                    WHERE      cc.when_archived IS NULL
-                    GROUP BY   cr.nid
-                    ORDER BY n.sticky DESC, nr.timestamp DESC';
-            $result = db_query_range($sql, 0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
-            if (db_num_rows($result)) {
-              $content .= '<ul class="menu">';
-              while ($room = db_fetch_object($result)) {
-                $content .= '<li>'. l(check_plain($room->title), "node/$room->nid") .'</li>';
-              }
-              $content .= '</ul>';
-            }
-            break;
-          case 'online_chat_users':
-            $sql = 'SELECT     u.name, 
-                               u.uid,
-                               cc.chatname,
-                               cc.ccid
-                    FROM       {chatroom_online_list} AS col
-                    INNER JOIN {chatroom_chat} AS cc 
-                    ON         cc.ccid = col.ccid
-                    INNER JOIN {chatroom} AS cr
-                    ON         cr.crid = cc.crid
-                    INNER JOIN {users} AS u 
-                    ON         u.uid = col.uid
-                    WHERE      col.modified > (UNIX_TIMESTAMP() - 7)
-                    AND        col.uid != 0
-                    ORDER BY   u.name';
-            $result = db_query_range($sql, 0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
-            if (db_num_rows($result)) {
-              $users = array();
-              while ($ol_user = db_fetch_object($result)) {
-                $users[$ol_user->name][] = $ol_user;
-              }
-              $content .= '<ul class="menu">';
-              foreach ($users as $username => $chats) {
-                $content .= "<li><strong>$username online in:</strong>";
-                $content .= '<ul>';
-                foreach ($chats as $chat) {
-                  $content .= '<li>'. l(check_plain($chat->chatname), "chatrooms/chat/$chat->ccid") .'</li>';
+            if ($_GET['q'] != 'chatrooms') {
+              $content .= '<ul class="menu" id="chatroom-sitewide-chatrooms">';
+              $rooms = chatroom_get_chatroom_list(0, variable_get("chatroom_block_{$types[$delta][0]}", '5'));
+              if (is_array($rooms)) {
+                foreach ($rooms as $room) {
+                  $content .= '<li id="chatroom_'. $room->nid .'">'. l(check_plain($room->title), "node/$room->nid") .'</li>';
                 }
-                $content .= '</ul></li>';
+              }
+              else {
+                $content .= '<li id="chatroom_empty"><em>There are no active chatrooms</em></li>';
               }
               $content .= '</ul>';
             }
+            $block['subject'] = $content ? t($types[$delta][1]) : false;
+            break;
+
+          case 'online_chat_users':
+            list($content, $block['subject']) = chatroom_chat_get_block_online_list();
             break;
         }
-        $block['subject'] = $content ? t($types[$delta][1]) : '';
+        if ($content) {
+          chatroom_block_add_state_js();
+        }
         $block['content'] = $content;
         return $block;
      }
   }
+}
+
+/**
+ * gets a list of active chats
+ */
+function chatroom_get_active_chats($start = null, $end = null) {
+  $sql = 'SELECT     cc.*,
+                     nr.title AS room_name,
+                     cr.nid
+          FROM       {chatroom_chat} AS cc
+          INNER JOIN {chatroom} AS cr
+          ON         cr.crid = cc.crid
+          INNER JOIN {node_revisions} AS nr
+          ON         nr.nid = cr.nid
+          WHERE      cc.when_archived IS NULL 
+          ORDER BY   cc.modified DESC';
+  if (is_null($start) || is_null($end)) {
+    $result = db_query($sql);
+  }
+  else {
+    $result = db_query_range($sql, $start, $end);
+  }
+  if (db_num_rows($result)) {
+    $chats = array();
+    while ($chat = db_fetch_object($result)) {
+      $chats[] = $chat;
+    }
+    return $chats;
+  }
+  return false;
 }
 
 /**
@@ -347,6 +361,7 @@ function chatroom_archive_chat($chat_id) {
               SET when_archived = NULL 
               WHERE ccid = %d', $chat_id);
   }
+  chatroom_block_update_cache('chats');
   return $result;
 }
 
@@ -361,6 +376,9 @@ function chatroom_create_chat_submit($f_id, $f_values) {
   if (!$created) {
     drupal_set_message(t("There was an error creating your chat"), 'error');
   }
+  else {
+    chatroom_block_update_cache('chats');
+  }
 }
 
 /**
@@ -369,7 +387,8 @@ function chatroom_create_chat_submit($f_id, $f_values) {
 function chatroom_create_chat_validate($f_id, $f_values) {
   $crid = $f_values['room_id'];
   $name = $f_values['chat_name'];
-  if (db_num_rows(db_query("SELECT ccid FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s'", $crid, $name))) {
+  $sql = "SELECT ccid FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s' AND when_archived IS NULL";
+  if (db_num_rows(db_query($sql, $crid, $name))) {
     form_set_error('chatroom_chat_name', t("A chat called '$name' already exists"));
   }
 }
@@ -405,8 +424,8 @@ function chatroom_create_chat_form($room_id) {
 /**
  * sets the chat's cache file by touching it
  */
-function chatroom_set_chat_cache($chat_id) {
-  @touch(chatroom_get_cache_file_path($chat_id));
+function chatroom_chat_set_cache($chat_id) {
+  @touch(chatroom_chat_get_cache_file_path($chat_id));
 }
 
 /**
@@ -414,15 +433,15 @@ function chatroom_set_chat_cache($chat_id) {
  * chatroom UI, and the vaule is stored in the browser. this allows the
  * common ajax operations to check the cache before loading up Drupal
  */
-function chatroom_get_cache_file_path($chat_id) {
-  $cache_file = chatroom_get_cache_file_name($chat_id);
+function chatroom_chat_get_cache_file_path($chat_id) {
+  $cache_file = chatroom_chat_get_cache_file_name($chat_id);
   return './'. drupal_get_path('module', 'chatroom') ."/chat_cache/$cache_file";
 }
 
 /**
  * get the chat's cache file name
  */
-function chatroom_get_cache_file_name($chat_id) {
+function chatroom_chat_get_cache_file_name($chat_id) {
   if ($_SERVER['PHP_SELF'] == '/index.php') {
     $site_path = '';
   }
@@ -436,7 +455,7 @@ function chatroom_get_cache_file_name($chat_id) {
 /**
  * updates chat's cache file modified time
  */
-function chatroom_update_chat_cache($chat_id, $cache_file) {
+function chatroom_chat_update_cache($chat_id, $cache_file) {
   if (@touch($cache_file)) {
     return @filemtime($cache_file);
   }
@@ -467,14 +486,14 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $rec
   $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg_type, msg, session_id, recipient, modified) 
                       VALUES (%d, %d, '%s', '%s', '%s', '%s', UNIX_TIMESTAMP())",
                       $chat_id, $user->uid, $type, $msg, session_id(), $recipient); 
-  if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
-    $msg_js = chatroom_get_latest_msgs_js($msgs);
+  if ($msgs = chatroom_chat_get_latest_msgs($chat_id, $last_msg_id)) {
+    $msg_js = chatroom_chat_get_latest_msgs_js($msgs);
   }
   else {
     $msg_js = '[]';
   }
   $cache_js = '';
-  if ($result && $cache_timestamp = chatroom_update_chat_cache($chat_id, $cache_file)) {
+  if ($result && $cache_timestamp = chatroom_chat_update_cache($chat_id, $cache_file)) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
   return chatroom_send_ajax_response("[$msg_js, [] $cache_js]/** $recipient **/");
@@ -497,7 +516,7 @@ function chatroom_chat_register_user($chat_id) {
             $chat_id, $user->uid, $session_id);
 
   if (db_num_rows($result)) {
-    chatroom_update_online_time($chat_id, $user->uid, $session_id);
+    chatroom_chat_update_online_time($chat_id, $user->uid, $session_id);
   }
   else {
     db_lock_table('chatroom_online_list');
@@ -515,15 +534,64 @@ function chatroom_chat_register_user($chat_id) {
 }
 
 /**
+ * get block cache file
+ */
+function chatroom_block_get_cache_file($type) {
+  $url  = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . '/chatroomread.php');
+  return drupal_get_path('module', 'chatroom') ."/chat_cache/{$type}_". md5($_SERVER['HTTP_HOST'] . $url);
+}
+
+/**
+ * udpates a block cache file
+ */
+function chatroom_block_update_cache($type) {
+  @touch(chatroom_block_get_cache_file($type));
+}
+
+/**
+ * gets the js to update an active chats block 
+ */
+function chatroom_block_chat_update_js($cache_file) {
+  $timestamp = @filemtime($cache_file);
+  $chats = chatroom_get_active_chats(0, variable_get('chatroom_block_chats', '5'));
+  if ($chats) {
+    $chats_js = '';
+    foreach ($chats as $chat) {
+      $chat_js .= '{chatName:"'. $chat->chatname . '",chatListId:"chat_'. $chat->ccid .'",';
+      $chat_js .= 'ccid:'. $chat->ccid .',roomName:"'. $chat->room_name .'",crid:'. $chat->crid .'},';
+    }
+    return "[$chat_js $timestamp]";
+  }
+  return "[$timestamp]";
+}
+
+/**
+ * gets the js to update an active chatrooms block 
+ */
+function chatroom_block_room_update_js($cache_file) {
+  $timestamp = @filemtime($cache_file);
+  $rooms = chatroom_get_chatroom_list(0, variable_get('chatroom_block_chatrooms', '5'));
+  if ($rooms) {
+    $room_js = '';
+    foreach ($rooms as $room) {
+      $room_js .= '{chatroomName:"'. $room->title . '",chatroomListId:"chatroom_'. $room->nid .'",';
+      $room_js .= 'crid:'. $room->nid .'},';
+    }
+    return "[$room_js $timestamp]";
+  }
+  return "[$timestamp]";
+}
+
+/**
  * takes an array of online users and formats as js
  */
-function chatroom_get_online_list_js($users) {
+function chatroom_chat_get_online_list_js($users) {
   $js = '';
   $i = 0;
   $user_count = count($users);
-  foreach ($users as $user) {
-    $name = $user->name ? check_plain($user->name) : "guest-{$user->guest_id}";
-    $js .= '{user:"'. $name .'",sessionId:"'. $user->session_id .'",uid:'. $user->uid .'}';
+  foreach ($users as $ol_user) {
+    $name = $ol_user->name ? check_plain($ol_user->name) : "guest-{$ol_user->guest_id}";
+    $js .= '{user:"'. $name .'",sessionId:"'. $ol_user->session_id .'",uid:'. $ol_user->uid .'}';
     $js .= ++$i == $user_count ? '' : ',';
   }
   return "[$js]";
@@ -532,7 +600,7 @@ function chatroom_get_online_list_js($users) {
 /**
  * takes an array of msgs and formats as js
  */
-function chatroom_get_latest_msgs_js($msgs) {
+function chatroom_chat_get_latest_msgs_js($msgs) {
   $js = '';
   $i = 0;
   $msg_count = count($msgs);
@@ -549,7 +617,7 @@ function chatroom_get_latest_msgs_js($msgs) {
 /**
  * update a users online timestamp value
  */
-function chatroom_update_online_time($chat_id, $uid, $session_id) {
+function chatroom_chat_update_online_time($chat_id, $uid, $session_id) {
    db_query("UPDATE {chatroom_online_list} 
              SET modified = UNIX_TIMESTAMP() 
              WHERE ccid = %d 
@@ -561,20 +629,22 @@ function chatroom_update_online_time($chat_id, $uid, $session_id) {
 /**
  * handles requests that read info about a chat
  */
-function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count) {
+function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list = false) {
   if (!user_access('access chatrooms')) {
     return chatroom_send_ajax_response('/** UR3l33T! **/');
   }
   global $user;
   $msg_js   = '[]';
   $users_js = '[]';
-  chatroom_update_online_time($chat_id, $user->uid, session_id());
-  if ($msgs = chatroom_get_latest_msgs($chat_id, $last_msg_id)) {
-    $msg_js = chatroom_get_latest_msgs_js($msgs);
+  chatroom_chat_update_online_time($chat_id, $user->uid, session_id());
+  if ($msgs = chatroom_chat_get_latest_msgs($chat_id, $last_msg_id)) {
+    $msg_js = chatroom_chat_get_latest_msgs_js($msgs);
   }
-  if ($update_count == 1 || $update_count % 4 == 0) {
-    if ($users = chatroom_get_online_list($chat_id)) {
-      $users_js = chatroom_get_online_list_js($users);
+  if ($online_list) {
+    if ($update_count == 1 || $update_count % 4 == 0) {
+      if ($users = chatroom_chat_get_online_list($chat_id)) {
+        $users_js = chatroom_chat_get_online_list_js($users);
+      }
     }
   }
   $cache_timestamp = @filemtime('chat_cache/chat_'. $chat_id);
@@ -582,23 +652,55 @@ function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count) {
   if ($cache_timestamp) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
-  return chatroom_send_ajax_response("[$msg_js, $users_js $cache_js]");
+  return chatroom_send_ajax_response("[$msg_js, $users_js $cache_js] /* $chat_id $update_count $online_list */");
 }
 
 /**
  * gets a list of online users in a given chat
  */
-function chatroom_get_online_list($chat_id) {
-  $result = db_query("SELECT    col.uid, 
-                                col.session_id,
-                                col.guest_id,
-                                du.name
-                      FROM      {chatroom_online_list} AS col
-                      LEFT JOIN {users} AS du
-                      ON        du.uid = col.uid
-                      WHERE     ccid = %d 
-                      AND       modified > (UNIX_TIMESTAMP() - 5)
-                      ORDER BY  col.session_id",
+function chatroom_chat_get_block_online_list() {
+  if (!preg_match('/^chatrooms\/chat\/(\d+)/', $_GET['q'], $matches)) {
+    return array(false, false);
+  }
+  $title   = '';
+  $content = '';
+  $session_id = session_id();
+  if ($users = chatroom_chat_get_online_list($matches[1])) {
+    $content = '<ul class="menu" id="chatroom-online">';
+    foreach ($users as $ol_user) {
+      $name = $ol_user->name ? check_plain($ol_user->name) : "guest-{$ol_user->guest_id}";
+      $content .= '<li id="'. $ol_user->session_id .'"';
+      if ($ol_user->uid) {
+        $user_url = (variable_get('clean_url', 0) ? '../../' : '?q=') . 'user/';
+        $content .= '>'. l(check_plain($name), $user_url . $ol_user->uid). "</li>";
+      }
+      else {
+        $content .= ">$name</li>";
+      }
+    }
+    $content .= '</ul>';
+    $title = 'whois online in <em>'. check_plain($ol_user->chatname) .'</em>';
+  }
+  return array($content, $title);
+}
+
+/**
+ * gets a list of online users in a given chat
+ */
+function chatroom_chat_get_online_list($chat_id) {
+  $result = db_query("SELECT     col.uid, 
+                                 col.session_id,
+                                 col.guest_id,
+                                 cc.chatname,
+                                 du.name
+                      FROM       {chatroom_online_list} AS col
+                      INNER JOIN {chatroom_chat} AS cc
+                      ON         cc.ccid = col.ccid
+                      LEFT JOIN  {users} AS du
+                      ON         du.uid = col.uid
+                      WHERE      col.ccid = %d 
+                      AND        col.modified > (UNIX_TIMESTAMP() - 5)
+                      ORDER BY   col.session_id",
                       $chat_id);
   $users = array(); 
   while ($row = db_fetch_object($result)) {
@@ -633,7 +735,7 @@ function chatroom_get_all_msgs($chat_id, $archive = FALSE) {
 /**
  * get all msg for chatroom after last message
  */
-function chatroom_get_latest_msgs($chat_id, $last_msg_id) {
+function chatroom_chat_get_latest_msgs($chat_id, $last_msg_id) {
   $session_id = session_id();
   $result = db_query("SELECT     cm.*,
                                  du.name,
@@ -656,18 +758,19 @@ function chatroom_get_latest_msgs($chat_id, $last_msg_id) {
 }
 
 /**
- * helper function to add some js to the page head
+ * helper function to add some state information to a chat page
  */
-function chatroom_add_chat_state_js($chat, $session_id, $clean_urls) {
+function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   $users_js = '[]';
-  if ($users = chatroom_get_online_list($chat->ccid)) {
-    $users_js = chatroom_get_online_list_js($users);
+  if ($users = chatroom_chat_get_online_list($chat->ccid)) {
+    $users_js = chatroom_chat_get_online_list_js($users);
   }
   $chat_url    = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
   $user_url    = ($clean_urls ? '../../' : '?q=') . 'user/';
   $module_base = drupal_get_path('module', 'chatroom');
-  $cache_file  = chatroom_get_cache_file_name($chat->ccid);
+  $cache_file  = chatroom_chat_get_cache_file_name($chat->ccid);
   $timestamp   = time() - (60 * 60);
+  $online_list = variable_get('chatroom_online_list', 0) ? 'true' : 'true';
   $js = <<<JS
 var chatroom = {chatId         : $chat->ccid, 
                 lastMsgId      : 0, 
@@ -676,9 +779,10 @@ var chatroom = {chatId         : $chat->ccid,
                 chatUrl        : '$chat_url',
                 moduleBase     : '$module_base',
                 userUrl        : '$user_url',
-                cacheFile      : '$cache_file',
+                chatCacheFile  : '$cache_file',
                 updateInterval : $chat->poll_freq,
                 userList       : $users_js,
+                onlineList     : $online_list,
                 userColours    : [],
                 sessionId      : '$session_id'};
 JS;
@@ -686,10 +790,47 @@ JS;
 }
 
 /**
+ * helper function to add some state information to block pages 
+ */
+function chatroom_block_add_state_js() {
+  // only do this once per request
+  static $state_set = false;
+  if ($state_set === true) {
+    return;
+  }
+  $state_set = true;
+
+  // get some link information
+  $site_base   = dirname($_SERVER['PHP_SELF']) . (variable_get('clean_url', 0) ? '' : '?q='); 
+  $chat_base   = $site_base .'chatroom/chat/';
+  $room_base   = $site_base .'node/';
+  $module_base = drupal_get_path('module', 'chatroom');
+  $block_url   = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) .'/chatroomread.php');
+
+  // setup the cache file paths
+  $chat_cache_file = chatroom_block_get_cache_file('chats');
+  $room_cache_file = chatroom_block_get_cache_file('chatrooms');
+
+  // setup some timing variables
+  $poll_freq = variable_get('chatroom_block_poll_freq', 5000);
+  $timestamp = time() - (60 * 60);
+  
+  // put it all together
+  $js = <<<JS
+var chatroomBlock = {blockUrl:'$block_url',moduleBase:'$module_base',roomBase:'$room_base',
+                     chatBase:'$chat_base',chatCacheFile:'$chat_cache_file',roomCacheFile:'$room_cache_file',
+                     updateInterval:$poll_freq,chatTimestamp:$timestamp,roomTimestamp:$timestamp};
+JS;
+
+  drupal_set_html_head('<script type="text/javascript">'. $js .'</script>');
+  drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.block.js');
+}
+
+/**
  * loads an archived chat
  */
 function chatroom_chat_archive($chat_id = false) {
-  if ($chat_id === false || !($chat = chatroom_get_chat_id($chat_id))) {
+  if ($chat_id === false || !($chat = chatroom_chat_get_from_id($chat_id))) {
     return drupal_not_found();
   } 
   drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", "href" => "/modules/chatroom/chatroom.css"));
@@ -716,22 +857,17 @@ function chatroom_chat_archive($chat_id = false) {
  * loads the UI for a chat, and registers this user as online
  */
 function chatroom_chat($chat_id = false) {
-  if ($chat_id === false || !($chat = chatroom_get_chat_id($chat_id))) {
+  if ($chat_id === false || !($chat = chatroom_chat_get_from_id($chat_id))) {
     return drupal_not_found();
   } 
-
   chatroom_chat_register_user($chat->ccid);
-  chatroom_set_chat_cache($chat->ccid);
+  chatroom_chat_set_cache($chat->ccid);
   $clean_urls = variable_get('clean_url', 0);
-  $css_path = (dirname($_SERVER['PHP_SELF']) == '/' ? '' : dirname($_SERVER['PHP_SELF'])) . '/';
+  $css_path = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . '/');
   drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
                         "href" => $css_path . drupal_get_path('module', 'chatroom') .'/chatroom.css'));
   drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.js');
-  /**
-   * TODO: get rid of this and replace with native drupal resizeable text area
-   */
-  drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.resizeable.js');
-  chatroom_add_chat_state_js($chat, session_id(), $clean_urls);
+  chatroom_chat_add_state_js($chat, session_id(), $clean_urls);
 
   $bc = drupal_get_breadcrumb();
   $bc[] = l(check_plain($chat->chatroom_name), "node/$chat->nid");
@@ -739,9 +875,8 @@ function chatroom_chat($chat_id = false) {
 
   drupal_set_title(check_plain($chat->chatname));
   $html = '<div id="chatroom-container">';
-  $html .= chatroom_get_chat_board_html($chat);
-  $html .= chatroom_get_online_list_html($chat);
-  $html .= chatroom_get_textentry_html();
+  $html .= chatroom_chat_get_board_html($chat);
+  $html .= chatroom_chat_get_textentry_html();
   $html .= '</div>';
   return $html;
 }
@@ -791,7 +926,7 @@ function chatroom_send_ajax_response($response) {
 /**
  * returns a chatroom object for $chat_id
  */
-function chatroom_get_chat_id($chat_id) {
+function chatroom_chat_get_from_id($chat_id) {
   $result = db_query('SELECT     cc.*, 
                                  n.title AS chatroom_name,
                                  n.nid,
@@ -812,13 +947,8 @@ function chatroom_get_chat_id($chat_id) {
 /**
  * returns html for the message board
  */
-function chatroom_get_chat_board_html() {
+function chatroom_chat_get_board_html() {
   return '<div id="chatroom-board"></div>';
-  /**
-   * would like to convert this to a "native" drupal resizeable...
-   * $form['chatroom_msg_board'] = array('#type' => 'textarea');
-   * return '<div id="chatroom-board-div">'. drupal_get_form('chatroom-board', $form) .'</div>';
-   */
 }
 
 /**
@@ -893,19 +1023,25 @@ function chatroom_get_room_summary($room_id) {
 /**
  * returns the list of available chatrooms
  */
-function chatroom_get_chatroom_list() {
-  $result = db_query('SELECT     nr.*,
-                                 COUNT(cc.ccid) AS chat_count
-                      FROM       {chatroom} AS cr
-                      INNER JOIN {node_revisions} AS nr
-                      ON         nr.nid = cr.nid
-                      INNER JOIN {node} AS n
-                      ON         n.nid = nr.nid
-                      LEFT JOIN  {chatroom_chat} AS cc
-                      ON         cc.crid = cr.crid
-                      WHERE      cc.when_archived IS NULL
-                      GROUP BY   cr.crid
-                      ORDER BY   n.sticky DESC, nr.timestamp DESC');
+function chatroom_get_chatroom_list($start = null, $end = null) {
+  $sql = 'SELECT     nr.*,
+                     COUNT(cc.ccid) AS chat_count
+          FROM       {chatroom} AS cr
+          INNER JOIN {node_revisions} AS nr
+          ON         nr.nid = cr.nid
+          INNER JOIN {node} AS n
+          ON         n.nid = nr.nid
+          LEFT JOIN  {chatroom_chat} AS cc
+          ON         cc.crid = cr.crid
+          WHERE      cc.when_archived IS NULL
+          GROUP BY   cr.crid
+          ORDER BY   n.sticky DESC, nr.timestamp DESC';
+  if (is_null($start) || is_null($end)) {
+    $result = db_query($sql);
+  }
+  else {
+    $result = db_query_range($sql, $start, $end);
+  }
   if ($result && db_num_rows($result)) {
     while ($room = db_fetch_object($result)) {
       $rooms[] = $room;
@@ -918,7 +1054,7 @@ function chatroom_get_chatroom_list() {
 /**
  * returns html for the text entry widget
  */
-function chatroom_get_textentry_html() {
+function chatroom_chat_get_textentry_html() {
   return '<div class="clear-both"></div><div id="chatroom-textentry">' . "\n"
         . '<input type="text" id="chatroom-msg-input" size="50" />'  . "\n"
         . '<input type="submit" id="chatroom-msg-submit" value="Send" />' . "\n</div>\n";
@@ -927,8 +1063,8 @@ function chatroom_get_textentry_html() {
 /**
  * returns html for the whois online widget
  */
-function chatroom_get_online_list_html($chat) {
-  return '<div id="chatroom-online"><h4>'. t('online list') .'</h4></div>';
+function chatroom_chat_get_online_list_html($chat) {
+  return '<div id="chatroom-online"><h4>'. t('who is online') .'</h4></div>';
 }
 
 /* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */

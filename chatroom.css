@@ -2,42 +2,14 @@
 #chatroom-textentry {
   margin-top: 20px;
 }
-#chatroom-online {
-  float: left;
-  width: 22%;
-  padding-left: 0.5em;
-  padding-top: 0.5em;
-  background-color: #efefef;
-  border: solid 1px #e0e0e0;
-  margin-left: 0.5em;
-  margin-top: 6px;
-}
-#chatroom-online h4 {
-  margin-top: 4px;
-}
 #chatroom-board {
+  width: 97%;
   overflow: auto;
   height: 300px;
   padding: 0.2em 0.5em 0.5em 0.5em;
   margin-top: 0.5em;
   background-color: #fefdfc;
   border: solid 1px #e0e0e0;
-}
-#chatroom-online ul {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-}
-.resizeable-div {
-  float: left;
-  width: 70%;
-}
-.resizeable-div .grippie {
-  height: 14px;
-  background: #eee url(grippie.png) no-repeat 100% 100%;
-  border: 1px solid #ddd;
-  border-top-width: 0;
-  cursor: s-resize;
 }
 .clear-both {
   clear: both;
@@ -48,7 +20,13 @@
 .chatroom-old-msg {
   color: #a0a0a0;
 }
-.chatroom-current-user {
-  background-color: #ffffff;
+.chatroom-system-msg {
+  color: #808080;
+  font-style: italic;
+  font-weight: bold;
+}
+.chatroomLink {
+  font-style: italic;
+  font-size: 0.9em;
 }
 /* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */

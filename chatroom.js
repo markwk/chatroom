@@ -3,8 +3,9 @@
  * function to add chatroom events handlers to the onscreen widgets
  */
 var chatroomAddEvents = function() {
-  chatroom.cachePath = chatroom.moduleBase + chatroom.cacheFile;
+  chatroom.cachePath = chatroom.moduleBase + chatroom.chatCacheFile;
   chatroomLoadHexColours();
+  chatroomSetUserColours();
   $('chatroom-msg-submit').onclick= function() {
     chatroomSendMessage();
     return false;
@@ -15,7 +16,6 @@ var chatroomAddEvents = function() {
   };
   chatroomGetUpdates();
   setInterval("chatroomGetUpdates()", chatroom.updateInterval);
-  chatroomLoadUserList();
   return;
 }
 
@@ -30,7 +30,7 @@ var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam
         var scroll = chatroomUpdateMsgList(resArray[0]);
       }
       if (resArray[1].length) {
-        chatroomUpdateOnlineList(resArray[1]);
+        chatroomUpdateChatOnlineList(resArray[1]);
       }
       if (resArray.length > 2) {
         chatroom.cacheTimestamp = resArray[2].cacheTimestamp;
@@ -52,34 +52,6 @@ var chatroomCmdCallback = function(responseText, HttpRequest, chatroomDummyParam
     alert(HttpRequest.responseText);
   }
   return;
-}
-/**
- * function to load initial user list on page load
- */
-function chatroomLoadUserList() {
-  var ul = document.createElement('ul');
-  ul.id = 'chatroom-online-list';
-  $('chatroom-online').appendChild(ul);
-  for (i = 0; i < chatroom.userList.length; i++) {
-    var li = document.createElement('li');
-    if (chatroom.userList[i].uid == 0) {
-      var userInfo = document.createTextNode(chatroom.userList[i].user);
-    }
-    else {
-      var userInfo = document.createElement('a');
-      userInfo.appendChild(document.createTextNode(chatroom.userList[i].user));
-      userInfo.setAttribute('href', chatroomGetUrl('user') + chatroom.userList[i].uid);
-      userInfo.style.color = chatroomGetUserColour(chatroom.userList[i].user);
-    }
-    li.id = chatroom.userList[i].sessionId;
-    li.style.fontWeight = 'bold';
-    li.style.color = chatroomGetUserColour(chatroom.userList[i].user);
-    if (chatroom.sessionId == chatroom.userList[i].sessionId) {
-      addClass(li, 'chatroom-current-user');
-    }
-    li.appendChild(userInfo);
-    ul.appendChild(li);
-  }
 }
 
 /**
@@ -140,9 +112,6 @@ function chatroomSendCommand(text) {
       }
       for (i =0; i < chatroom.userList.length; i++) {
         if (chatroom.userList[i].user == user) {
-          if (chatroom.userList[i].sessionId == chatroom.sessionId) {
-            return;
-          }
           var msg = {chatroomMsg:escape(args.join(' '))};
           msg.module_base = chatroom.moduleBase;
           msg.chat_id     = chatroom.chatId;
@@ -233,7 +202,7 @@ function chatroomUpdateMsgList(msgs) {
 /**
  * take a list of users and draw a whois online list
  */
-function chatroomUpdateOnlineList(updateUsers) {
+function chatroomUpdateChatOnlineList(updateUsers) {
   var usersToDelete = Array();
   var deleteFlag = true;
   var count = 0;
@@ -246,12 +215,13 @@ function chatroomUpdateOnlineList(updateUsers) {
       }
     }
     if (deleteFlag) {
-      usersToDelete.push(i);
+      usersToDelete.push([i, chatroom.userList[i].user]);
     }
   }
   for (i = 0; i < usersToDelete.length; i++) {
-    $('chatroom-online-list').removeChild($(chatroom.userList[usersToDelete[i]].sessionId));
-    chatroom.userList.splice(usersToDelete[i], 1);
+    $('chatroom-online').removeChild($(chatroom.userList[usersToDelete[i][0]].sessionId));
+    chatroom.userList.splice(usersToDelete[i][0], 1);
+    chatroomWriteSystemMsg('<-- '+ usersToDelete[i][1] +' has left the chat');
   }
   for (i = 0; i < updateUsers.length; i++) {
     if (typeof updateUsers[i].noAdd == 'undefined') {
@@ -270,9 +240,22 @@ function chatroomUpdateOnlineList(updateUsers) {
       li.style.fontWeight = 'bold';
       li.style.color = chatroomGetUserColour(updateUsers[i].user);
       li.appendChild(userInfo);
-      $('chatroom-online-list').appendChild(li);
+      $('chatroom-online').appendChild(li);
+      chatroomWriteSystemMsg('--> '+ updateUsers[i].user +' has joined the chat');
     }
   }
+}
+
+/**
+ * writes a system message to the chat
+ */
+function chatroomWriteSystemMsg(msgText) {
+  var msgBoard = $('chatroom-board');
+  var p = document.createElement('p');
+  p.appendChild(document.createTextNode(msgText));
+  addClass(p, 'chatroom-system-msg');
+  msgBoard.appendChild(p);
+  msgBoard.scrollTop = msgBoard.scrollHeight;
 }
 
 /**
@@ -284,11 +267,14 @@ function chatroomGetUpdates() {
     return;
   }
   var postData = {chat_id:chatroom.chatId};
-  postData.last_msg_id  = chatroom.lastMsgId;
-  postData.timestamp    = chatroom.cacheTimestamp;
-  postData.update_count = ++chatroom.updateCount;
-  postData.module_base  = chatroom.moduleBase;
-  postData.cache_file   = chatroom.cacheFile;
+  postData.last_msg_id     = chatroom.lastMsgId;
+  postData.timestamp       = chatroom.cacheTimestamp;
+  postData.update_count    = ++chatroom.updateCount;
+  postData.module_base     = chatroom.moduleBase;
+  postData.chat_cache_file = chatroom.chatCacheFile;
+  if (chatroom.onlineList) {
+    postData.online_list = 1;
+  }
   return HTTPPost(chatroomGetUrl('read'), chatroomMsgCallback, false, postData);
 }
 
@@ -323,6 +309,22 @@ function chatroomGetUserColour(user) {
     }
   }
   return '#000000';
+}
+
+/**
+ * sets initial users' colours
+ */
+function chatroomSetUserColours() {
+  for (i = 0; i < chatroom.userList.length; i++) {
+    if (chatroom.userList[i].uid == 0) {
+      var userInfo = $(chatroom.userList[i].sessionId);
+    }
+    else {
+      var userInfo = $(chatroom.userList[i].sessionId).getElementsByTagName('a')[0];
+    }
+    userInfo.style.color = chatroomGetUserColour(chatroom.userList[i].user);
+    userInfo.style.fontWeight = 'bold';
+  }
 }
 
 /**
