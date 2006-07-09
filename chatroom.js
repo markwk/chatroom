@@ -315,15 +315,18 @@ function chatroomGetUserColour(user) {
  * sets initial users' colours
  */
 function chatroomSetUserColours() {
-  for (i = 0; i < chatroom.userList.length; i++) {
-    if (chatroom.userList[i].uid == 0) {
-      var userInfo = $(chatroom.userList[i].sessionId);
+  // the online list might block might not be enabled
+  if ($('chatroom-online')) {
+    for (i = 0; i < chatroom.userList.length; i++) {
+      if (chatroom.userList[i].uid == 0) {
+        var userInfo = $(chatroom.userList[i].sessionId);
+      }
+      else {
+        var userInfo = $(chatroom.userList[i].sessionId).getElementsByTagName('a')[0];
+      }
+      userInfo.style.color = chatroomGetUserColour(chatroom.userList[i].user);
+      userInfo.style.fontWeight = 'bold';
     }
-    else {
-      var userInfo = $(chatroom.userList[i].sessionId).getElementsByTagName('a')[0];
-    }
-    userInfo.style.color = chatroomGetUserColour(chatroom.userList[i].user);
-    userInfo.style.fontWeight = 'bold';
   }
 }
 

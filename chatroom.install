@@ -99,6 +99,10 @@ function chatroom_install() {
     db_query("UPDATE {system} SET status = 0 WHERE name = 'chatroom'");
   }
   else {
+    global $user;
+    $themes = list_themes();
+    $theme = $user->theme && $themes[$user->theme]->status ? $user->theme : variable_get('theme_default', 'bluemarine');
+    db_query("INSERT INTO {blocks} (status, weight, region, throttle, module, delta, theme) VALUES (1, -10, 'left', 0, 'chatroom', '2', '%s')", $theme);
     drupal_set_message(t('chatroom module is ready to go'));
   }
 }
