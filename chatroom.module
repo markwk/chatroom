@@ -802,7 +802,7 @@ function chatroom_block_add_state_js() {
 
   // get some link information
   $site_base   = dirname($_SERVER['PHP_SELF']) . (variable_get('clean_url', 0) ? '' : '?q='); 
-  $chat_base   = $site_base .'chatroom/chat/';
+  $chat_base   = $site_base .'chatrooms/chat/';
   $room_base   = $site_base .'node/';
   $module_base = drupal_get_path('module', 'chatroom');
   $block_url   = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) .'/chatroomread.php');
