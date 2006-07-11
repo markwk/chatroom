@@ -874,8 +874,8 @@ function chatroom_chat($chat_id = false) {
 
   drupal_set_title(check_plain($chat->chatname));
   $html = '<div id="chatroom-container">';
-  $html .= theme('chatroom_chat_get_board_html');
-  $html .= theme('chatroom_chat_get_textentry_html');
+  $html .= theme('chatroom_chat_board');
+  $html .= theme('chatroom_chat_textentry');
   $html .= '</div>';
   return $html;
 }
@@ -1053,7 +1053,7 @@ function chatroom_chat_get_online_list_html($chat) {
 /**
  * returns html for the message board
  */
-function theme_chatroom_chat_get_board_html() {
+function theme_chatroom_chat_board() {
   return '<div id="chatroom-board"></div>';
 }
 
@@ -1061,7 +1061,7 @@ function theme_chatroom_chat_get_board_html() {
  * returns html for the text entry widget
  * themeable
  */
-function theme_chatroom_chat_get_textentry_html() {
+function theme_chatroom_chat_textentry() {
   $output  = '<div class="clear-both"></div>'."\n";
   $output .= '<div id="chatroom-textentry">'."\n";
   $output .= '<span class="chatroom-textentry-title">'. t('Type your message') .'</span><br/><br/>'."\n";
