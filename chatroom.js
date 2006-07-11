@@ -154,6 +154,7 @@ function chatroomGetUrl(type) {
 
 /**
  * updates message list with response from server
+ * To do: Move msgs formating to php so things like using t() can be done 
  */
 function chatroomUpdateMsgList(msgs) {
   var msgBoard = $('chatroom-board');
@@ -162,21 +163,16 @@ function chatroomUpdateMsgList(msgs) {
     if (chatroomUpdateLastMsg(msgs[i].id)) {
       var span = document.createElement('span');
       if (chatroom.updateCount != 1) {
-        span.style.color = chatroomGetUserColour(msgs[i].user);
-        span.style.fontWeight = 'bold';
+        span.style.color = chatroomGetUserColour(msgs[i].user);        
       }
       if (msgs[i].recipient) {
-        span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ' private: '));
+        span.innerHTML = '<span class="header"><strong>' + msgs[i].user + '</strong> <i>says privately:</i></span> [' + msgs[i].time + '] ' + msgs[i].text;
       }
       else if (msgs[i].type == 'me') {
-        span.appendChild(document.createTextNode('* ' + msgs[i].user + ' ' + msgs[i].text));
-        span.style.fontStyle = 'italic';
-        if (chatroom.updateCount != 1) {
-          span.style.color = '#7777FF';
-        }
+        span.innerHTML = '<i>* ' + msgs[i].user + ' ' + msgs[i].text + '</i>';          
       }
-      else {
-        span.appendChild(document.createTextNode('[' + msgs[i].time + '] ' + msgs[i].user + ': '));
+      else {        
+        span.innerHTML = '<span class="header"><strong>' + msgs[i].user + '</strong> <i>says:</i></span> [' + msgs[i].time + '] ' + msgs[i].text;
       }
       scroll = true;
       var p = document.createElement('p');
@@ -189,10 +185,7 @@ function chatroomUpdateMsgList(msgs) {
       else {
         addClass(p, 'chatroom-msg');
       }
-      p.appendChild(span);
-      if (msgs[i].type != 'me') {
-        p.appendChild(document.createTextNode(msgs[i].text));
-      }
+      p.appendChild(span);      
       msgBoard.appendChild(p);
     }
   }
@@ -221,30 +214,41 @@ function chatroomUpdateChatOnlineList(updateUsers) {
   for (i = 0; i < usersToDelete.length; i++) {
     $('chatroom-online').removeChild($(chatroom.userList[usersToDelete[i][0]].sessionId));
     chatroom.userList.splice(usersToDelete[i][0], 1);
-    chatroomWriteSystemMsg('<-- '+ usersToDelete[i][1] +' has left the chat');
+    chatroomWriteSystemMsg('*** <strong>' + usersToDelete[i][1] + '</strong> has left the chat ***');
   }
   for (i = 0; i < updateUsers.length; i++) {
     if (typeof updateUsers[i].noAdd == 'undefined') {
       chatroom.userList.push(updateUsers[i]);
       var li = document.createElement('li');
       li.id = updateUsers[i].sessionId;
+      
       if (updateUsers[i].uid == 0) {
         var userInfo = document.createTextNode(updateUsers[i].user);
       }
       else {
         var userInfo = document.createElement('a');
         userInfo.appendChild(document.createTextNode(updateUsers[i].user));
-        userInfo.setAttribute('href', chatroomGetUrl('user') + updateUsers[i].uid);
+        userInfo.setAttribute('href', 'javascript:chatroomSelectUser("' + updateUsers[i].user + '")');
         userInfo.style.color = chatroomGetUserColour(updateUsers[i].user);
       }
       li.style.fontWeight = 'bold';
       li.style.color = chatroomGetUserColour(updateUsers[i].user);
-      li.appendChild(userInfo);
-      $('chatroom-online').appendChild(li);
-      chatroomWriteSystemMsg('--> '+ updateUsers[i].user +' has joined the chat');
+      li.appendChild(userInfo);      
+      $('chatroom-online').appendChild(li);          
+      chatroomWriteSystemMsg('*** <strong>' + updateUsers[i].user + '</strong> has joined the chat ***');
     }
   }
 }
+
+/**
+ * select a user to send a private message
+ * To do: Figure out how to set focus after text on IE
+ */
+function chatroomSelectUser(userName) {
+  $('chatroom-msg-input').value = userName + ', ';
+  $('chatroom-msg-input').focus();
+}
+
 
 /**
  * writes a system message to the chat
@@ -252,7 +256,7 @@ function chatroomUpdateChatOnlineList(updateUsers) {
 function chatroomWriteSystemMsg(msgText) {
   var msgBoard = $('chatroom-board');
   var p = document.createElement('p');
-  p.appendChild(document.createTextNode(msgText));
+  p.innerHTML = msgText;
   addClass(p, 'chatroom-system-msg');
   msgBoard.appendChild(p);
   msgBoard.scrollTop = msgBoard.scrollHeight;
