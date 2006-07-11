@@ -670,9 +670,8 @@ function chatroom_chat_get_block_online_list() {
     foreach ($users as $ol_user) {
       $name = $ol_user->name ? check_plain($ol_user->name) : "guest-{$ol_user->guest_id}";
       $content .= '<li id="'. $ol_user->session_id .'"';
-      if ($ol_user->uid) {
-        $user_url = (variable_get('clean_url', 0) ? '../../' : '?q=') . 'user/';
-        $content .= '>'. l(check_plain($name), $user_url . $ol_user->uid). "</li>";
+      if ($ol_user->uid) {        
+        $content .= '><a href="javascript:chatroomSelectUser(\''. $ol_user->name .'\')">' . check_plain($name). '</a></li>';
       }
       else {
         $content .= ">$name</li>";
@@ -739,7 +738,7 @@ function chatroom_chat_get_latest_msgs($chat_id, $last_msg_id) {
   $session_id = session_id();
   $result = db_query("SELECT     cm.*,
                                  du.name,
-                                 col.guest_id
+                                 col.guest_id                                 
                       FROM       {chatroom_msg} AS cm
                       INNER JOIN {chatroom_online_list} AS col
                       ON         col.session_id = cm.session_id AND col.ccid = cm.ccid
@@ -875,8 +874,8 @@ function chatroom_chat($chat_id = false) {
 
   drupal_set_title(check_plain($chat->chatname));
   $html = '<div id="chatroom-container">';
-  $html .= chatroom_chat_get_board_html($chat);
-  $html .= chatroom_chat_get_textentry_html();
+  $html .= theme('chatroom_chat_get_board_html');
+  $html .= theme('chatroom_chat_get_textentry_html');
   $html .= '</div>';
   return $html;
 }
@@ -942,13 +941,6 @@ function chatroom_chat_get_from_id($chat_id) {
     return db_fetch_object($result);
   }
   return FALSE;
-}
-
-/**
- * returns html for the message board
- */
-function chatroom_chat_get_board_html() {
-  return '<div id="chatroom-board"></div>';
 }
 
 /**
@@ -1052,19 +1044,33 @@ function chatroom_get_chatroom_list($start = null, $end = null) {
 }
 
 /**
- * returns html for the text entry widget
- */
-function chatroom_chat_get_textentry_html() {
-  return '<div class="clear-both"></div><div id="chatroom-textentry">' . "\n"
-        . '<input type="text" id="chatroom-msg-input" size="50" />'  . "\n"
-        . '<input type="submit" id="chatroom-msg-submit" value="Send" />' . "\n</div>\n";
-}
-
-/**
  * returns html for the whois online widget
  */
 function chatroom_chat_get_online_list_html($chat) {
   return '<div id="chatroom-online"><h4>'. t('who is online') .'</h4></div>';
 }
+
+/**
+ * returns html for the message board
+ */
+function theme_chatroom_chat_get_board_html() {
+  return '<div id="chatroom-board"></div>';
+}
+
+/**
+ * returns html for the text entry widget
+ * themeable
+ */
+function theme_chatroom_chat_get_textentry_html() {
+  $output  = '<div class="clear-both"></div>'."\n";
+  $output .= '<div id="chatroom-textentry">'."\n";
+  $output .= '<span class="chatroom-textentry-title">'. t('Type your message') .'</span><br/><br/>'."\n";
+  $output .= '<input type="text" id="chatroom-msg-input" size="50" />'."\n";  
+  $output .= '<input type="submit" id="chatroom-msg-submit" value="Send" />'."\n";
+  $output .= '</div>'."\n";
+        
+  return $output;
+}
+
 
 /* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */
