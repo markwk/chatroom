@@ -19,13 +19,9 @@ if (isset($_POST['module_base'])) {
     $chatroom_module_file = "./$module_base/chatroom.module";
   }
 }
-else {
-  echo "/** UR3l33t! **/";
-  exit;
-}
 
 /**
- * make sure we can get the chatroom module
+ * make sure we can get the smileys module
  */
 if (isset($_POST['smileys_module_base'])) {
   // if module base looks dodge, just exit
@@ -40,10 +36,7 @@ if (isset($_POST['smileys_module_base'])) {
     $smileys_module_file = "./$smileys_module_base/smileys.module";
   }
 }
-else {
-  echo "/** UR3l33t! **/";
-  exit;
-}
+$smileys = isset($smileys_module_file);
 
 /**
  * chat request code
@@ -103,7 +96,9 @@ if (isset($_POST['chat_id'])) {
   require './includes/bootstrap.inc';
   require './modules/user.module';
   require $chatroom_module_file;
-  require $smileys_module_file;
+  if ($smileys) {
+    require $smileys_module_file;
+  }
   drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 
   // are we writing?
@@ -111,10 +106,10 @@ if (isset($_POST['chat_id'])) {
     $msg       = strip_tags(htmlentities(urldecode($_POST['chatroomMsg']), ENT_NOQUOTES));
     $recipient = empty($_POST['recipient']) ? "" : $_POST['recipient'];
     $type      = is_null($_POST['type']) ? "msg" : $_POST['type'];
-    chatroom_chat_write_msg($chat_id, $last_msg_id, $chat_cache_file, $msg, $recipient, $type, $timezone);
+    chatroom_chat_write_msg($chat_id, $last_msg_id, $chat_cache_file, $msg, $recipient, $type, $timezone, $smileys);
   }
   else {
-    chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list, $timezone);
+    chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list, $timezone, $smileys);
   }
   exit;
 }

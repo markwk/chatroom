@@ -86,7 +86,9 @@ function chatroomSendMessage() {
   chatroom.updateCount++;
 
   msg.module_base         = chatroom.moduleBase;
-  msg.smileys_module_base = chatroom.smileysModuleBase;
+  if (chatroom.smileysModuleBase) {
+    msg.smileys_module_base = chatroom.smileysModuleBase;
+  }
   msg.chatroomMsg         = escape(msg.chatroomMsg);
   msg.chat_id             = chatroom.chatId;
   msg.last_msg_id         = chatroom.lastMsgId;
@@ -115,7 +117,9 @@ function chatroomSendCommand(text) {
       for (i =0; i < chatroom.userList.length; i++) {
         if (chatroom.userList[i].user == user) {
           var msg = {chatroomMsg:escape(args.join(' '))};
-          msg.smileys_module_base = chatroom.smileysModuleBase;
+          if (chatroom.smileysModuleBase) {
+            msg.smileys_module_base = chatroom.smileysModuleBase;
+          }
           msg.module_base         = chatroom.moduleBase;
           msg.chat_id             = chatroom.chatId;
           msg.last_msg_id         = chatroom.lastMsgId;
@@ -132,7 +136,9 @@ function chatroomSendCommand(text) {
       }
       else {
         var msg = {chatroomMsg:escape(args.join(' '))};
-        msg.smileys_module_base = chatroom.smileysModuleBase;
+        if (chatroom.smileysModuleBase) {
+          msg.smileys_module_base = chatroom.smileysModuleBase;
+        }
         msg.module_base         = chatroom.moduleBase;
         msg.chat_id             = chatroom.chatId;
         msg.last_msg_id         = chatroom.lastMsgId;
@@ -281,7 +287,9 @@ function chatroomGetUpdates() {
   postData.timestamp           = chatroom.cacheTimestamp;
   postData.update_count        = ++chatroom.updateCount;
   postData.module_base         = chatroom.moduleBase;
-  postData.smileys_module_base = chatroom.smileysModuleBase;
+  if (chatroom.smileysModuleBase) {
+    postData.smileys_module_base = chatroom.smileysModuleBase;
+  }
   postData.chat_cache_file     = chatroom.chatCacheFile;
   postData.timezone            = chatroom.timezone;
   if (chatroom.onlineList) {
