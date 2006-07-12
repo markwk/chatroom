@@ -218,11 +218,23 @@ function chatroom_view(&$node) {
 }
 
 /**
+ * Implementation of hook_settings().
+ */
+function chatroom_settings() {
+  $form['chatroom_list_description'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Chatroom submission information title'), 
+    '#default_value' => variable_get('chatroom_list_description', ''),
+    '#rows' => 3, 
+    '#description' => t('This text will appear above the list of chatrooms for your site.'),
+  ); 
+  return $form;
+}
+
+/**
  * Implementation of hook_block().
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
-  static $block_state_set;
-
   $types = array(array('chats',             'active chats'),
                  array('chatrooms',         'active chatrooms'),
                  array('online_chat_users', 'chat online list'));
@@ -255,9 +267,6 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
       if ($types[$delta][0] != 'online_chat_users' && !@file_exists(chatroom_block_get_cache_file($types[$delta][0]))) {
         chatroom_block_update_cache($types[$delta][0]);
       }
-      $css_path = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . '/');
-      drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
-                            "href" => $css_path . drupal_get_path('module', 'chatroom') .'/chatroom.css'));
 
       $content = '';
       if (user_access('access chatrooms')) {
@@ -799,6 +808,11 @@ function chatroom_block_add_state_js() {
   }
   $state_set = true;
 
+  // need some css for the user list display
+  $css_path = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . '/');
+  drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
+                        "href" => $css_path . drupal_get_path('module', 'chatroom') .'/chatroom.css'));
+
   // get some link information
   $site_base   = dirname($_SERVER['PHP_SELF']) . (variable_get('clean_url', 0) ? '' : '?q='); 
   $chat_base   = $site_base .'chatrooms/chat/';
@@ -895,6 +909,9 @@ function chatroom_home() {
     $out .= '<ul><li>' . l(t('create a chatroom'), "node/add/chatroom") . '</li></ul>';
   }
   if ($chatrooms = chatroom_get_chatroom_list()) {
+    if ($list_description = variable_get('chatroom_list_description', '')) {
+      $out .= theme('chatroom_list_description', $list_description);
+    }
     $header = array(t('Name'), t('Description'), t('Active chats'));
     foreach ($chatrooms as $room) {
       $rows[] = array(
@@ -1044,10 +1061,10 @@ function chatroom_get_chatroom_list($start = null, $end = null) {
 }
 
 /**
- * returns html for the whois online widget
+ * returns html for chatroom list description
  */
-function chatroom_chat_get_online_list_html($chat) {
-  return '<div id="chatroom-online"><h4>'. t('who is online') .'</h4></div>';
+function theme_chatroom_list_description($list_description) {
+  return "<p><strong>$list_description</strong></p>";
 }
 
 /**
