@@ -85,10 +85,11 @@ function chatroomSendMessage() {
   chatroom.skipUpdate = true;
   chatroom.updateCount++;
 
-  msg.module_base = chatroom.moduleBase;
-  msg.chatroomMsg = escape(msg.chatroomMsg);
-  msg.chat_id     = chatroom.chatId;
-  msg.last_msg_id = chatroom.lastMsgId;
+  msg.module_base         = chatroom.moduleBase;
+  msg.smileys_module_base = chatroom.smileysModuleBase;
+  msg.chatroomMsg         = escape(msg.chatroomMsg);
+  msg.chat_id             = chatroom.chatId;
+  msg.last_msg_id         = chatroom.lastMsgId;
   HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
 }
 
@@ -113,10 +114,11 @@ function chatroomSendCommand(text) {
       for (i =0; i < chatroom.userList.length; i++) {
         if (chatroom.userList[i].user == user) {
           var msg = {chatroomMsg:escape(args.join(' '))};
-          msg.module_base = chatroom.moduleBase;
-          msg.chat_id     = chatroom.chatId;
-          msg.last_msg_id = chatroom.lastMsgId;
-          msg.recipient   = chatroom.userList[i].sessionId;
+          msg.smileys_module_base = chatroom.smileysModuleBase;
+          msg.module_base         = chatroom.moduleBase;
+          msg.chat_id             = chatroom.chatId;
+          msg.last_msg_id         = chatroom.lastMsgId;
+          msg.recipient           = chatroom.userList[i].sessionId;
           return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
         }
       }
@@ -128,10 +130,11 @@ function chatroomSendCommand(text) {
       }
       else {
         var msg = {chatroomMsg:escape(args.join(' '))};
-        msg.module_base = chatroom.moduleBase;
-        msg.chat_id     = chatroom.chatId;
-        msg.last_msg_id = chatroom.lastMsgId;
-        msg.type        = 'me';
+        msg.smileys_module_base = chatroom.smileysModuleBase;
+        msg.module_base         = chatroom.moduleBase;
+        msg.chat_id             = chatroom.chatId;
+        msg.last_msg_id         = chatroom.lastMsgId;
+        msg.type                = 'me';
         return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
       }
       break;
@@ -271,11 +274,12 @@ function chatroomGetUpdates() {
     return;
   }
   var postData = {chat_id:chatroom.chatId};
-  postData.last_msg_id     = chatroom.lastMsgId;
-  postData.timestamp       = chatroom.cacheTimestamp;
-  postData.update_count    = ++chatroom.updateCount;
-  postData.module_base     = chatroom.moduleBase;
-  postData.chat_cache_file = chatroom.chatCacheFile;
+  postData.last_msg_id         = chatroom.lastMsgId;
+  postData.timestamp           = chatroom.cacheTimestamp;
+  postData.update_count        = ++chatroom.updateCount;
+  postData.module_base         = chatroom.moduleBase;
+  postData.smileys_module_base = chatroom.smileysModuleBase;
+  postData.chat_cache_file     = chatroom.chatCacheFile;
   if (chatroom.onlineList) {
     postData.online_list = 1;
   }
@@ -348,6 +352,14 @@ function chatroomLoadHexColours() {
       }
     }
   }
+}
+
+/**
+ * onclick smileys insertion
+ */
+function chatroomSmileyInsert(acronym) {  
+  $('chatroom-msg-input').value += (' ' + acronym);
+  $('chatroom-msg-input').focus();
 }
 
 // Global Killswitch
