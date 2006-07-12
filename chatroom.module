@@ -227,7 +227,16 @@ function chatroom_settings() {
     '#default_value' => variable_get('chatroom_list_description', ''),
     '#rows' => 3, 
     '#description' => t('This text will appear above the list of chatrooms for your site.'),
-  ); 
+  );   
+  $form['chatroom_smileys_suport'] = array(
+   '#type' => 'fieldset',
+   '#title' => t('Smileys module suport'),    
+  );  
+  $form['chatroom_smileys_suport']['chatroom_smileys_showtextentry'] = array(
+   '#type' => 'checkbox',
+   '#title' => t('show smileys in entry boxes'),
+   '#default_value' => variable_get('chatroom_smileys_showtextentry', 0),
+  );
   return $form;
 }
 
@@ -614,6 +623,8 @@ function chatroom_chat_get_latest_msgs_js($msgs) {
   $i = 0;
   $msg_count = count($msgs);
   foreach ($msgs as $msg) {
+    // Smileys module suport
+    $msg->msg = chatroom_smileys_filter_process($msg->msg); 
     $name = $msg->name ? $msg->name : "guest-{$msg->guest_id}";
     $time = date('G:i', $msg->modified);
     $js .= '{id:'. $msg->cmid .',text:"'. str_replace('"', '\"', $msg->msg);
@@ -687,7 +698,7 @@ function chatroom_chat_get_block_online_list() {
       }
     }
     $content .= '</ul>';
-    $title = 'whois online in <em>'. check_plain($ol_user->chatname) .'</em>';
+    $title = t('whois online in') .' <em>'. check_plain($ol_user->chatname) .'</em>';
   }
   return array($content, $title);
 }
@@ -776,6 +787,7 @@ function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   $chat_url    = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
   $user_url    = ($clean_urls ? '../../' : '?q=') . 'user/';
   $module_base = drupal_get_path('module', 'chatroom');
+  $smileys_module_base = drupal_get_path('module', 'smileys');
   $cache_file  = chatroom_chat_get_cache_file_name($chat->ccid);
   $timestamp   = time() - (60 * 60);
   $online_list = variable_get('chatroom_online_list', 0) ? 'true' : 'true';
@@ -786,6 +798,7 @@ var chatroom = {chatId         : $chat->ccid,
                 updateCount    : 0, 
                 chatUrl        : '$chat_url',
                 moduleBase     : '$module_base',
+                smileysModuleBase : '$smileys_module_base',
                 userUrl        : '$user_url',
                 chatCacheFile  : '$cache_file',
                 updateInterval : $chat->poll_freq,
@@ -830,7 +843,7 @@ function chatroom_block_add_state_js() {
   
   // put it all together
   $js = <<<JS
-var chatroomBlock = {blockUrl:'$block_url',moduleBase:'$module_base',roomBase:'$room_base',
+var chatroomBlock = {blockUrl:'$block_url',moduleBase:'$module_base',smileysModuleBase:'$smileys_module_base',roomBase:'$room_base',
                      chatBase:'$chat_base',chatCacheFile:'$chat_cache_file',roomCacheFile:'$room_cache_file',
                      updateInterval:$poll_freq,chatTimestamp:$timestamp,roomTimestamp:$timestamp};
 JS;
@@ -1058,6 +1071,58 @@ function chatroom_get_chatroom_list($start = null, $end = null) {
     return $rooms;
   }
   return false;
+}
+
+/**
+ * smileys module suport
+ * test if smileys module is avaliable
+ */
+function chatroom_smileys_suported() {
+  return function_exists('_smileys_list'); 
+}
+
+/**
+ * smileys module suport
+ * return text entry smileys list 
+ */
+function chatroom_smileys_get_textentry() {
+  if (chatroom_smileys_suported() && variable_get('chatroom_smileys_showtextentry', 0)) {    
+    $content .= '<div class="chatroom-textentry-smileys">';
+    $list = _smileys_list();
+    foreach ($list as $smiley) {
+     $alt = check_plain(implode(' &nbsp; ', explode(' ', $smiley->acronyms)));
+     $acronyms = explode(' ', $smiley->acronyms);
+     $content .= '<a href="javascript:chatroomSmileyInsert(\''. $acronyms[0] .'\')"><img src="'. check_url(base_path() . $smiley->image) .'" title="'. $alt .'" alt="'. $alt .'" /></a>';
+    }
+    $content .= '</div>';
+    return $content;
+  }
+}
+
+/**
+ * smileys module suport
+ * process smileys filtering
+ * this is duplicated from smileys.module because we don't have full bootstrap
+ */
+function chatroom_smileys_filter_process($text) {
+  if(!chatroom_smileys_suported()) return;
+  
+  $text = ' '. $text .' ';
+
+  $list = _smileys_list();
+  foreach ($list as $smiley) {
+    $acronyms = explode(" ", $smiley->acronyms);
+    $alt = str_replace('\\', '\\\\', check_plain($smiley->description));
+    foreach ($acronyms as $a) {
+      if ($smiley->standalone)
+        $text = eregi_replace("([ ,\.\?!:\(\)\r\n\<\>])". preg_quote($a) ."([ ,\.\?!:\(\)\r\n\<\>])", "\\1<img src=\"/". $smiley->image ."\" title=\"". check_plain($alt) ."\" alt=\"". check_plain($alt) ."\" />\\2", $text);
+      else
+        $text = eregi_replace(preg_quote($a), '<img src="/'. $smiley->image .'" title="'. check_plain($alt) .'" alt="'. check_plain($alt) .'" />', $text);
+    }
+  }
+  $text = substr($text, 1, -1);
+
+  return $text;
 }
 
 /**
