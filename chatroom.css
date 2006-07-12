@@ -1,20 +1,22 @@
 /* $Id$ */
 #chatroom-textentry {
-  width: 98%; 
   padding: 5px 5px 5px 5px;
   background-color: #f5f5f5;
   border: solid 1px #e0e0e0;
   margin-top: 20px;  
 }
-#chatroom-msg-to{
-  width: 100px;
+.chatroom-textentry-smileys{
+  padding-top: 10px;
+}
+.chatroom-textentry-smileys img {
+  vertical-align: top;
+  margin-right: 5px;
 }
 #chatroom-board {
-  width: 99%;
   overflow: auto;
   height: 300px;
   padding: 1px 1px 1px 1px;
-  margin-top: 0.5em;  
+  margin-top: 5px;  
   border: solid 1px #e0e0e0;
 }
 #chatroom-board p{
