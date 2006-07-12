@@ -9,14 +9,35 @@
 if (isset($_POST['module_base'])) {
   // if module base looks dodge, just exit
   $module_base = urldecode($_POST['module_base']);
-  if (!is_dir($module_base)                                   || 
-      substr($module_base, 0, strlen('modules')) != 'modules' || 
+  if (!is_dir($module_base)                                   ||
+      substr($module_base, 0, strlen('modules')) != 'modules' ||
       strpos($module_base, '..') !== FALSE)                    {
     echo "/** UR3l33t! **/";
     exit;
   }
   else {
     $chatroom_module_file = "./$module_base/chatroom.module";
+  }
+}
+else {
+  echo "/** UR3l33t! **/";
+  exit;
+}
+
+/**
+ * make sure we can get the chatroom module
+ */
+if (isset($_POST['smileys_module_base'])) {
+  // if module base looks dodge, just exit
+  $smileys_module_base = urldecode($_POST['smileys_module_base']);
+  if (!is_dir($smileys_module_base)                                   ||
+      substr($smileys_module_base, 0, strlen('modules')) != 'modules' ||
+      strpos($smileys_module_base, '..') !== FALSE)                    {
+    echo "/** UR3l33t! **/";
+    exit;
+  }
+  else {
+    $smileys_module_file = "./$smileys_module_base/smileys.module";
   }
 }
 else {
@@ -34,11 +55,11 @@ if (isset($_POST['chat_id'])) {
       !isset($_POST['last_msg_id'])                 ||
       !isset($_POST['module_base'])                 ||
       !preg_match('/^\d+$/', $_POST['chat_id'])     ||
-      !preg_match('/^\d+$/', $_POST['last_msg_id'])) { 
+      !preg_match('/^\d+$/', $_POST['last_msg_id'])) {
 
     echo '/** UR3l33t! first **/';
     exit;
-  } 
+  }
 
   // if we are reading, we need to check a couple more request vars
   $write_request = empty($_POST['chatroomMsg']) ? false : true;
@@ -46,12 +67,12 @@ if (isset($_POST['chat_id'])) {
     if (!isset($_POST['timestamp'])                    ||
         !isset($_POST['chat_cache_file'])              ||
         !isset($_POST['update_count'])                 ||
-        !preg_match('/^\d+$/', $_POST['timestamp'])    || 
+        !preg_match('/^\d+$/', $_POST['timestamp'])    ||
         !preg_match('/^\d+$/', $_POST['update_count'])) {
 
       echo '/** UR3l33t! second **/';
       exit;
-    } 
+    }
   }
 
   // get the request values we're interested in
@@ -81,6 +102,7 @@ if (isset($_POST['chat_id'])) {
   require './includes/bootstrap.inc';
   require './modules/user.module';
   require $chatroom_module_file;
+  require $smileys_module_file;
   drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 
   // are we writing?
@@ -123,7 +145,7 @@ if (isset($_POST['block_update'])) {
     require './modules/user.module';
     require $chatroom_module_file;
     drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
-    
+
     // get the js for the cache misses
     if (!$chat_cache_hit) {
       $chat_js = chatroom_block_chat_update_js($chat_cache_file);
