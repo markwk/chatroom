@@ -82,6 +82,7 @@ if (isset($_POST['chat_id'])) {
   $last_msg_id       = $_POST['last_msg_id'];
   $chat_cache_file   = $module_base .'/chat_cache/'. $_POST['chat_cache_file'];
   $online_list       = isset($_POST['online_list']) ? true : false;
+  $timezone          = isset($_POST['timezone']) ? $_POST['timezone'] : 0;
 
   if ($write_request === false) {
 
@@ -110,10 +111,10 @@ if (isset($_POST['chat_id'])) {
     $msg       = strip_tags(htmlentities(urldecode($_POST['chatroomMsg']), ENT_NOQUOTES));
     $recipient = empty($_POST['recipient']) ? "" : $_POST['recipient'];
     $type      = is_null($_POST['type']) ? "msg" : $_POST['type'];
-    chatroom_chat_write_msg($chat_id, $last_msg_id, $chat_cache_file, $msg, $recipient, $type);
+    chatroom_chat_write_msg($chat_id, $last_msg_id, $chat_cache_file, $msg, $recipient, $type, $timezone);
   }
   else {
-    chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list);
+    chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list, $timezone);
   }
   exit;
 }

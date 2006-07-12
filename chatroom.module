@@ -499,13 +499,13 @@ function chatroom_chat_command() {
 /**
  * handles requests that write a message into a chat
  */
-function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $recipient = null, $type = null) {
+function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $recipient = null, $type = null, $timezone = 0) {
   global $user;
   $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg_type, msg, session_id, recipient, modified) 
                       VALUES (%d, %d, '%s', '%s', '%s', '%s', UNIX_TIMESTAMP())",
                       $chat_id, $user->uid, $type, $msg, session_id(), $recipient); 
   if ($msgs = chatroom_chat_get_latest_msgs($chat_id, $last_msg_id)) {
-    $msg_js = chatroom_chat_get_latest_msgs_js($msgs);
+    $msg_js = chatroom_chat_get_latest_msgs_js($msgs, $timezone);
   }
   else {
     $msg_js = '[]';
@@ -618,7 +618,7 @@ function chatroom_chat_get_online_list_js($users) {
 /**
  * takes an array of msgs and formats as js
  */
-function chatroom_chat_get_latest_msgs_js($msgs) {
+function chatroom_chat_get_latest_msgs_js($msgs, $timezone = 0) {
   $js = '';
   $i = 0;
   $msg_count = count($msgs);
@@ -626,7 +626,7 @@ function chatroom_chat_get_latest_msgs_js($msgs) {
     // Smileys module suport
     $msg->msg = chatroom_smileys_filter_process($msg->msg); 
     $name = $msg->name ? $msg->name : "guest-{$msg->guest_id}";
-    $time = date('G:i', $msg->modified);
+    $time = gmdate('G:i', $msg->modified + $timezone);
     $js .= '{id:'. $msg->cmid .',text:"'. str_replace('"', '\"', $msg->msg);
     $js .= '",user:"'. $name .'",time:"'. $time .'",recipient:"'. $msg->recipient .'",'; 
     $js .= 'type:"'. $msg->msg_type .'"}'. (++$i == $msg_count ? '' : ',');
@@ -649,7 +649,7 @@ function chatroom_chat_update_online_time($chat_id, $uid, $session_id) {
 /**
  * handles requests that read info about a chat
  */
-function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list = false) {
+function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list = false, $timezone = 0) {
   if (!user_access('access chatrooms')) {
     return chatroom_send_ajax_response('/** UR3l33T! **/');
   }
@@ -658,7 +658,7 @@ function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_
   $users_js = '[]';
   chatroom_chat_update_online_time($chat_id, $user->uid, session_id());
   if ($msgs = chatroom_chat_get_latest_msgs($chat_id, $last_msg_id)) {
-    $msg_js = chatroom_chat_get_latest_msgs_js($msgs);
+    $msg_js = chatroom_chat_get_latest_msgs_js($msgs, $timezone);
   }
   if ($online_list) {
     if ($update_count == 1 || $update_count % 4 == 0) {
@@ -780,6 +780,8 @@ function chatroom_chat_get_latest_msgs($chat_id, $last_msg_id) {
  * helper function to add some state information to a chat page
  */
 function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
+  global $user;
+  
   $users_js = '[]';
   if ($users = chatroom_chat_get_online_list($chat->ccid)) {
     $users_js = chatroom_chat_get_online_list_js($users);
@@ -791,6 +793,15 @@ function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   $cache_file  = chatroom_chat_get_cache_file_name($chat->ccid);
   $timestamp   = time() - (60 * 60);
   $online_list = variable_get('chatroom_online_list', 0) ? 'true' : 'true';
+  
+  // timezone suport
+  if (variable_get('configurable_timezones', 1) && $user->uid && strlen($user->timezone)) {
+    $timezone = $user->timezone;
+  }
+  else {
+    $timezone = variable_get('date_default_timezone', 0);
+  } 
+  
   $js = <<<JS
 var chatroom = {chatId         : $chat->ccid, 
                 lastMsgId      : 0, 
@@ -805,7 +816,9 @@ var chatroom = {chatId         : $chat->ccid,
                 userList       : $users_js,
                 onlineList     : $online_list,
                 userColours    : [],
-                sessionId      : '$session_id'};
+                sessionId      : '$session_id',
+                timezone       : $timezone,
+                };
 JS;
   drupal_set_html_head('<script type="text/javascript">'. $js .'</script>');
 }
@@ -864,12 +877,12 @@ function chatroom_chat_archive($chat_id = false) {
   $bc[] = l(check_plain($chat->chatroom_name), "node/$chat->nid");
   drupal_set_breadcrumb($bc);
   drupal_set_title(check_plain($chat->chatname));
-  $html = '<p>' . t('This chat was archived on ') . date("F j, Y, g:i a", $chat->when_archived) .'</p>';
+  $html = '<p>' . t('This chat was archived on ') . format_date($chat->when_archived, 'medium') .'</p>';
   $html .= '<div id="chatroom-container-archive">';
   if ($msgs = chatroom_get_all_msgs($chat->ccid, TRUE)) {
     foreach ($msgs as $msg) {
       $name = $msg->name ? $msg->name : 'guest-'. $msg->guest_id;
-      $html .= '<p><span class="chatroom-archive-user">['. date('G:i', $msg->modified) .'] ';
+      $html .= '<p><span class="chatroom-archive-user">['. format_date($msg->modified, 'custom', 'G:i') .'] ';
       $html .= $name . ': </span>'. $msg->msg .'</p>';
     }
   }
@@ -978,7 +991,7 @@ function chatroom_chat_get_from_id($chat_id) {
  */
 function chatroom_get_msg_info($msg) {
   $user = $msg->uid ? l(check_plain($msg->name), "user/$msg->uid") : t('Anonymous');
-  return check_plain($msg->msg) . "<br />Posted by <b>$user</b>, ". date('F j, Y, g:i a', $msg->modified); 
+  return check_plain($msg->msg) . "<br />Posted by <b>$user</b>, ". format_date($msg->modified, 'medium'); 
 }
 
 /**
@@ -1010,7 +1023,7 @@ function chatroom_get_room_summary($room_id) {
   while ($chat = db_fetch_object($result)) {
     if ($chat->when_archived) {
       $chat->section = 'archives';
-      $chat->msg_info = t('This chat was archived on ') . date("F j, Y, g:i a", $chat->when_archived); 
+      $chat->msg_info = t('This chat was archived on ') . format_date($chat->when_archived, 'medium');
     }
     else {
       $chat->section = 'chat';

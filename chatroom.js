@@ -90,6 +90,7 @@ function chatroomSendMessage() {
   msg.chatroomMsg         = escape(msg.chatroomMsg);
   msg.chat_id             = chatroom.chatId;
   msg.last_msg_id         = chatroom.lastMsgId;
+  msg.timezone            = chatroom.timezone;
   HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
 }
 
@@ -119,6 +120,7 @@ function chatroomSendCommand(text) {
           msg.chat_id             = chatroom.chatId;
           msg.last_msg_id         = chatroom.lastMsgId;
           msg.recipient           = chatroom.userList[i].sessionId;
+          msg.timezone            = chatroom.timezone;
           return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
         }
       }
@@ -134,6 +136,7 @@ function chatroomSendCommand(text) {
         msg.module_base         = chatroom.moduleBase;
         msg.chat_id             = chatroom.chatId;
         msg.last_msg_id         = chatroom.lastMsgId;
+        msg.timezone            = chatroom.timezone;
         msg.type                = 'me';
         return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
       }
@@ -280,6 +283,7 @@ function chatroomGetUpdates() {
   postData.module_base         = chatroom.moduleBase;
   postData.smileys_module_base = chatroom.smileysModuleBase;
   postData.chat_cache_file     = chatroom.chatCacheFile;
+  postData.timezone            = chatroom.timezone;
   if (chatroom.onlineList) {
     postData.online_list = 1;
   }
