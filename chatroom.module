@@ -1149,6 +1149,7 @@ function theme_chatroom_chat_textentry() {
   $output .= '<span class="chatroom-textentry-title">'. t('Type your message') .'</span><br/><br/>'."\n";
   $output .= '<input type="text" id="chatroom-msg-input" size="50" />'."\n";  
   $output .= '<input type="submit" id="chatroom-msg-submit" value="Send" />'."\n";
+  $output .= chatroom_smileys_get_textentry();
   $output .= '</div>'."\n";
         
   return $output;
