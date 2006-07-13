@@ -1153,7 +1153,7 @@ function chatroom_smileys_filter_process($text) {
  * returns html for chatroom list description
  */
 function theme_chatroom_list_description($list_description) {
-  return "<p><strong>$list_description</strong></p>";
+  return '<div id="chatroom-list-description">'. $list_description .'</div>';
 }
 
 /**

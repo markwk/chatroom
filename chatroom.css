@@ -5,6 +5,12 @@
   border: solid 1px #e0e0e0;
   margin-top: 20px;  
 }
+#chatroom-list-description {
+  padding: 5px 5px 5px 5px;
+  background-color: #f5f5f5;
+  border: solid 1px #e0e0e0;
+  margin-bottom: 20px;
+}
 .chatroom-textentry-smileys{
   padding-top: 10px;
 }
