@@ -645,14 +645,14 @@ function chatroom_block_room_update_js($cache_file) {
  * takes an array of online users and formats as js
  */
 function chatroom_chat_get_online_list_js($users) {
-  $js_array = array();
-  $js = '';
-  foreach ($users as $ol_user) {
+  $js_array = array();  
+  foreach ($users as $ol_user) {    
     $name = $ol_user->name ? check_plain($ol_user->name) : "guest-{$ol_user->guest_id}";
+    $js = '';
     $js .= '{user:"'. $name .'",sessionId:"'. $ol_user->session_id;
-    $js .= '",uid:'. $ol_user->uid .',away:'. $ol_user->away .'}';
+    $js .= '",uid:'. $ol_user->uid .',away:'. $ol_user->away .'}';    
     $js_array[] = $js;
-  }
+  }  
   return '['. implode(',', $js_array) .']';
 }
 
