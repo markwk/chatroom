@@ -1,5 +1,6 @@
 <?php
 /**
+ * $Id$ 
  * @file handles ajax requests to check for new messages in a given chat
  */
 
@@ -18,6 +19,10 @@ if (isset($_POST['module_base'])) {
   else {
     $chatroom_module_file = "./$module_base/chatroom.module";
   }
+}
+else {
+  echo "/** UR3l33t! **/";
+  exit;
 }
 
 /**
@@ -44,9 +49,7 @@ $smileys = isset($smileys_module_file);
 if (isset($_POST['chat_id'])) {
 
   // if anything is not right, just die
-  if (!isset($_POST['chat_id'])                     ||
-      !isset($_POST['last_msg_id'])                 ||
-      !isset($_POST['module_base'])                 ||
+  if (!isset($_POST['last_msg_id'])                 ||
       !preg_match('/^\d+$/', $_POST['chat_id'])     ||
       !preg_match('/^\d+$/', $_POST['last_msg_id'])) {
 

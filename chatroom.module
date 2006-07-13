@@ -522,25 +522,25 @@ function chatroom_chat_update_cache($chat_id, $cache_file) {
 }
 
 /**
- * handles command requests from a chat
+ * handles away status requests from a chat
  */
-function chatroom_chat_command() {
-  global $user;
-  switch ($_POST['cmd']) {
-    case 'msg':
-      $session_id = $_POST['sessionId'];
-      $msg_text   = $_POST['msg'];
-      break;
-    default:
-      $js = '/** UR3l33t! **/';
+function chatroom_chat_set_away_status($chat_id, $status) {
+  db_query("UPDATE {chatroom_online_list} SET away = %d WHERE ccid = %d AND session_id = '%s'",
+           $status == 'away' ? 1 : 0, $chat_id, session_id());
+  $users_js = $msgs_js = '[]';
+  if ($users = chatroom_chat_get_online_list($chat_id)) {
+    $users_js = chatroom_chat_get_online_list_js($users);
   }
-  return chatroom_send_ajax_response($js);
+  return chatroom_send_ajax_response("[$msgs_js, $users_js /** $status **/]");
 }
 
 /**
  * handles requests that write a message into a chat
  */
 function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $recipient = null, $type = null, $timezone = 0, $smileys = false) {
+  if ($type == 'away' || $type == 'back') {
+    return chatroom_chat_set_away_status($chat_id, $type);
+  }
   global $user;
   $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg_type, msg, session_id, recipient, modified) 
                       VALUES (%d, %d, '%s', '%s', '%s', '%s', UNIX_TIMESTAMP())",
@@ -645,15 +645,15 @@ function chatroom_block_room_update_js($cache_file) {
  * takes an array of online users and formats as js
  */
 function chatroom_chat_get_online_list_js($users) {
+  $js_array = array();
   $js = '';
-  $i = 0;
-  $user_count = count($users);
   foreach ($users as $ol_user) {
     $name = $ol_user->name ? check_plain($ol_user->name) : "guest-{$ol_user->guest_id}";
-    $js .= '{user:"'. $name .'",sessionId:"'. $ol_user->session_id .'",uid:'. $ol_user->uid .'}';
-    $js .= ++$i == $user_count ? '' : ',';
+    $js .= '{user:"'. $name .'",sessionId:"'. $ol_user->session_id;
+    $js .= '",uid:'. $ol_user->uid .',away:'. $ol_user->away .'}';
+    $js_array[] = $js;
   }
-  return "[$js]";
+  return '['. implode(',', $js_array) .']';
 }
 
 /**
@@ -752,6 +752,7 @@ function chatroom_chat_get_online_list($chat_id) {
   $result = db_query("SELECT     col.uid, 
                                  col.session_id,
                                  col.guest_id,
+                                 col.away,
                                  cc.chatname,
                                  du.name
                       FROM       {chatroom_online_list} AS col

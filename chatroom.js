@@ -73,7 +73,7 @@ function chatroomInputOnkeyup(input, e) {
  */
 function chatroomSendMessage() {
   var text = $('chatroom-msg-input').value;
-  if (text.search(/^\/(me|whois|away|msg)/) != -1) {
+  if (text.search(/^\/(me|away|msg|back)/) != -1) {
     return chatroomSendCommand(text);
   }
   else if (text == '') {
@@ -87,11 +87,11 @@ function chatroomSendMessage() {
   if (chatroom.smileysBase) {
     msg.smileys_base = chatroom.smileysBase;
   }
-  msg.module_base         = chatroom.moduleBase;
-  msg.chatroomMsg         = escape(msg.chatroomMsg);
-  msg.chat_id             = chatroom.chatId;
-  msg.last_msg_id         = chatroom.lastMsgId;
-  msg.timezone            = chatroom.timezone;
+  msg.module_base = chatroom.moduleBase;
+  msg.chatroomMsg = escape(msg.chatroomMsg);
+  msg.chat_id     = chatroom.chatId;
+  msg.last_msg_id = chatroom.lastMsgId;
+  msg.timezone    = chatroom.timezone;
   HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
 }
 
@@ -101,10 +101,8 @@ function chatroomSendMessage() {
 function chatroomSendCommand(text) {
   $('chatroom-msg-input').value = '';
   $('chatroom-msg-input').focus();
-
   var cmd  = text.replace(/^\//, '').split(' ')[0];
   var args = text.replace(/^\//, '').split(' ').slice(1);
-
   switch (cmd) {
     case 'msg':
       if (args.length < 2) {
@@ -119,12 +117,8 @@ function chatroomSendCommand(text) {
           if (chatroom.smileysBase) {
             msg.smileys_base = chatroom.smileysBase;
           }
-          msg.module_base = chatroom.moduleBase;
-          msg.chat_id     = chatroom.chatId;
-          msg.last_msg_id = chatroom.lastMsgId;
           msg.recipient   = chatroom.userList[i].sessionId;
           msg.timezone    = chatroom.timezone;
-          return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
         }
       }
       break;
@@ -135,18 +129,24 @@ function chatroomSendCommand(text) {
       }
       else {
         var msg = {chatroomMsg:escape(args.join(' '))};
-        msg.module_base         = chatroom.moduleBase;
         if (chatroom.smileysBase) {
           msg.smileys_base = chatroom.smileysBase;
         }
-        msg.chat_id             = chatroom.chatId;
-        msg.last_msg_id         = chatroom.lastMsgId;
-        msg.timezone            = chatroom.timezone;
-        msg.type                = 'me';
-        return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
+        msg.timezone    = chatroom.timezone;
+        msg.type        = 'me';
       }
       break;
+
+    case 'away':
+    case 'back':
+        var msg = {chatroomMsg:' '};
+        msg.type = cmd;
+      break;
   }
+  msg.module_base = chatroom.moduleBase;
+  msg.chat_id     = chatroom.chatId;
+  msg.last_msg_id = chatroom.lastMsgId;
+  return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
 }
 
 /**
@@ -259,6 +259,13 @@ function chatroomUpdateChatOnlineList(updateUsers) {
       if (chatroom.userList[i].sessionId == updateUsers[j].sessionId) {
         deleteFlag = false;
         updateUsers[j].noAdd = 1;
+        chatroom.userList[i].away = updateUsers[j].away;
+        if (updateUsers[j].away) {
+          addClass($(updateUsers[j].sessionId), 'chatroom-user-away');
+        }
+        else {
+          removeClass($(updateUsers[j].sessionId), 'chatroom-user-away');
+        }
       }
     }
     if (deleteFlag) {
@@ -288,6 +295,9 @@ function chatroomUpdateChatOnlineList(updateUsers) {
       li.style.fontWeight = 'bold';
       li.style.color = chatroomGetUserColour(updateUsers[i].user);
       li.appendChild(userInfo);      
+      if (updateUsers[i].away) {
+        addClass(li, 'chatroom-user-away');
+      }
       $('chatroom-online').appendChild(li);          
       chatroomWriteSystemMsg('*** <strong>' + updateUsers[i].user + '</strong> has joined the chat ***');
     }
