@@ -11,6 +11,8 @@ function chatroom_install() {
         crid int(11) NOT NULL AUTO_INCREMENT,
         nid int(11) NOT NULL,
         poll_freq int(2) NOT NULL default '3000',
+        module varchar(255) default 'chatroom',
+        auto_archive int(1) default '0',
         modified int(11) NOT NULL default '0',
         PRIMARY KEY (crid),
         KEY nid (nid)
@@ -62,6 +64,7 @@ function chatroom_install() {
         uid int(11) NOT NULL,
         session_id varchar(255) NOT NULL,
         guest_id int(11) NOT NULL default '1',
+        away int(1) default '0',
         modified int(11) NOT NULL default '0',
         PRIMARY KEY  (coid),
         KEY update_time (ccid,uid,session_id)

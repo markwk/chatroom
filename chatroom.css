@@ -11,8 +11,12 @@
   border: solid 1px #e0e0e0;
   margin-bottom: 20px;
 }
-.chatroom-textentry-smileys{
+.chatroom-textentry-smileys {
   padding-top: 10px;
+}
+.chatroom-textentry-smileys-hidden {
+  visibility: hidden;
+  display: inline;
 }
 .chatroom-textentry-smileys img {
   vertical-align: top;

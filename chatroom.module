@@ -56,11 +56,12 @@ function chatroom_menu($may_cache) {
       'callback' => 'chatroom_chat_archive',
       'access' => user_access('access chatrooms'),
       'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'chatrooms/room',
-      'callback' => 'chatroom_room',
-      'access' => user_access('access chatrooms'),
-      'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'chatroom/command',
+    $items[] = array('path' => 'chatrooms/administer',
+      'callback' => 'chatroom_administer_form',
+      'title' => t('chatrooms'),
+      'access' => user_access('administer chatrooms'),
+      'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'chatrooms/command',
       'callback' => 'chatroom_chat_command',
       'access' => user_access('access chatrooms'),
       'type' => MENU_CALLBACK);
@@ -94,10 +95,15 @@ function chatroom_form(&$node) {
     '#default_value' => check_plain($node->title), 
     '#required' => TRUE
   );
-  $form['chatroom_poll_freq'] = array(
+  $form['chatroom']['auto_archive'] = array(
+    '#type' => 'checkbox', 
+    '#attributes' => $node->chatroom->auto_archive ? array('checked' => 'checked') : null,
+    '#title' => t('Check this box if you would like chats to be automatically archived when all users leave')
+  );
+  $form['chatroom']['poll_freq'] = array(
     '#type' => 'select',
     '#title' => t('Chatroom update frequency, in seconds'),
-    '#default_value' => 2,
+    '#default_value' => $node->chatroom->poll_freq / 1000,
     '#options' => drupal_map_assoc(range(1,10)),
     '#description' => t('How many seconds between each request for updates to the server.'),
   );
@@ -136,10 +142,9 @@ function chatroom_form(&$node) {
  * Implementation of hook_update()
  */
 function chatroom_update($node) {
-  db_query("UPDATE {chatroom} SET poll_freq = %d WHERE nid = %d", 
-            1000 * $node->chatroom_poll_freq, $node->nid);
+  db_query("UPDATE {chatroom} SET poll_freq = %d, auto_archive = %d WHERE nid = %d", 
+            1000 * $node->poll_freq, $node->auto_archive, $node->nid);
   if (isset($node->chat_list)) {
-    $archive = array();
     foreach ($node->chat_list as $chat_id) {
       if ($chat_id > 0) {
         chatroom_archive_chat($chat_id);
@@ -153,7 +158,7 @@ function chatroom_update($node) {
  */
 function chatroom_insert($node) {
   $result = db_query("INSERT INTO {chatroom} (nid, poll_freq, modified) VALUES (%d, %d, UNIX_TIMESTAMP())", 
-                     $node->nid, 1000 * $node->chatroom_poll_freq);
+                     $node->nid, 1000 * $node->poll_freq);
   if ($result) {
     chatroom_block_update_cache('chatrooms');
   }
@@ -218,26 +223,62 @@ function chatroom_view(&$node) {
 }
 
 /**
- * Implementation of hook_settings().
+ * replacement for hook_settings(), which will be deprecated with 4.8
+ * this function validates info from settings form
  */
-function chatroom_settings() {
+function chatroom_administer_validate($f_id, $f_values) {
+  if ($f_values['chatroom_smileys_enabled'] == 0) {
+    if ($f_values['chatroom_smileys_showtextentry'] == 1) {
+      form_set_error('chatroom_smileys_showtextentry', t("You can't display smileys without enabling support for the module"));
+    }
+  }
+}
+
+/**
+ * replacement for hook_settings(), which will be deprecated with 4.8
+ * saves information from settings form
+ */
+function chatroom_administer_submit($f_id, $f_values) {
+  $vars = array('list_description', 'smileys_enabled', 'smileys_showtextentry');
+  foreach ($vars as $var) {
+    variable_set('chatroom_'. $var, $f_values['chatroom_'. $var]);
+  }
+  drupal_set_message(t("Sitewide chatroom settings were saved"));
+}
+
+/**
+ * replacement for hook_settings(), which will be deprecated with 4.8
+ * this function display's site wide chatroom settings.
+ */
+function chatroom_administer_form() {
   $form['chatroom_list_description'] = array(
     '#type' => 'textarea',
     '#title' => t('Chatroom submission information title'), 
     '#default_value' => variable_get('chatroom_list_description', ''),
     '#rows' => 3, 
     '#description' => t('This text will appear above the list of chatrooms for your site.'),
-  );   
-  $form['chatroom_smileys_support'] = array(
-   '#type' => 'fieldset',
-   '#title' => t('Smileys module support'),    
-  );  
-  $form['chatroom_smileys_support']['chatroom_smileys_showtextentry'] = array(
-   '#type' => 'checkbox',
-   '#title' => t('show smileys in entry boxes'),
-   '#default_value' => variable_get('chatroom_smileys_showtextentry', 0),
   );
-  return $form;
+  if (chatroom_smileys_supported()) {
+    $form['chatroom_smileys_support'] = array(
+     '#type' => 'fieldset',
+     '#title' => t('Smileys module support'),    
+    );  
+    $form['chatroom_smileys_support']['chatroom_smileys_enabled'] = array(
+     '#type' => 'checkbox',
+     '#title' => t('enable smileys module support'),
+     '#default_value' => variable_get('chatroom_smileys_enabled', 0),
+    );
+    $form['chatroom_smileys_support']['chatroom_smileys_showtextentry'] = array(
+     '#type' => 'checkbox',
+     '#title' => t('show smileys in entry boxes'),
+     '#default_value' => variable_get('chatroom_smileys_showtextentry', 0),
+    );
+  }
+  $form['chatroom_administer']['submit'] = array(
+    '#type' => 'submit', 
+    '#value' => t('Save settings')
+  );
+  return drupal_get_form('chatroom_administer', $form);
 }
 
 /**
@@ -503,7 +544,7 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $rec
   global $user;
   $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg_type, msg, session_id, recipient, modified) 
                       VALUES (%d, %d, '%s', '%s', '%s', '%s', UNIX_TIMESTAMP())",
-                      $chat_id, $user->uid, $type, $msg, session_id(), $recipient); 
+                      $chat_id, $user->uid, $type, stripslashes($msg), session_id(), $recipient); 
   if ($msgs = chatroom_chat_get_latest_msgs($chat_id, $last_msg_id)) {
     $msg_js = chatroom_chat_get_latest_msgs_js($msgs, $timezone, $smileys);
   }
@@ -1092,6 +1133,14 @@ function chatroom_get_chatroom_list($start = null, $end = null) {
 }
 
 /**
+ * smileys module support - test if smileys module is enabled
+ * can't use variable_get because we might only have session bootstrap
+ */
+function chatroom_smileys_enabled() {
+  return unserialize(db_result(db_query("SELECT value FROM {variable} WHERE name = 'chatroom_smileys_enabled'")));
+}
+
+/**
  * smileys module support
  * test if smileys module is avaliable
  */
@@ -1104,15 +1153,17 @@ function chatroom_smileys_supported() {
  * return text entry smileys list 
  */
 function chatroom_smileys_get_textentry() {
-  if (chatroom_smileys_supported() && variable_get('chatroom_smileys_showtextentry', 0)) {    
-    $content .= '<div class="chatroom-textentry-smileys">';
+  if (chatroom_smileys_supported() && chatroom_smileys_enabled()) {
+    $hidden = variable_get('chatroom_smileys_showtextentry', 0) ? '' : '-hidden';
+    $content = '<div class="chatroom-textentry-smileys'. $hidden.'">';
     $list = _smileys_list();
     foreach ($list as $smiley) {
       $alt = check_plain(implode(' &nbsp; ', explode(' ', $smiley->acronyms)));
       $acronyms = explode(' ', $smiley->acronyms);
       $id = ' id="_'. md5($acronyms[0]) .'" ';
-      $content .= '<a href="javascript:chatroomSmileyInsert(\''. $acronyms[0] .'\')">';
-      $content .= '<img'. $id .'src="'. check_url(base_path() . $smiley->image) .'" title="'. $alt .'" alt="'. $alt .'" /></a>';
+      $content .= $hidden ? '' : '<a href="javascript:chatroomSmileyInsert(\''. $acronyms[0] .'\')">';
+      $content .= '<img'. $id .'src="'. check_url(base_path() . $smiley->image) .'" title="'. $alt .'" alt="'. $alt .'" />';
+      $content .= $hidden ? '' : '</a>';
     }
     $content .= '</div>';
     return $content;
@@ -1126,8 +1177,8 @@ function chatroom_smileys_get_textentry() {
  * - because we don't want to send html, just data about image
  */
 function chatroom_smileys_filter_process($text) {
-  if (!chatroom_smileys_supported()) {
-    return $text;
+  if (!chatroom_smileys_supported() || !chatroom_smileys_enabled()) {
+    return $text . variable_get('chatroom_smileys_enabled', 0);
   }
   $text = ' '. $text .' ';
   $list = _smileys_list();
@@ -1178,6 +1229,5 @@ function theme_chatroom_chat_textentry() {
         
   return $output;
 }
-
 
 /* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */
