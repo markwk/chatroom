@@ -2,6 +2,15 @@ CHANGELOG
 ---------
 $Id$
 
+July 13, 2006
+Lots of changes!
+- added timezone support - thanks Paulo
+- added smiley support - thanks Paulo (sorry I hacked it up so much)
+- added some theme support - thanks Paulo
+- integrated some nice UI improvements - thanks Paulo
+- moved online list for a chat to a Drupal block
+- added an admin editable description blurb
+
 July 2, 2006
 - added first hacky implementation of '/msg' and '/me'. code is not
   the cleanest and UI could do with some work. usage:

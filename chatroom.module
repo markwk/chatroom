@@ -228,11 +228,11 @@ function chatroom_settings() {
     '#rows' => 3, 
     '#description' => t('This text will appear above the list of chatrooms for your site.'),
   );   
-  $form['chatroom_smileys_suport'] = array(
+  $form['chatroom_smileys_support'] = array(
    '#type' => 'fieldset',
-   '#title' => t('Smileys module suport'),    
+   '#title' => t('Smileys module support'),    
   );  
-  $form['chatroom_smileys_suport']['chatroom_smileys_showtextentry'] = array(
+  $form['chatroom_smileys_support']['chatroom_smileys_showtextentry'] = array(
    '#type' => 'checkbox',
    '#title' => t('show smileys in entry boxes'),
    '#default_value' => variable_get('chatroom_smileys_showtextentry', 0),
@@ -514,7 +514,7 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $rec
   if ($result && $cache_timestamp = chatroom_chat_update_cache($chat_id, $cache_file)) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
-  return chatroom_send_ajax_response("[$msg_js, [] $cache_js]/** $recipient **/");
+  return chatroom_send_ajax_response("[$msg_js, [] $cache_js]");
 }
 
 /**
@@ -618,13 +618,13 @@ function chatroom_chat_get_online_list_js($users) {
 /**
  * takes an array of msgs and formats as js
  */
-function chatroom_chat_get_latest_msgs_js($msgs, $timezone = 0, $smileys) {
+function chatroom_chat_get_latest_msgs_js($msgs, $timezone = 0, $smileys = false) {
   $js = '';
   $i = 0;
   $msg_count = count($msgs);
   foreach ($msgs as $msg) {
     if ($smileys) {
-      $msg->msg = chatroom_smileys_filter_process($msg->msg); 
+      $msg->msg = chatroom_smileys_filter_process($msg->msg);
     }
     $name = $msg->name ? $msg->name : "guest-{$msg->guest_id}";
     $time = gmdate('G:i', $msg->modified + $timezone);
@@ -787,15 +787,16 @@ function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   if ($users = chatroom_chat_get_online_list($chat->ccid)) {
     $users_js = chatroom_chat_get_online_list_js($users);
   }
-  $chat_url    = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
-  $user_url    = ($clean_urls ? '../../' : '?q=') . 'user/';
-  $module_base = drupal_get_path('module', 'chatroom');
-  $smileys_module_base = drupal_get_path('module', 'smileys') ? "'". drupal_get_path('module', 'smileys') ."'" : 'false';
-  $cache_file  = chatroom_chat_get_cache_file_name($chat->ccid);
-  $timestamp   = time() - (60 * 60);
-  $online_list = variable_get('chatroom_online_list', 0) ? 'true' : 'true';
-  
-  // timezone suport
+  $chat_url       = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
+  $user_url       = ($clean_urls ? '../../' : '?q=') . 'user/';
+  $module_base    = drupal_get_path('module', 'chatroom');
+  $cache_file     = chatroom_chat_get_cache_file_name($chat->ccid);
+  $smileys_base   = drupal_get_path('module', 'smileys') ? "'". drupal_get_path('module', 'smileys') ."'" : 'false';
+  $smileys_marker = '------';
+  $timestamp      = time() - (60 * 60);
+  $online_list    = variable_get('chatroom_online_list', 0) ? 'true' : 'true';
+
+  // timezone support
   if (variable_get('configurable_timezones', 1) && $user->uid && strlen($user->timezone)) {
     $timezone = $user->timezone;
   }
@@ -810,7 +811,8 @@ var chatroom = {chatId         : $chat->ccid,
                 updateCount    : 0, 
                 chatUrl        : '$chat_url',
                 moduleBase     : '$module_base',
-                smileysModuleBase : $smileys_module_base,
+                smileysBase    : $smileys_base,
+                smileysMarker  : '$smileys_marker',
                 userUrl        : '$user_url',
                 chatCacheFile  : '$cache_file',
                 updateInterval : $chat->poll_freq,
@@ -1090,25 +1092,27 @@ function chatroom_get_chatroom_list($start = null, $end = null) {
 }
 
 /**
- * smileys module suport
+ * smileys module support
  * test if smileys module is avaliable
  */
-function chatroom_smileys_suported() {
+function chatroom_smileys_supported() {
   return function_exists('_smileys_list'); 
 }
 
 /**
- * smileys module suport
+ * smileys module support
  * return text entry smileys list 
  */
 function chatroom_smileys_get_textentry() {
-  if (chatroom_smileys_suported() && variable_get('chatroom_smileys_showtextentry', 0)) {    
+  if (chatroom_smileys_supported() && variable_get('chatroom_smileys_showtextentry', 0)) {    
     $content .= '<div class="chatroom-textentry-smileys">';
     $list = _smileys_list();
     foreach ($list as $smiley) {
-     $alt = check_plain(implode(' &nbsp; ', explode(' ', $smiley->acronyms)));
-     $acronyms = explode(' ', $smiley->acronyms);
-     $content .= '<a href="javascript:chatroomSmileyInsert(\''. $acronyms[0] .'\')"><img src="'. check_url(base_path() . $smiley->image) .'" title="'. $alt .'" alt="'. $alt .'" /></a>';
+      $alt = check_plain(implode(' &nbsp; ', explode(' ', $smiley->acronyms)));
+      $acronyms = explode(' ', $smiley->acronyms);
+      $id = ' id="_'. md5($acronyms[0]) .'" ';
+      $content .= '<a href="javascript:chatroomSmileyInsert(\''. $acronyms[0] .'\')">';
+      $content .= '<img'. $id .'src="'. check_url(base_path() . $smiley->image) .'" title="'. $alt .'" alt="'. $alt .'" /></a>';
     }
     $content .= '</div>';
     return $content;
@@ -1116,29 +1120,33 @@ function chatroom_smileys_get_textentry() {
 }
 
 /**
- * smileys module suport
- * process smileys filtering
- * this is duplicated from smileys.module because we don't have full bootstrap
+ * smileys module support - process smileys filtering
+ * this is modified from smileys.module
+ * - because we don't have full bootstrap
+ * - because we don't want to send html, just data about image
  */
 function chatroom_smileys_filter_process($text) {
-  if(!chatroom_smileys_suported()) return;
-  
+  if (!chatroom_smileys_supported()) {
+    return $text;
+  }
   $text = ' '. $text .' ';
-
   $list = _smileys_list();
+  $marker = '------';
   foreach ($list as $smiley) {
     $acronyms = explode(" ", $smiley->acronyms);
     $alt = str_replace('\\', '\\\\', check_plain($smiley->description));
-    foreach ($acronyms as $a) {
-      if ($smiley->standalone)
-        $text = eregi_replace("([ ,\.\?!:\(\)\r\n\<\>])". preg_quote($a) ."([ ,\.\?!:\(\)\r\n\<\>])", "\\1<img src=\"/". $smiley->image ."\" title=\"". check_plain($alt) ."\" alt=\"". check_plain($alt) ."\" />\\2", $text);
-      else
-        $text = eregi_replace(preg_quote($a), '<img src="/'. $smiley->image .'" title="'. check_plain($alt) .'" alt="'. check_plain($alt) .'" />', $text);
+    foreach ($acronyms as $acronym) {
+      if ($smiley->standalone) {
+        $replace = "\\1{$marker}_". md5($acronyms[0]) ."$marker\\2";
+        $text = eregi_replace("([ ,\.\?!:\(\)\r\n\<\>])". preg_quote($acronym) ."([ ,\.\?!:\(\)\r\n\<\>])", $replace, $text);
+      }
+      else {
+        $replace = $marker .'_'. md5($acronyms[0]) . $marker;
+        $text = eregi_replace(preg_quote($acronym), $replace, $text);
+      }
     }
   }
-  $text = substr($text, 1, -1);
-
-  return $text;
+  return substr($text, 1, -1);
 }
 
 /**

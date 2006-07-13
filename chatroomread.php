@@ -21,19 +21,19 @@ if (isset($_POST['module_base'])) {
 }
 
 /**
- * make sure we can get the smileys module
+ * make sure we can get the smiley's module
  */
-if (isset($_POST['smileys_module_base'])) {
+if (isset($_POST['smileys_base'])) {
   // if module base looks dodge, just exit
-  $smileys_module_base = urldecode($_POST['smileys_module_base']);
-  if (!is_dir($smileys_module_base)                                   ||
-      substr($smileys_module_base, 0, strlen('modules')) != 'modules' ||
-      strpos($smileys_module_base, '..') !== FALSE)                    {
-    echo "/** UR3l33t! **/";
+  $smileys_base = urldecode($_POST['smileys_base']);
+  if (!is_dir($smileys_base)                                   ||
+      substr($smileys_base, 0, strlen('modules')) != 'modules' ||
+      strpos($smileys_base, '..') !== FALSE)                    {
+    echo "/** UR3l33t! smiley **/";
     exit;
   }
   else {
-    $smileys_module_file = "./$smileys_module_base/smileys.module";
+    $smileys_module_file = "./$smileys_base/smileys.module";
   }
 }
 $smileys = isset($smileys_module_file);

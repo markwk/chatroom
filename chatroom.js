@@ -72,7 +72,7 @@ function chatroomInputOnkeyup(input, e) {
  * sends text of message to the server
  */
 function chatroomSendMessage() {
-  var text = $('chatroom-msg-input').value.replace(/^\s+/g, '');
+  var text = $('chatroom-msg-input').value;
   if (text.search(/^\/(me|whois|away|msg)/) != -1) {
     return chatroomSendCommand(text);
   }
@@ -84,11 +84,10 @@ function chatroomSendMessage() {
   $('chatroom-msg-input').focus();
   chatroom.skipUpdate = true;
   chatroom.updateCount++;
-
-  msg.module_base         = chatroom.moduleBase;
-  if (chatroom.smileysModuleBase) {
-    msg.smileys_module_base = chatroom.smileysModuleBase;
+  if (chatroom.smileysBase) {
+    msg.smileys_base = chatroom.smileysBase;
   }
+  msg.module_base         = chatroom.moduleBase;
   msg.chatroomMsg         = escape(msg.chatroomMsg);
   msg.chat_id             = chatroom.chatId;
   msg.last_msg_id         = chatroom.lastMsgId;
@@ -117,14 +116,14 @@ function chatroomSendCommand(text) {
       for (i =0; i < chatroom.userList.length; i++) {
         if (chatroom.userList[i].user == user) {
           var msg = {chatroomMsg:escape(args.join(' '))};
-          if (chatroom.smileysModuleBase) {
-            msg.smileys_module_base = chatroom.smileysModuleBase;
+          if (chatroom.smileysBase) {
+            msg.smileys_base = chatroom.smileysBase;
           }
-          msg.module_base         = chatroom.moduleBase;
-          msg.chat_id             = chatroom.chatId;
-          msg.last_msg_id         = chatroom.lastMsgId;
-          msg.recipient           = chatroom.userList[i].sessionId;
-          msg.timezone            = chatroom.timezone;
+          msg.module_base = chatroom.moduleBase;
+          msg.chat_id     = chatroom.chatId;
+          msg.last_msg_id = chatroom.lastMsgId;
+          msg.recipient   = chatroom.userList[i].sessionId;
+          msg.timezone    = chatroom.timezone;
           return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
         }
       }
@@ -136,10 +135,10 @@ function chatroomSendCommand(text) {
       }
       else {
         var msg = {chatroomMsg:escape(args.join(' '))};
-        if (chatroom.smileysModuleBase) {
-          msg.smileys_module_base = chatroom.smileysModuleBase;
-        }
         msg.module_base         = chatroom.moduleBase;
+        if (chatroom.smileysBase) {
+          msg.smileys_base = chatroom.smileysBase;
+        }
         msg.chat_id             = chatroom.chatId;
         msg.last_msg_id         = chatroom.lastMsgId;
         msg.timezone            = chatroom.timezone;
@@ -173,20 +172,6 @@ function chatroomUpdateMsgList(msgs) {
   var scroll = false;
   for (i = 0; i < msgs.length; i++) {
     if (chatroomUpdateLastMsg(msgs[i].id)) {
-      var span = document.createElement('span');
-      if (chatroom.updateCount != 1) {
-        span.style.color = chatroomGetUserColour(msgs[i].user);        
-      }
-      if (msgs[i].recipient) {
-        span.innerHTML = '<span class="header"><strong>' + msgs[i].user + '</strong> <i>says privately:</i></span> [' + msgs[i].time + '] ' + msgs[i].text;
-      }
-      else if (msgs[i].type == 'me') {
-        span.innerHTML = '<i>* ' + msgs[i].user + ' ' + msgs[i].text + '</i>';          
-      }
-      else {        
-        span.innerHTML = '<span class="header"><strong>' + msgs[i].user + '</strong> <i>says:</i></span> [' + msgs[i].time + '] ' + msgs[i].text;
-      }
-      scroll = true;
       var p = document.createElement('p');
       if (chatroom.updateCount == 1) {
         addClass(p, 'chatroom-old-msg');
@@ -196,12 +181,69 @@ function chatroomUpdateMsgList(msgs) {
       }
       else {
         addClass(p, 'chatroom-msg');
+        p.style.color = chatroomGetUserColour(msgs[i].user);        
       }
-      p.appendChild(span);      
+
+      if (msgs[i].recipient) {
+        var span = document.createElement('span');
+        addClass(span, 'header');
+        span.appendChild(document.createTextNode(msgs[i].user +' '));
+
+        var privSpan = document.createElement('span');
+        privSpan.appendChild(document.createTextNode('says privately: '));
+        addClass(privSpan, 'chatroom-private');
+        
+        span.appendChild(privSpan);
+        p.appendChild(span);      
+        p.appendChild(document.createTextNode('['+ msgs[i].time +'] '));
+      }
+      else if (msgs[i].type == 'me') {
+        p.appendChild(document.createTextNode('* ' + msgs[i].user + ' '));          
+      }
+      else {        
+        var span = document.createElement('span');
+        addClass(span, 'header');
+        span.appendChild(document.createTextNode(msgs[i].user));
+
+        var saySpan = document.createElement('span');
+        saySpan.appendChild(document.createTextNode(' says: '));
+        addClass(saySpan, 'chatroom-says');
+
+        span.appendChild(saySpan);      
+        p.appendChild(span);      
+        p.appendChild(document.createTextNode('['+ msgs[i].time +'] ')); 
+      }
+      p = chatroomProcessMsgText(p, msgs[i].text);
       msgBoard.appendChild(p);
+      scroll = true;
     }
   }
   return scroll;
+}
+
+/**
+ * process msgText and append to given domNode
+ */
+function chatroomProcessMsgText(domNode, text) {
+  if (!chatroom.smileysBase) {
+    domNode.appendChild(document.createTextNode(text));
+  }
+  else if (text.indexOf(chatroom.smileysMarker) == -1) {
+    domNode.appendChild(document.createTextNode(text));
+  }
+  else {
+    var bits = text.split(chatroom.smileysMarker);
+    for (i = 0; bit = bits[i]; i < bits.length) {
+      if ($(bit)) {
+        domNode.appendChild($(bit).cloneNode(true));
+      }
+      else {
+        domNode.appendChild(document.createTextNode(bit));
+      }
+      i++;
+    }
+  }
+  return domNode;
 }
 
 /**
@@ -287,8 +329,8 @@ function chatroomGetUpdates() {
   postData.timestamp           = chatroom.cacheTimestamp;
   postData.update_count        = ++chatroom.updateCount;
   postData.module_base         = chatroom.moduleBase;
-  if (chatroom.smileysModuleBase) {
-    postData.smileys_module_base = chatroom.smileysModuleBase;
+  if (chatroom.smileysBase) {
+    postData.smileys_base = chatroom.smileysBase;
   }
   postData.chat_cache_file     = chatroom.chatCacheFile;
   postData.timezone            = chatroom.timezone;
