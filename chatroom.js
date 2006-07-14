@@ -84,7 +84,9 @@ function chatroomSendMessage() {
   if (text.search(/^\/(me|away|msg|back)/) != -1) {
     return chatroomSendCommand(text);
   }
-  else if (text == '') {
+  else if (text == '' || text.match(/^\s+$/)) {
+    $('chatroom-msg-input').value = '';
+    $('chatroom-msg-input').focus();
     return;
   }
   var msg = {chatroomMsg:text};
@@ -246,14 +248,13 @@ function chatroomProcessMsgText(domNode, text) {
   }
   else {
     var bits = text.split(chatroom.smileysMarker);
-    for (var i = 0; bit = bits[i]; i < bits.length) {
-      if ($(bit)) {
-        domNode.appendChild($(bit).cloneNode(true));
+    for (var i = 0; i < bits.length; i++) {
+      if ($(bits[i])) {
+        domNode.appendChild($(bits[i]).cloneNode(true));
       }
       else {
-        domNode.appendChild(document.createTextNode(bit));
+        domNode.appendChild(document.createTextNode(bits[i]));
       }
-      i++;
     }
   }
   return domNode;
