@@ -99,6 +99,7 @@ function chatroomSendMessage() {
   }
   msg.module_base = chatroom.moduleBase;
   msg.chatroomMsg = escape(msg.chatroomMsg);
+  //msg.chatroomMsg = encodeURIComponent(msg.chatroomMsg);
   msg.chat_id     = chatroom.chatId;
   msg.last_msg_id = chatroom.lastMsgId;
   msg.timezone    = chatroom.timezone;
@@ -370,6 +371,8 @@ function chatroomWriteSystemMsg(msgText, type) {
   var msgBoard = $('chatroom-board');
   msgBoard.appendChild(p);
   msgBoard.scrollTop = msgBoard.scrollHeight;
+
+  chatroom.lastUser = '';        
 }
 
 /**
