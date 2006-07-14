@@ -273,12 +273,20 @@ function chatroomUpdateChatOnlineList(updateUsers) {
       if (chatroom.userList[i].sessionId == updateUsers[j].sessionId) {
         deleteFlag = false;
         updateUsers[j].noAdd = 1;
-        chatroom.userList[i].away = updateUsers[j].away;
-        if (updateUsers[j].away) {
-          addClass($(updateUsers[j].sessionId), 'chatroom-user-away');
-        }
-        else {
-          removeClass($(updateUsers[j].sessionId), 'chatroom-user-away');
+        if (chatroom.userList[i].away != updateUsers[j].away) {
+          if (updateUsers[j].away) {
+            addClass($(updateUsers[j].sessionId), 'chatroom-user-away');
+            if (chatroom.sessionId !=  updateUsers[j].sessionId) {
+              chatroomWriteSystemMsg(updateUsers[j].user, 'away');
+            }
+          }
+          else {
+            removeClass($(updateUsers[j].sessionId), 'chatroom-user-away');
+            if (chatroom.sessionId !=  updateUsers[j].sessionId) {
+              chatroomWriteSystemMsg(updateUsers[j].user, 'back');
+            }
+          }
+          chatroom.userList[i].away = updateUsers[j].away;
         }
       }
     }

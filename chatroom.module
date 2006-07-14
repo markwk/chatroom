@@ -732,6 +732,7 @@ function chatroom_chat_get_block_online_list() {
     foreach ($users as $ol_user) {
       $name = $ol_user->name ? check_plain($ol_user->name) : "guest-{$ol_user->guest_id}";
       $content .= '<li id="'. $ol_user->session_id .'"';
+      $content .= $ol_user->away ? ' class="chatroom-user-away" ' : '';
       if ($ol_user->uid) {        
         $content .= '><a href="javascript:chatroomSelectUser(\''. $ol_user->name .'\')">' . check_plain($name). '</a></li>';
       }
@@ -747,9 +748,10 @@ function chatroom_chat_get_block_online_list() {
 
 /**
  * gets a list of online users in a given chat
+ * returns the current user at the top of the list
  */
 function chatroom_chat_get_online_list($chat_id) {
-  $result = db_query("SELECT     col.uid, 
+  $result = db_query('SELECT     col.uid, 
                                  col.session_id,
                                  col.guest_id,
                                  col.away,
@@ -761,14 +763,23 @@ function chatroom_chat_get_online_list($chat_id) {
                       LEFT JOIN  {users} AS du
                       ON         du.uid = col.uid
                       WHERE      col.ccid = %d 
-                      AND        col.modified > (UNIX_TIMESTAMP() - 5)
-                      ORDER BY   col.session_id",
+                      AND        col.modified > (UNIX_TIMESTAMP() - 5)',
                       $chat_id);
   $users = array(); 
+  $session_id = session_id();
   while ($row = db_fetch_object($result)) {
-    $users[] = $row;
+    if ($row->session_id == $session_id) {
+      $current_user = $row;
+    }
+    else {
+      $users[] = $row;
+    }
   }
-  return count($users) ? $users : FALSE; 
+  if (count($users) && isset($current_user)) {
+    array_unshift($users, $current_user);
+    return $users;
+  }
+  return FALSE; 
 }
 
 /**
