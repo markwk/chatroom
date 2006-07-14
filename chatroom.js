@@ -98,8 +98,7 @@ function chatroomSendMessage() {
     msg.smileys_base = chatroom.smileysBase;
   }
   msg.module_base = chatroom.moduleBase;
-  msg.chatroomMsg = escape(msg.chatroomMsg);
-  //msg.chatroomMsg = encodeURIComponent(msg.chatroomMsg);
+  msg.chatroomMsg = encodeURIComponent(msg.chatroomMsg);
   msg.chat_id     = chatroom.chatId;
   msg.last_msg_id = chatroom.lastMsgId;
   msg.timezone    = chatroom.timezone;

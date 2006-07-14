@@ -106,7 +106,12 @@ if (isset($_POST['chat_id'])) {
 
   // are we writing?
   if ($write_request) {
-    $msg       = strip_tags(urldecode($_POST['chatroomMsg']));
+    if (get_magic_quotes_gpc()) {
+      $msg = strip_tags(urldecode($_POST['chatroomMsg']));
+    }
+    else {
+      $msg = strip_tags(utf8_decode(urldecode($_POST['chatroomMsg'])));
+    }
     $recipient = empty($_POST['recipient']) ? "" : $_POST['recipient'];
     $type      = is_null($_POST['type']) ? "msg" : $_POST['type'];
     chatroom_chat_write_msg($chat_id, $last_msg_id, $chat_cache_file, $msg, $recipient, $type, $timezone, $smileys);
