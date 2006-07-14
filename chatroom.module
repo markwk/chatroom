@@ -726,7 +726,6 @@ function chatroom_chat_get_block_online_list() {
   }
   $title   = '';
   $content = '';
-  $session_id = session_id();
   if ($users = chatroom_chat_get_online_list($matches[1])) {
     $content = '<ul class="menu" id="chatroom-online">';
     foreach ($users as $ol_user) {
@@ -775,11 +774,10 @@ function chatroom_chat_get_online_list($chat_id) {
       $users[] = $row;
     }
   }
-  if (count($users) && isset($current_user)) {
+  if (isset($current_user)) {
     array_unshift($users, $current_user);
-    return $users;
   }
-  return FALSE; 
+  return count($users) ? $users : FALSE; 
 }
 
 /**
