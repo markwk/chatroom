@@ -18,8 +18,7 @@
   background-color: #f5f5f5;
 }
 .chatroom-textentry-smileys-hidden {
-  visibility: hidden;
-  display: inline;
+  display: none;
 }
 .chatroom-textentry-smileys img {
   vertical-align: top;
@@ -33,7 +32,7 @@
   border: solid 1px #e0e0e0;
 }
 #chatroom-board p{
-  margin: 1px 0 0 0;    
+  margin: 0 0 0 0;    
 }
 .clear-both {
   clear: both;
@@ -48,16 +47,25 @@
   color: #660000;
   font-style: italic;
 }
-.chatroom-me-msg i {
+.chatroom-time-msg {
+  color: #999999;
+  font-style: italic;
+}
+.chatroom-me-msg{  
+  font-style: italic;
   color: #7777FF;  
 }
-.chatroom-me-msg, .chatroom-old-msg, .chatroom-system-msg, .chatroom-msg {
+.chatroom-time-msg, .chatroom-me-msg, .chatroom-old-msg, .chatroom-system-msg, .chatroom-msg {
   background-color: #f5f5f5;
-  padding: 5px;
+  padding: 4px;
 }
 .chatroom-old-msg .header, .chatroom-system-msg .header, .chatroom-msg .header {
-  display: block;
-  margin-bottom: 3px;
+  font-weight: bold;
+  margin-right: 3px;
+  vertical-align: top;
+}
+.chatroom-old-msg .indent, .chatroom-system-msg .indent, .chatroom-msg .indent{
+  margin-left: 15px;
 }
 .chatroomLink {
   font-style: italic;

@@ -28,6 +28,14 @@ var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam
     if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
       if (resArray[0].length) {
         var scroll = chatroomUpdateMsgList(resArray[0]);
+        chatroom.nomgs_updates = 0;
+      }
+      else{
+        chatroom.nomgs_updates++;
+        var noMsgUpdatesTime = (chatroom.nomgs_updates * (chatroom.updateInterval / 1000));
+        if (noMsgUpdatesTime == 45) {
+          chatroomWriteTime();          
+        }
       }
       if (resArray[1].length) {
         chatroomUpdateChatOnlineList(resArray[1]);
@@ -171,10 +179,10 @@ function chatroomUpdateMsgList(msgs) {
   var msgBoard = $('chatroom-board');
   var scroll = false;
   for (i = 0; i < msgs.length; i++) {
-    if (chatroomUpdateLastMsg(msgs[i].id)) {
+    if (chatroomUpdateLastMsg(msgs[i].id)) {        
       var p = document.createElement('p');
       if (chatroom.updateCount == 1) {
-        addClass(p, 'chatroom-old-msg');
+        addClass(p, 'chatroom-old-msg');        
       }
       else if (msgs[i].type == 'me') {
         addClass(p, 'chatroom-me-msg');
@@ -190,33 +198,38 @@ function chatroomUpdateMsgList(msgs) {
         span.appendChild(document.createTextNode(msgs[i].user +' '));
 
         var privSpan = document.createElement('span');
-        privSpan.appendChild(document.createTextNode('says privately: '));
-        addClass(privSpan, 'chatroom-private');
-        
+        privSpan.appendChild(document.createTextNode(' (privately): '));
+        addClass(privSpan, 'chatroom-private');        
         span.appendChild(privSpan);
-        p.appendChild(span);      
-        p.appendChild(document.createTextNode('['+ msgs[i].time +'] '));
+        p.appendChild(span);              
+        chatroom.lastUser = '';        
       }
       else if (msgs[i].type == 'me') {
         p.appendChild(document.createTextNode('* ' + msgs[i].user + ' '));          
+        chatroom.lastUser = '';        
       }
-      else {        
-        var span = document.createElement('span');
-        addClass(span, 'header');
-        span.appendChild(document.createTextNode(msgs[i].user));
-
-        var saySpan = document.createElement('span');
-        saySpan.appendChild(document.createTextNode(' says: '));
-        addClass(saySpan, 'chatroom-says');
-
-        span.appendChild(saySpan);      
-        p.appendChild(span);      
-        p.appendChild(document.createTextNode('['+ msgs[i].time +'] ')); 
-      }
+      else {             
+        if (msgs[i].user != chatroom.lastUser) {
+          var span = document.createElement('span');
+          addClass(span, 'header');
+          span.appendChild(document.createTextNode(msgs[i].user + ':'));               
+          p.appendChild(span);              
+        } 
+        else {
+          var span = document.createElement('span');
+          addClass(span, 'indent');
+          p.appendChild(span);
+        }                
+      }      
       p = chatroomProcessMsgText(p, msgs[i].text);
       msgBoard.appendChild(p);
-      scroll = true;
-    }
+      chatroom.lastUser    = msgs[i].user;
+      chatroom.lastMsgTime = msgs[i].time;
+      scroll = true;      
+    }    
+  }  
+  if (chatroom.updateCount == 1) {
+    chatroom.lastUser = '';
   }
   return scroll;
 }
@@ -275,7 +288,7 @@ function chatroomUpdateChatOnlineList(updateUsers) {
   for (i = 0; i < usersToDelete.length; i++) {
     $('chatroom-online').removeChild($(chatroom.userList[usersToDelete[i][0]].sessionId));
     chatroom.userList.splice(usersToDelete[i][0], 1);
-    chatroomWriteSystemMsg('*** <strong>' + usersToDelete[i][1] + '</strong> has left the chat ***');
+    chatroomWriteSystemMsg('* <strong>' + usersToDelete[i][1] + '</strong> has left the chat');
   }
   for (i = 0; i < updateUsers.length; i++) {
     if (typeof updateUsers[i].noAdd == 'undefined') {
@@ -299,7 +312,7 @@ function chatroomUpdateChatOnlineList(updateUsers) {
         addClass(li, 'chatroom-user-away');
       }
       $('chatroom-online').appendChild(li);          
-      chatroomWriteSystemMsg('*** <strong>' + updateUsers[i].user + '</strong> has joined the chat ***');
+      chatroomWriteSystemMsg('* <strong>' + updateUsers[i].user + '</strong> has joined the chat');
     }
   }
 }
@@ -327,6 +340,19 @@ function chatroomWriteSystemMsg(msgText) {
 }
 
 /**
+ * writes last msg's time to the chat when iddle
+ */
+function chatroomWriteTime(msgText) {
+  var msgBoard = $('chatroom-board');
+  var p = document.createElement('p');
+  p.appendChild(document.createTextNode('* Sent at '+ chatroom.lastMsgTime));
+  addClass(p, 'chatroom-time-msg');
+  msgBoard.appendChild(p);
+  msgBoard.scrollTop = msgBoard.scrollHeight;
+  chatroom.lastUser = '';    
+}
+
+/**
  * gets updates from the server for this chat
  */
 function chatroomGetUpdates() {
@@ -337,7 +363,7 @@ function chatroomGetUpdates() {
   var postData = {chat_id:chatroom.chatId};
   postData.last_msg_id         = chatroom.lastMsgId;
   postData.timestamp           = chatroom.cacheTimestamp;
-  postData.update_count        = ++chatroom.updateCount;
+  postData.update_count        = ++chatroom.updateCount;  
   postData.module_base         = chatroom.moduleBase;
   if (chatroom.smileysBase) {
     postData.smileys_base = chatroom.smileysBase;
