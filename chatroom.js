@@ -123,7 +123,7 @@ function chatroomSendCommand(text) {
       }
       for (var i = 0; i < chatroom.userList.length; i++) {
         if (chatroom.userList[i].user == user) {
-          var msg = {chatroomMsg:escape(args.join(' '))};
+          var msg = {chatroomMsg:encodeURIComponent(args.join(' '))};
           if (chatroom.smileysBase) {
             msg.smileys_base = chatroom.smileysBase;
           }
@@ -138,7 +138,7 @@ function chatroomSendCommand(text) {
         return;
       }
       else {
-        var msg = {chatroomMsg:escape(args.join(' '))};
+        var msg = {chatroomMsg:encodeURIComponent(args.join(' '))};
         if (chatroom.smileysBase) {
           msg.smileys_base = chatroom.smileysBase;
         }
