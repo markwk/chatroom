@@ -119,7 +119,7 @@ function chatroomSendCommand(text) {
       else {
         var user = args.shift();
       }
-      for (i =0; i < chatroom.userList.length; i++) {
+      for (var i = 0; i < chatroom.userList.length; i++) {
         if (chatroom.userList[i].user == user) {
           var msg = {chatroomMsg:escape(args.join(' '))};
           if (chatroom.smileysBase) {
@@ -178,7 +178,7 @@ function chatroomGetUrl(type) {
 function chatroomUpdateMsgList(msgs) {
   var msgBoard = $('chatroom-board');
   var scroll = false;
-  for (i = 0; i < msgs.length; i++) {
+  for (var i = 0; i < msgs.length; i++) {
     if (chatroomUpdateLastMsg(msgs[i].id)) {        
       var p = document.createElement('p');
       if (chatroom.updateCount == 1) {
@@ -246,7 +246,7 @@ function chatroomProcessMsgText(domNode, text) {
   }
   else {
     var bits = text.split(chatroom.smileysMarker);
-    for (i = 0; bit = bits[i]; i < bits.length) {
+    for (var i = 0; bit = bits[i]; i < bits.length) {
       if ($(bit)) {
         domNode.appendChild($(bit).cloneNode(true));
       }
@@ -266,9 +266,9 @@ function chatroomUpdateChatOnlineList(updateUsers) {
   var usersToDelete = Array();
   var deleteFlag = true;
   var count = 0;
-  for (i = 0; i < chatroom.userList.length; i++) {
+  for (var i = 0; i < chatroom.userList.length; i++) {
     deleteFlag = true;
-    for (j = 0; j < updateUsers.length; j++) {
+    for (var j = 0; j < updateUsers.length; j++) {
       if (chatroom.userList[i].sessionId == updateUsers[j].sessionId) {
         deleteFlag = false;
         updateUsers[j].noAdd = 1;
@@ -285,12 +285,12 @@ function chatroomUpdateChatOnlineList(updateUsers) {
       usersToDelete.push([i, chatroom.userList[i].user]);
     }
   }
-  for (i = 0; i < usersToDelete.length; i++) {
+  for (var i = 0; i < usersToDelete.length; i++) {
     $('chatroom-online').removeChild($(chatroom.userList[usersToDelete[i][0]].sessionId));
     chatroom.userList.splice(usersToDelete[i][0], 1);
-    chatroomWriteSystemMsg('* <strong>' + usersToDelete[i][1] + '</strong> has left the chat');
+    chatroomWriteSystemMsg(usersToDelete[i][1], 'leave');
   }
-  for (i = 0; i < updateUsers.length; i++) {
+  for (var i = 0; i < updateUsers.length; i++) {
     if (typeof updateUsers[i].noAdd == 'undefined') {
       chatroom.userList.push(updateUsers[i]);
       var li = document.createElement('li');
@@ -312,7 +312,7 @@ function chatroomUpdateChatOnlineList(updateUsers) {
         addClass(li, 'chatroom-user-away');
       }
       $('chatroom-online').appendChild(li);          
-      chatroomWriteSystemMsg('* <strong>' + updateUsers[i].user + '</strong> has joined the chat');
+      chatroomWriteSystemMsg(updateUsers[i].user, 'join');
     }
   }
 }
@@ -326,15 +326,39 @@ function chatroomSelectUser(userName) {
   $('chatroom-msg-input').focus();
 }
 
-
 /**
  * writes a system message to the chat
  */
-function chatroomWriteSystemMsg(msgText) {
-  var msgBoard = $('chatroom-board');
+function chatroomWriteSystemMsg(msgText, type) {
+  switch (type) {
+    case 'join':
+      var msgClass = 'chatroom-system-join';
+      var sysMsg   = ' has joined the chat';
+    break;
+    case 'leave':
+      var msgClass = 'chatroom-system-leave';
+      var sysMsg   = ' has left the chat';
+    break;
+    case 'away':
+      var msgClass = 'chatroom-system-away';
+      var sysMsg   = ' is away';
+    break;
+    case 'back':
+      var msgClass = 'chatroom-system-back';
+      var sysMsg   = ' is back';
+    break;
+  }
+  var msgSpan = document.createElement('span');
+  msgSpan.appendChild(document.createTextNode(msgText));
+  addClass(msgSpan, msgClass);
+
   var p = document.createElement('p');
-  p.innerHTML = msgText;
+  p.appendChild(document.createTextNode('* '));
+  p.appendChild(msgSpan);
+  p.appendChild(document.createTextNode(sysMsg));
   addClass(p, 'chatroom-system-msg');
+
+  var msgBoard = $('chatroom-board');
   msgBoard.appendChild(p);
   msgBoard.scrollTop = msgBoard.scrollHeight;
 }
@@ -391,17 +415,17 @@ function chatroomUpdateLastMsg(msgId) {
  * gets the colour for given user
  */
 function chatroomGetUserColour(user) {
-  for (j = 0; j < chatroom.userList.length; j++) {
-    if (chatroom.userList[j].user == user) {
-      if (typeof chatroom.userList[j].colour != 'undefined') {
-        return chatroom.userList[j].colour;
+  for (var i = 0; i < chatroom.userList.length; i++) {
+    if (chatroom.userList[i].user == user) {
+      if (typeof chatroom.userList[i].colour != 'undefined') {
+        return chatroom.userList[i].colour;
       }
       while (1) {
-        var k = Math.round(chatroom.userColours.length * Math.random());
-        if (chatroom.userColours[k].unUsed) {
-          chatroom.userColours[k].unUsed = false;
-          chatroom.userList[j].colour = chatroom.userColours[k].colour;
-          return chatroom.userList[j].colour;
+        var j = Math.round(chatroom.userColours.length * Math.random());
+        if (chatroom.userColours[j].unUsed) {
+          chatroom.userColours[j].unUsed = false;
+          chatroom.userList[i].colour = chatroom.userColours[j].colour;
+          return chatroom.userList[i].colour;
         }
       }
     }
@@ -415,7 +439,7 @@ function chatroomGetUserColour(user) {
 function chatroomSetUserColours() {
   // the online list might block might not be enabled
   if ($('chatroom-online')) {
-    for (i = 0; i < chatroom.userList.length; i++) {
+    for (var i = 0; i < chatroom.userList.length; i++) {
       if (chatroom.userList[i].uid == 0) {
         var userInfo = $(chatroom.userList[i].sessionId);
       }
@@ -433,9 +457,9 @@ function chatroomSetUserColours() {
  */
 function chatroomLoadHexColours() {
   var hex = ['00', '33', '66', '99', 'CC', 'FF'];
-  for (i = 0; i < hex.length; i++) {
-    for (j = 0; j < hex.length; j++) {
-      for (k = 0; k < hex.length; k++) {
+  for (var i = 0; i < hex.length; i++) {
+    for (var j = 0; j < hex.length; j++) {
+      for (var k = 0; k < hex.length; k++) {
         if ((3 + i + j + k) < 8) {
           chatroom.userColours[chatroom.userColours.length] = {colour:'#' + hex[i] + hex[j] + hex[k], unUsed:true};    
         }
