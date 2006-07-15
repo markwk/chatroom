@@ -15,7 +15,9 @@
   padding-top: 10px;
 }
 .chatroom-user-away {
-  background-color: #f5f5f5;
+  opacity: 0.4;
+  background: url(away.png) no-repeat bottom left;
+  padding-left: 15px;
 }
 .chatroom-textentry-smileys-hidden {
   display: none;
@@ -31,7 +33,7 @@
   margin-top: 5px;  
   border: solid 1px #e0e0e0;
 }
-#chatroom-board p{
+#chatroom-board p {
   margin: 0 0 0 0;    
 }
 .clear-both {
