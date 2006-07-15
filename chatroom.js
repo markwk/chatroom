@@ -3,7 +3,7 @@
  * function to add chatroom events handlers to the onscreen widgets
  */
 var chatroomAddEvents = function() {
-  chatroom.cachePath = chatroom.moduleBase + chatroom.chatCacheFile;
+  chatroom.cachePath = chatroom.chatroomBase + chatroom.chatCacheFile;
   chatroomLoadHexColours();
   chatroomSetUserColours();
   $('chatroom-msg-submit').onclick= function() {
@@ -97,11 +97,12 @@ function chatroomSendMessage() {
   if (chatroom.smileysBase) {
     msg.smileys_base = chatroom.smileysBase;
   }
-  msg.module_base = chatroom.moduleBase;
-  msg.chatroomMsg = encodeURIComponent(msg.chatroomMsg);
-  msg.chat_id     = chatroom.chatId;
-  msg.last_msg_id = chatroom.lastMsgId;
-  msg.timezone    = chatroom.timezone;
+  msg.chatroom_base = chatroom.chatroomBase;
+  msg.user_base     = chatroom.userBase;
+  msg.chatroomMsg   = encodeURIComponent(msg.chatroomMsg);
+  msg.chat_id       = chatroom.chatId;
+  msg.last_msg_id   = chatroom.lastMsgId;
+  msg.timezone      = chatroom.timezone;
   HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
 }
 
@@ -153,9 +154,10 @@ function chatroomSendCommand(text) {
         msg.type = cmd;
       break;
   }
-  msg.module_base = chatroom.moduleBase;
-  msg.chat_id     = chatroom.chatId;
-  msg.last_msg_id = chatroom.lastMsgId;
+  msg.chatroom_base = chatroom.chatroomBase;
+  msg.user_base     = chatroom.userBase;
+  msg.chat_id       = chatroom.chatId;
+  msg.last_msg_id   = chatroom.lastMsgId;
   return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
 }
 
@@ -396,10 +398,11 @@ function chatroomGetUpdates() {
     return;
   }
   var postData = {chat_id:chatroom.chatId};
-  postData.last_msg_id         = chatroom.lastMsgId;
-  postData.timestamp           = chatroom.cacheTimestamp;
-  postData.update_count        = ++chatroom.updateCount;  
-  postData.module_base         = chatroom.moduleBase;
+  postData.last_msg_id   = chatroom.lastMsgId;
+  postData.timestamp     = chatroom.cacheTimestamp;
+  postData.update_count  = ++chatroom.updateCount;  
+  postData.chatroom_base = chatroom.chatroomBase;
+  postData.user_base     = chatroom.userBase;
   if (chatroom.smileysBase) {
     postData.smileys_base = chatroom.smileysBase;
   }

@@ -7,17 +7,22 @@
 /**
  * make sure we can get the chatroom module
  */
-if (isset($_POST['module_base'])) {
+if (isset($_POST['chatroom_base'])) {
   // if module base looks dodge, just exit
-  $module_base = urldecode($_POST['module_base']);
-  if (!is_dir($module_base)                                   ||
-      substr($module_base, 0, strlen('modules')) != 'modules' ||
-      strpos($module_base, '..') !== FALSE)                    {
+  $chatroom_base = urldecode($_POST['chatroom_base']);
+  $user_base     = urldecode($_POST['user_base']);
+  if (!is_dir($chatroom_base)                                   ||
+      substr($chatroom_base, 0, strlen('modules')) != 'modules' ||
+      strpos($chatroom_base, '..') !== FALSE                    || 
+      !is_dir($user_base)                                       ||
+      substr($user_base, 0, strlen('modules')) != 'modules'     ||
+      strpos($user_base, '..') !== FALSE)                        {
     echo "/** UR3l33t! **/";
     exit;
   }
   else {
-    $chatroom_module_file = "./$module_base/chatroom.module";
+    $chatroom_module_file = "./$chatroom_base/chatroom.module";
+    $user_module_file     = "./$user_base/user.module";
   }
 }
 else {
@@ -97,7 +102,7 @@ if (isset($_POST['chat_id'])) {
 
   // cache miss, so bootstrap drupal
   require './includes/bootstrap.inc';
-  require './modules/user.module';
+  require $user_module_file;
   require $chatroom_module_file;
   if ($smileys) {
     require $smileys_module_file;
