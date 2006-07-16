@@ -1190,7 +1190,7 @@ function chatroom_smileys_get_textentry() {
  */
 function chatroom_smileys_filter_process($text) {
   if (!chatroom_smileys_supported() || !chatroom_smileys_enabled()) {
-    return $text . variable_get('chatroom_smileys_enabled', 0);
+    return $text;
   }
   $text = ' '. $text .' ';
   $list = _smileys_list();
