@@ -115,6 +115,12 @@ function chatroom_form(&$node) {
     '#description' => t('Describe your chatroom so other people will know if they want to join.'),
     '#required' => TRUE
   );
+  $form['chatroom']['old_msg_count'] = array(
+    '#type' => 'select',
+    '#title' => t('Number of old messages to show when entering a chat'),
+    '#default_value' => $node->chatroom->old_msg_count,
+    '#options' => drupal_map_assoc(range(10, 250, 10)),
+  );
   $form['body_filter']['format'] = filter_form($node->format);
   if (count($node->chatroom->chats) && user_access('administer chatrooms')) {
     foreach ($node->chatroom->chats as $chat) {
@@ -142,8 +148,8 @@ function chatroom_form(&$node) {
  * Implementation of hook_update()
  */
 function chatroom_update($node) {
-  db_query("UPDATE {chatroom} SET poll_freq = %d, auto_archive = %d WHERE nid = %d", 
-            1000 * $node->poll_freq, $node->auto_archive, $node->nid);
+  db_query("UPDATE {chatroom} SET poll_freq = %d, auto_archive = %d, old_msg_count = %d WHERE nid = %d", 
+            1000 * $node->poll_freq, $node->auto_archive, $node->old_msg_count, $node->nid);
   if (isset($node->chat_list)) {
     foreach ($node->chat_list as $chat_id) {
       if ($chat_id > 0) {
@@ -804,10 +810,30 @@ function chatroom_get_all_msgs($chat_id, $archive = FALSE) {
 }
 
 /**
+ * the number of old messages to show when entering a chat
+ */
+function chatroom_chat_old_msg_count($chat_id) {
+  $result = db_query('SELECT     cr.old_msg_count 
+                      FROM       {chatroom} AS cr 
+                      INNER JOIN {chatroom_chat} AS cc 
+                      ON         cc.crid = cr.crid 
+                      WHERE      cc.ccid = %d', 
+                      $chat_id);
+  if (db_num_rows($result)) {
+    return db_result($result);
+  }
+  return 20;
+}
+
+/**
  * get all msg for chatroom after last message
  */
 function chatroom_chat_get_latest_msgs($chat_id, $last_msg_id) {
   $session_id = session_id();
+  $order_by_clause = 'ORDER BY cm.cmid ASC';
+  if ($last_msg_id == 0) {
+    $order_by_clause = 'ORDER BY cm.cmid DESC LIMIT '. chatroom_chat_old_msg_count($chat_id);
+  }
   $result = db_query("SELECT     cm.*,
                                  du.name,
                                  col.guest_id                                 
@@ -819,13 +845,13 @@ function chatroom_chat_get_latest_msgs($chat_id, $last_msg_id) {
                       WHERE      cm.ccid = %d
                       AND        cm.cmid > %d
                       AND        (cm.recipient = '' || cm.recipient = '%s' || cm.session_id = '%s')
-                      ORDER BY   cm.cmid ASC",
+                      $order_by_clause",
                       $chat_id, $last_msg_id, $session_id, $session_id);
   $msgs = array();
   while ($msg = db_fetch_object($result)) {
     $msgs[] = $msg;
   }
-  return count($msgs) ? $msgs : FALSE;
+  return count($msgs) ? ($last_msg_id ? $msgs : array_reverse($msgs)) : FALSE;
 }
 
 /**

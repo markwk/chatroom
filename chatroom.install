@@ -13,6 +13,7 @@ function chatroom_install() {
         poll_freq int(2) NOT NULL default '3000',
         module varchar(255) default 'chatroom',
         auto_archive int(1) default '0',
+        old_msg_count int(3) default '20',
         modified int(11) NOT NULL default '0',
         PRIMARY KEY (crid),
         KEY nid (nid)
