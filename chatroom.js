@@ -99,7 +99,7 @@ function chatroomSendMessage() {
   }
   msg.chatroom_base = chatroom.chatroomBase;
   msg.user_base     = chatroom.userBase;
-  msg.chatroomMsg   = encodeURIComponent(msg.chatroomMsg);
+  msg.chatroomMsg   = msg.chatroomMsg;
   msg.chat_id       = chatroom.chatId;
   msg.last_msg_id   = chatroom.lastMsgId;
   msg.timezone      = chatroom.timezone;
