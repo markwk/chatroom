@@ -221,20 +221,26 @@ function chatroomUpdateMsgList(msgs) {
           addClass(span, 'header');
           span.appendChild(document.createTextNode(msgs[i].user + ':'));               
           p.appendChild(span);              
-        } 
-        else {
-          var span = document.createElement('span');
-          addClass(span, 'indent');
-          p.appendChild(span);
         }                
+      }  
+      
+      if (msgs[i].user != chatroom.lastUser) {
+        p = chatroomProcessMsgText(p, msgs[i].text);        
+      }
+      else{
+        var identP = document.createElement('p');
+        addClass(identP, 'indent');
+	identP = chatroomProcessMsgText(identP, msgs[i].text);
+        p.appendChild(identP);
       }      
-      p = chatroomProcessMsgText(p, msgs[i].text);
+      
       msgBoard.appendChild(p);
       chatroom.lastUser    = msgs[i].user;
       chatroom.lastMsgTime = msgs[i].time;
       scroll = true;      
     }    
   }  
+  
   if (chatroom.updateCount == 1) {
     chatroom.lastUser = '';
   }
