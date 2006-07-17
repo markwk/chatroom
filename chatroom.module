@@ -89,6 +89,10 @@ function chatroom_access($op, $node) {
  */
 function chatroom_form(&$node) {
   global $user;
+  $old_msg_range = array();
+  for($i = 1; $i<=25; $i++){
+    $old_msg_range[$i] = $i * 10;
+  }
   $form['title'] = array(
     '#type' => 'textfield', 
     '#title' => t('Name'), 
@@ -118,8 +122,8 @@ function chatroom_form(&$node) {
   $form['chatroom']['old_msg_count'] = array(
     '#type' => 'select',
     '#title' => t('Number of old messages to show when entering a chat'),
-    '#default_value' => $node->chatroom->old_msg_count,
-    '#options' => drupal_map_assoc(range(10, 250, 10)),
+    '#default_value' => $node->chatroom->old_msg_count,    
+    '#options' => drupal_map_assoc($old_msg_range),
   );
   $form['body_filter']['format'] = filter_form($node->format);
   if (count($node->chatroom->chats) && user_access('administer chatrooms')) {
