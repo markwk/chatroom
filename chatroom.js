@@ -14,6 +14,9 @@ var chatroomAddEvents = function() {
     chatroomInputOnkeyup(this, e); 
     return true;
   };
+  $('chatroom-msg-away').onclick = function() { 
+      chatroomSetAway(this);       
+  };
   chatroomGetUpdates();
   setInterval("chatroomGetUpdates()", chatroom.updateInterval);
   return;
@@ -28,7 +31,7 @@ var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam
     if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
       if (resArray[0].length) {
         var scroll = chatroomUpdateMsgList(resArray[0]);
-        chatroom.nomgs_updates = 0;
+        chatroom.nomgs_updates = 0;        
       }
       else{
         chatroom.nomgs_updates++;
@@ -488,6 +491,18 @@ function chatroomLoadHexColours() {
 function chatroomSmileyInsert(acronym) {  
   $('chatroom-msg-input').value += (' ' + acronym);
   $('chatroom-msg-input').focus();
+}
+
+/**
+ * toggle away status
+ */
+function chatroomSetAway(obj){
+  if(obj.checked){
+    chatroomSendCommand('/away');
+  } 
+  else {
+    chatroomSendCommand('/back');
+  }
 }
 
 // Global Killswitch

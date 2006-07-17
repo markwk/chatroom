@@ -1267,6 +1267,7 @@ function theme_chatroom_chat_textentry() {
   $output .= '<input type="text" id="chatroom-msg-input" size="50" />'."\n";  
   $output .= '<input type="submit" id="chatroom-msg-submit" value="Send" />'."\n";
   $output .= chatroom_smileys_get_textentry();
+  $output .= '<div><label><input type="checkbox" id="chatroom-msg-away" /> set my status to "away"</label></div>'."\n";  
   $output .= '</div>'."\n";
         
   return $output;
