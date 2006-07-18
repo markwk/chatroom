@@ -41,13 +41,18 @@ function chatroom_menu($may_cache) {
     $items[] = array('path' => 'node/add/chatroom',
       'title' => t('chatroom'),
       'access' => user_access('create chatrooms'));
-  }
-  else {
     $items[] = array('path' => 'chatrooms',
       'callback' => 'chatroom_home',
       'access' => user_access('access chatrooms'),
-      'title' => 'Chatrooms',
-      'type' => MENU_CALLBACK);
+      'title' => t('chatrooms'),
+      'type' => MENU_SUGGESTED_ITEM);
+    $items[] = array('path' => 'admin/chatroom',
+      'callback' => 'chatroom_administer_form',
+      'title' => t('chatroom'),
+      'access' => user_access('administer chatrooms'),
+      'type' => MENU_NORMAL_ITEM);
+  }
+  else {
     $items[] = array('path' => 'chatrooms/chat',
       'callback' => 'chatroom_chat',
       'access' => user_access('access chatrooms'),
@@ -56,11 +61,6 @@ function chatroom_menu($may_cache) {
       'callback' => 'chatroom_chat_archive',
       'access' => user_access('access chatrooms'),
       'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'chatrooms/administer',
-      'callback' => 'chatroom_administer_form',
-      'title' => t('chatrooms'),
-      'access' => user_access('administer chatrooms'),
-      'type' => MENU_NORMAL_ITEM);
     $items[] = array('path' => 'chatrooms/command',
       'callback' => 'chatroom_chat_command',
       'access' => user_access('access chatrooms'),
