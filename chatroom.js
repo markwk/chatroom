@@ -17,8 +17,15 @@ var chatroomAddEvents = function() {
   $('chatroom-msg-away').onclick = function() { 
       chatroomSetAway(this);       
   };
+  
+  for (var i = 0; i < chatroom.userList.length; i++) {
+    if (chatroom.userList[i].sessionId == chatroom.sessionId) {
+      $('chatroom-msg-away').checked = chatroom.userList[i].away;
+    }
+  }
+  
   chatroomGetUpdates();
-  setInterval("chatroomGetUpdates()", chatroom.updateInterval);
+  setInterval("chatroomGetUpdates()", chatroom.updateInterval);  
   return;
 }
 
@@ -280,7 +287,7 @@ function chatroomUpdateChatOnlineList(updateUsers) {
   var count = 0;
   for (var i = 0; i < chatroom.userList.length; i++) {
     deleteFlag = true;
-    for (var j = 0; j < updateUsers.length; j++) {
+    for (var j = 0; j < updateUsers.length; j++) {      
       if (chatroom.userList[i].sessionId == updateUsers[j].sessionId) {
         deleteFlag = false;
         updateUsers[j].noAdd = 1;
