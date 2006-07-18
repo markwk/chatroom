@@ -160,6 +160,7 @@ function chatroomSendCommand(text) {
 
     case 'away':
     case 'back':
+        $('chatroom-msg-away').checked = (cmd == 'away');
         var msg = {chatroomMsg:' '};
         msg.type = cmd;
       break;
@@ -234,10 +235,10 @@ function chatroomUpdateMsgList(msgs) {
       if (msgs[i].user != chatroom.lastUser) {
         p = chatroomProcessMsgText(p, msgs[i].text);        
       }
-      else{
+      else {
         var identP = document.createElement('p');
         addClass(identP, 'indent');
-	identP = chatroomProcessMsgText(identP, msgs[i].text);
+        identP = chatroomProcessMsgText(identP, msgs[i].text);
         p.appendChild(identP);
       }      
       
@@ -510,7 +511,7 @@ function chatroomSmileyInsert(acronym) {
  * toggle away status
  */
 function chatroomSetAway(obj){
-  if(obj.checked){
+  if (obj.checked) {
     chatroomSendCommand('/away');
   } 
   else {
