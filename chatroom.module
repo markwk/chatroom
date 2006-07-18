@@ -679,7 +679,7 @@ function chatroom_chat_get_latest_msgs_js($msgs, $timezone = 0, $smileys = false
     }
     $name = $msg->name ? $msg->name : "guest-{$msg->guest_id}";
     $time = gmdate('G:i', $msg->modified + $timezone);
-    $js .= '{id:'. $msg->cmid .',text:"'. str_replace('"', '\"', $msg->msg);
+    $js .= '{id:'. $msg->cmid .',text:"'. str_replace(array('"', "\\"), array('\"', "\\\\"), $msg->msg);
     $js .= '",user:"'. $name .'",time:"'. $time .'",recipient:"'. $msg->recipient .'",'; 
     $js .= 'type:"'. $msg->msg_type .'"}'. (++$i == $msg_count ? '' : ',');
   }
