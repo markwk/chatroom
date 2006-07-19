@@ -17,13 +17,11 @@ var chatroomAddEvents = function() {
   $('chatroom-msg-away').onclick = function() { 
       chatroomSetAway(this);       
   };
-  
   for (var i = 0; i < chatroom.userList.length; i++) {
     if (chatroom.userList[i].sessionId == chatroom.sessionId) {
       $('chatroom-msg-away').checked = chatroom.userList[i].away;
     }
   }
-  
   chatroomGetUpdates();
   setInterval("chatroomGetUpdates()", chatroom.updateInterval);  
   return;
@@ -63,16 +61,6 @@ var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam
 }
 
 /**
- * handles response from command HTTP requests
- */
-var chatroomCmdCallback = function(responseText, HttpRequest, chatroomDummyParam) {
-  if (HttpRequest.responseText) {
-    alert(HttpRequest.responseText);
-  }
-  return;
-}
-
-/**
  * function to handle input to the message board
  */
 function chatroomInputOnkeyup(input, e) {
@@ -91,85 +79,83 @@ function chatroomInputOnkeyup(input, e) {
  */
 function chatroomSendMessage() {
   var text = $('chatroom-msg-input').value;
-  if (text.search(/^\/(me|away|msg|back)/) != -1) {
-    return chatroomSendCommand(text);
-  }
-  else if (text == '' || text.match(/^\s+$/)) {
+  if (text == '' || text.match(/^\s+$/)) {
     $('chatroom-msg-input').value = '';
     $('chatroom-msg-input').focus();
     return;
   }
-  var msg = {chatroomMsg:text};
   $('chatroom-msg-input').value = '';
   $('chatroom-msg-input').focus();
+  if (text.search(/^\/(me|away|msg|back)/) != -1) {
+    var msg = chatroomGetCommandMsg(text);
+    if (!msg) {
+      return;
+    }
+  }
+  else {
+    var msg = {chatroomMsg:text};
+  }
   chatroom.skipUpdate = true;
   chatroom.updateCount++;
-  if (chatroom.smileysBase) {
-    msg.smileys_base = chatroom.smileysBase;
-  }
-  msg.chatroom_base = chatroom.chatroomBase;
-  msg.user_base     = chatroom.userBase;
-  msg.chatroomMsg   = msg.chatroomMsg;
-  msg.chat_id       = chatroom.chatId;
-  msg.last_msg_id   = chatroom.lastMsgId;
-  msg.timezone      = chatroom.timezone;
-  HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
+  HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, chatroomPrepareMsg(msg));
 }
 
 /**
- * process a command and sends it to the server
+ * prepare a msg object
  */
-function chatroomSendCommand(text) {
-  $('chatroom-msg-input').value = '';
-  $('chatroom-msg-input').focus();
-  var cmd  = text.replace(/^\//, '').split(' ')[0];
+function chatroomPrepareMsg(msg) {
+  if (chatroom.smileysBase) {
+    msg.smileys_base = chatroom.smileysBase;
+  }
+  if (chatroom.onlineList) {
+    msg.online_list = 1;
+  }
+  msg.chatroom_base   = chatroom.chatroomBase;
+  msg.update_count    = chatroom.updateCount;
+  msg.user_base       = chatroom.userBase;
+  msg.chat_id         = chatroom.chatId;
+  msg.last_msg_id     = chatroom.lastMsgId;
+  msg.timezone        = chatroom.timezone;
+  msg.timestamp       = chatroom.cacheTimestamp;
+  msg.chat_cache_file = chatroom.chatCacheFile;
+  return msg;
+}
+
+/**
+ * get a command msg object
+ */
+function chatroomGetCommandMsg(text) {
+  var msg = {type:text.replace(/^\//, '').split(' ')[0]};
   var args = text.replace(/^\//, '').split(' ').slice(1);
-  switch (cmd) {
+  switch (msg.type) {
     case 'msg':
       if (args.length < 2) {
-        return;
+        return false;
       }
-      else {
-        var user = args.shift();
-      }
+      var user = args.shift();
       for (var i = 0; i < chatroom.userList.length; i++) {
         if (chatroom.userList[i].user == user) {
-          var msg = {chatroomMsg:encodeURIComponent(args.join(' '))};
-          if (chatroom.smileysBase) {
-            msg.smileys_base = chatroom.smileysBase;
-          }
+          msg.chatroomMsg = args.join(' ');
           msg.recipient   = chatroom.userList[i].sessionId;
-          msg.timezone    = chatroom.timezone;
+          break;
         }
       }
       break;
 
     case 'me':
-      if (args.length == 0) {
-        return;
+      if (!args || args.length == 0) {
+        return false;
       }
-      else {
-        var msg = {chatroomMsg:encodeURIComponent(args.join(' '))};
-        if (chatroom.smileysBase) {
-          msg.smileys_base = chatroom.smileysBase;
-        }
-        msg.timezone    = chatroom.timezone;
-        msg.type        = 'me';
-      }
+      msg.chatroomMsg = args.join(' ');
       break;
 
     case 'away':
     case 'back':
-        $('chatroom-msg-away').checked = (cmd == 'away');
-        var msg = {chatroomMsg:' '};
-        msg.type = cmd;
+        $('chatroom-msg-away').checked = (msg.type == 'away');
+        msg.chatroomMsg = msg.type;
       break;
   }
-  msg.chatroom_base = chatroom.chatroomBase;
-  msg.user_base     = chatroom.userBase;
-  msg.chat_id       = chatroom.chatId;
-  msg.last_msg_id   = chatroom.lastMsgId;
-  return HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, msg);
+  return msg;
 }
 
 /**
@@ -285,7 +271,6 @@ function chatroomProcessMsgText(domNode, text) {
 function chatroomUpdateChatOnlineList(updateUsers) {
   var usersToDelete = Array();
   var deleteFlag = true;
-  var count = 0;
   for (var i = 0; i < chatroom.userList.length; i++) {
     deleteFlag = true;
     for (var j = 0; j < updateUsers.length; j++) {      
@@ -414,21 +399,8 @@ function chatroomGetUpdates() {
     chatroom.skipUpdate = false;
     return;
   }
-  var postData = {chat_id:chatroom.chatId};
-  postData.last_msg_id   = chatroom.lastMsgId;
-  postData.timestamp     = chatroom.cacheTimestamp;
-  postData.update_count  = ++chatroom.updateCount;  
-  postData.chatroom_base = chatroom.chatroomBase;
-  postData.user_base     = chatroom.userBase;
-  if (chatroom.smileysBase) {
-    postData.smileys_base = chatroom.smileysBase;
-  }
-  postData.chat_cache_file     = chatroom.chatCacheFile;
-  postData.timezone            = chatroom.timezone;
-  if (chatroom.onlineList) {
-    postData.online_list = 1;
-  }
-  return HTTPPost(chatroomGetUrl('read'), chatroomMsgCallback, false, postData);
+  chatroom.updateCount++;
+  return HTTPPost(chatroomGetUrl('read'), chatroomMsgCallback, false, chatroomPrepareMsg({}));
 }
 
 /**
@@ -468,7 +440,6 @@ function chatroomGetUserColour(user) {
  * sets initial users' colours
  */
 function chatroomSetUserColours() {
-  // the online list might block might not be enabled
   if ($('chatroom-online')) {
     for (var i = 0; i < chatroom.userList.length; i++) {
       if (chatroom.userList[i].uid == 0) {
@@ -512,11 +483,12 @@ function chatroomSmileyInsert(acronym) {
  */
 function chatroomSetAway(obj){
   if (obj.checked) {
-    chatroomSendCommand('/away');
+    var msg = chatroomGetCommandMsg('/away');
   } 
   else {
-    chatroomSendCommand('/back');
+    var msg = chatroomGetCommandMsg('/back');
   }
+  HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, chatroomPrepareMsg(msg));
 }
 
 // Global Killswitch

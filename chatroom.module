@@ -541,7 +541,7 @@ function chatroom_chat_set_away_status($chat_id, $status) {
   if ($users = chatroom_chat_get_online_list($chat_id)) {
     $users_js = chatroom_chat_get_online_list_js($users);
   }
-  return chatroom_send_ajax_response("[$msgs_js, $users_js /** $status **/]");
+  return chatroom_send_ajax_response("[$msgs_js, $users_js /** $status $chat_id away **/]");
 }
 
 /**
@@ -565,7 +565,7 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $rec
   if ($result && $cache_timestamp = chatroom_chat_update_cache($chat_id, $cache_file)) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
-  return chatroom_send_ajax_response("[$msg_js, [] $cache_js]");
+  return chatroom_send_ajax_response("[$msg_js, [] $cache_js /** write $type **/]");
 }
 
 /**
@@ -679,7 +679,7 @@ function chatroom_chat_get_latest_msgs_js($msgs, $timezone = 0, $smileys = false
     }
     $name = $msg->name ? $msg->name : "guest-{$msg->guest_id}";
     $time = gmdate('G:i', $msg->modified + $timezone);
-    $js .= '{id:'. $msg->cmid .',text:"'. str_replace(array('"', "\\"), array('\"', "\\\\"), $msg->msg);
+    $js .= '{id:'. $msg->cmid .',text:"'. str_replace(array("\\", '"'), array("\\\\", '\"'), $msg->msg);
     $js .= '",user:"'. $name .'",time:"'. $time .'",recipient:"'. $msg->recipient .'",'; 
     $js .= 'type:"'. $msg->msg_type .'"}'. (++$i == $msg_count ? '' : ',');
   }
@@ -724,7 +724,7 @@ function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_
   if ($cache_timestamp) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
-  return chatroom_send_ajax_response("[$msg_js, $users_js $cache_js] /* $chat_id $update_count $online_list */");
+  return chatroom_send_ajax_response("[$msg_js, $users_js $cache_js]");
 }
 
 /**
