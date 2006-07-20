@@ -7,6 +7,15 @@ function chatroom_install() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
+      // check to see if we have mysql 4.1. if we do, then we want to 
+      // set the default charset to utf8. snippet taken from db_connect()
+      // in includes/database.mysql.inc and utf8 declaration taken from 
+      // database/database.4.1.mysql
+      $utf_declaration = '';
+      if (version_compare(mysql_get_server_info(), '4.1.0', '>=')) {
+        $utf_declaration = 'DEFAULT CHARACTER SET utf8';
+      }
+      global $active_db;
       $ok = db_query("CREATE TABLE {chatroom} (
         crid int(11) NOT NULL AUTO_INCREMENT,
         nid int(11) NOT NULL,
@@ -17,7 +26,7 @@ function chatroom_install() {
         modified int(11) NOT NULL default '0',
         PRIMARY KEY (crid),
         KEY nid (nid)
-      ) TYPE=MyISAM;");
+      ) $utf_declaration;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_chat} (
         ccid int(11) NOT NULL AUTO_INCREMENT,
         crid int(11) NOT NULL,
@@ -28,7 +37,7 @@ function chatroom_install() {
         PRIMARY KEY  (ccid),
         KEY crid (crid),
         KEY modified (modified)
-      ) TYPE=MyISAM;");
+      ) $utf_declaration;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_msg} (
         cmid int(11) NOT NULL AUTO_INCREMENT,
         ccid int(11) NOT NULL,
@@ -43,7 +52,7 @@ function chatroom_install() {
         KEY session_id (session_id),
         KEY recipient (recipient),
         KEY modified (modified)
-      ) TYPE=MyISAM;");
+      ) $utf_declaration;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_msg_archive} (
         cmid int(11) NOT NULL,
         ccid int(11) NOT NULL,
@@ -58,7 +67,7 @@ function chatroom_install() {
         KEY session_id (session_id),
         KEY recipient (recipient),
         KEY modified (modified)
-      ) TYPE=MyISAM;");
+      ) $utf_declaration;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
         coid int(11) NOT NULL AUTO_INCREMENT,
         ccid int(11) NOT NULL,
@@ -69,7 +78,7 @@ function chatroom_install() {
         modified int(11) NOT NULL default '0',
         PRIMARY KEY  (coid),
         KEY update_time (ccid,uid,session_id)
-      ) TYPE=MyISAM;");
+      ) $utf_declaration;");
       break;
   }
   $error = false;

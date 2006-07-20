@@ -2,6 +2,11 @@ CHANGELOG
 ---------
 $Id$
 
+July 21, 2006
+- added auto-discovery of mysql version greater than 4.1 so we can 
+  set the default charset to utf8
+- away and back support is now easier to use and has a nicer look
+
 July 13, 2006
 Lots of changes!
 - added timezone support - thanks Paulo
