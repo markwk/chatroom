@@ -86,7 +86,7 @@ function chatroomSendMessage() {
   }
   $('chatroom-msg-input').value = '';
   $('chatroom-msg-input').focus();
-  if (text.search(/^\/(me|away|msg|back)/) != -1) {
+  if (text.search(/^\/(me|away|msg|back|kick|close)/) != -1) {
     var msg = chatroomGetCommandMsg(text);
     if (!msg) {
       return;
@@ -129,24 +129,28 @@ function chatroomGetCommandMsg(text) {
   var args = text.replace(/^\//, '').split(' ').slice(1);
   switch (msg.type) {
     case 'msg':
-      if (args.length < 2) {
-        return false;
-      }
-      var user = args.shift();
-      for (var i = 0; i < chatroom.userList.length; i++) {
-        if (chatroom.userList[i].user == user) {
-          msg.chatroomMsg = args.join(' ');
-          msg.recipient   = chatroom.userList[i].sessionId;
-          break;
-        }
-      }
-      break;
-
     case 'me':
-      if (!args || args.length == 0) {
+    case 'kick':
+      if (!args.length) {
         return false;
       }
-      msg.chatroomMsg = args.join(' ');
+
+      var user = '';
+      do {
+        user += (user ? ' ' : '') + args.shift();
+        msg.recipient = chatroomFindUser(user);
+      } while (!msg.recipient && args.length);
+
+      if (!msg.recipient) {
+        return false;
+      }
+
+      if (msg.type != 'kick') {
+        if (!args.length) {
+          return false;
+        }
+        msg.chatroomMsg = args.join(' ');
+      }
       break;
 
     case 'away':
@@ -156,6 +160,18 @@ function chatroomGetCommandMsg(text) {
       break;
   }
   return msg;
+}
+
+/**
+ * find a user in the user list - returns the sessionId or false
+ */
+function chatroomFindUser(user) {
+  for (var i = 0; i < chatroom.userList.length; i++) {
+    if (chatroom.userList[i].user == user) {
+      return chatroom.userList[i].sessionId;
+    }
+  }
+  return false;
 }
 
 /**

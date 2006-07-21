@@ -29,7 +29,7 @@ function chatroom_help($section) {
  * Implementation of hook_perm().
  */
 function chatroom_perm() {
-  return array('access chatrooms', 'create chatrooms', 'edit own chatrooms', 'administer chatrooms', 'create chats');
+  return array('access chatrooms', 'create chatrooms', 'edit own chatrooms', 'administer chats', 'administer chatrooms', 'create chats');
 }
 
 /**
@@ -592,11 +592,12 @@ function chatroom_chat_register_user($chat_id) {
     $result = db_query("SELECT COALESCE(MAX(guest_id) + 1, 1) 
                         FROM {chatroom_online_list}
                         WHERE  ccid = %d", 
-                        $chat_id);              
-    if ($result && db_num_rows($result)) {          
-      db_query("INSERT INTO {chatroom_online_list} (ccid, uid, session_id, guest_id, modified) 
-                VALUES (%d, %d, '%s', %d, UNIX_TIMESTAMP())",
-                $chat_id, $user->uid, $session_id, db_result($result));
+                        $chat_id);     
+    if ($result && db_num_rows($result)) {    
+      $is_admin = user_access('administer chats') ? 1 : 0;
+      db_query("INSERT INTO {chatroom_online_list} (ccid, uid, is_admin, session_id, guest_id, modified) 
+                VALUES (%d, %d, %d, '%s', %d, UNIX_TIMESTAMP())",
+                $chat_id, $user->uid, $is_admin, $session_id, db_result($result));
     }
     db_unlock_tables();
   }
@@ -978,6 +979,33 @@ function chatroom_chat_archive($chat_id = false) {
     $html .= '<p>' . t('This chat contains no messages') .'</p>';
   }
   return $html . '</div>';
+}
+
+/**
+ * checks if a user is an admin for a chat
+ */
+function chatroom_chat_is_admin() {
+  return user_access('administer chats');
+}
+
+/**
+ * closes an active chat
+ */
+function chatroom_chat_close($chat_id) {
+  if (chatroom_chat_is_admin()) {
+
+  }
+}
+
+/**
+ * kicks a user out of a chat
+ */
+function chatroom_chat_kick($chat_id, $uid, $session_id) {
+  if (chatroom_chat_is_admin()) {
+    db_query("DELETE FROM {chatroom_online_list} WHERE uid = %d AND ccid = %d AND session_id = '%s'", 
+              $uid, $chat_id, $session_id);
+    chatroom_send_ajax_response("{sessionId:'$session_id'}");
+  }
 }
 
 /**

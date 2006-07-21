@@ -75,6 +75,7 @@ function chatroom_install() {
         session_id varchar(255) NOT NULL,
         guest_id int(11) NOT NULL default '1',
         away int(1) default '0',
+        is_admin int(1) default '0',
         modified int(11) NOT NULL default '0',
         PRIMARY KEY  (coid),
         KEY update_time (ccid,uid,session_id)
