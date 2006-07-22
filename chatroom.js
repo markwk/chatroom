@@ -281,11 +281,17 @@ function chatroomUpdateMsgList(msgs) {
       
       // indent if this message comes from the same user
       if (msgs[i].user == chatroom.lastUser) {
-        addClass(p, 'indent');
+        var indentP = document.createElement('p');
+        addClass(indentP, 'indent');
+        indentP = chatroomProcessMsgText(indentP, msgs[i].text);
+        p.appendChild(indentP);              
+      }
+      else {
+        p = chatroomProcessMsgText(p, msgs[i].text);
       }
 
       // add to board
-      msgBoard.appendChild(chatroomProcessMsgText(p, msgs[i].text));
+      msgBoard.appendChild(p);
       chatroom.lastUser    = msgs[i].user;
       chatroom.lastMsgTime = msgs[i].time;
       scroll = true;      
