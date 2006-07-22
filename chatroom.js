@@ -48,7 +48,10 @@ var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam
           continue;
         }
         if (typeof resArray[i].kickUser != 'undefined') {
-          chatroomKickUser(resArray[i].kickUser);
+          chatroomEjectUser(resArray[i].kickUser, 'kick');
+        }
+        if (typeof resArray[i].banUser != 'undefined') {
+          chatroomEjectUser(resArray[i].banUser, 'ban');
         }
       }
     }
@@ -59,9 +62,9 @@ var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam
 /**
  * function to kick a user out of a chat
  */
-function chatroomKickUser(sessionId) {
+function chatroomEjectUser(sessionId, type) {
   if (chatroom.sessionId == sessionId) {
-    window.location = chatroom.kickUrl +'/'+ chatroom.chatId;
+    window.location = chatroom[type +'Url'] +'/'+ chatroom.chatId;
   }
 }
 
@@ -91,7 +94,7 @@ function chatroomSendMessage() {
   }
   $('chatroom-msg-input').value = '';
   $('chatroom-msg-input').focus();
-  if (text.search(/^\/(me|away|msg|back|kick|close)/) != -1) {
+  if (text.search(/^\/(me|away|msg|back|kick|close|ban)/) != -1) {
     var msg = chatroomGetCommandMsg(text);
     if (!msg) {
       return;
@@ -133,41 +136,69 @@ function chatroomGetCommandMsg(text) {
   var msg = {type:text.replace(/^\//, '').split(' ')[0]};
   var args = text.replace(/^\//, '').split(' ').slice(1);
   switch (msg.type) {
-    case 'msg':
-    case 'kick':
     case 'me':
+      // no point sending an empty message 
       if (!args.length) {
         return false;
       }
-      if (msg.type == 'me') {
-        msg.chatroomMsg = args.join(' ');
-        break;
+      msg.chatroomMsg = args.join(' ');
+      return msg;
+
+    case 'msg':
+    case 'kick':
+    case 'ban':
+      if (!args.length) {
+        return false;
       }
+      
+      // try to find the user with this name
       var user = '';
       do {
         user += (user ? ' ' : '') + args.shift();
         msg.recipient = chatroomFindUser(user);
       } while (!msg.recipient && args.length);
-
+      
+      // noone with this name in the chat
       if (!msg.recipient) {
         return false;
       }
 
-      if (msg.type != 'kick') {
+      if (msg.type == 'ban') {
+        msg.uid = chatroomGetUid(msg.recipient);
+        // can only ban Drupal users, not guests
+        if (!msg.uid) {
+          return false;
+        }
+        msg.admin_uid = chatroom.userList[0].uid;
+      }
+
+      if (msg.type == 'msg') {
+        // no point sending an empty message 
         if (!args.length) {
           return false;
         }
         msg.chatroomMsg = args.join(' ');
       }
-      break;
+      return msg;
 
     case 'away':
     case 'back':
-        $('chatroom-msg-away').checked = (msg.type == 'away');
-        msg.chatroomMsg = msg.type;
-      break;
+      $('chatroom-msg-away').checked = (msg.type == 'away');
+      msg.chatroomMsg = msg.type;
+      return msg;
   }
-  return msg;
+}
+
+/**
+ * looks up a users uid from the session id
+ */
+function chatroomGetUid(sessionId) {
+  for (var i = 0; i < chatroom.userList.length; i++) {
+    if (chatroom.userList[i].sessionId == sessionId) {
+      return chatroom.userList[i].uid;
+    }
+  }
+  return false;
 }
 
 /**

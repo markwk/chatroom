@@ -22,6 +22,7 @@ function chatroom_install() {
         poll_freq int(2) NOT NULL default '3000',
         idle_freq int(3) NOT NULL default '60000',
         kicked_out_message longtext,
+        banned_message longtext,
         module varchar(255) default 'chatroom',
         auto_archive int(1) default '0',
         old_msg_count int(3) default '20',
@@ -69,6 +70,13 @@ function chatroom_install() {
         KEY session_id (session_id),
         KEY recipient (recipient),
         KEY modified (modified)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_ban_list} (
+        crid int(11) NOT NULL AUTO_INCREMENT,
+        uid int(11) NOT NULL,
+        admin_uid int(11) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        KEY crid_uid (crid,uid)
       ) $utf_declaration;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
         coid int(11) NOT NULL AUTO_INCREMENT,

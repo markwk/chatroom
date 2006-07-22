@@ -126,6 +126,11 @@ if (isset($_POST['chat_id'])) {
     if ($type == 'kick' && $recipient) {
       chatroom_chat_kick_user($chat_id, $recipient);
     } 
+    else if ($type == 'ban' && $recipient) {
+      $uid       = isset($_POST['uid']) ? $_POST['uid'] : false;
+      $admin_uid = isset($_POST['admin_uid']) ? $_POST['admin_uid'] : false;
+      chatroom_ban_user($chat_id, $recipient, $uid, $admin_uid);
+    } 
     else {
       chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list, $timezone, $smileys);
     }

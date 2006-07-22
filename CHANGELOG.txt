@@ -4,7 +4,8 @@ $Id$
 
 July 21, 2006
 - added configurability to the "* Sent at <time>" msgs
-- added kick user functionality - still needs some polish though
+- added kick user functionality - still needs some polish
+- added ban user functionality - still needs some polish 
 - refactored ajax js and response code to use object names and arrays
 - refactored "* Sent at <time>" js to use setTimeout/clearTimeout
 
