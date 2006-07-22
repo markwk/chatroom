@@ -17,7 +17,7 @@ if (isset($_POST['chatroom_base'])) {
       !is_dir($user_base)                                       ||
       substr($user_base, 0, strlen('modules')) != 'modules'     ||
       strpos($user_base, '..') !== FALSE)                        {
-    echo "/** UR3l33t! **/";
+    echo "/** UR3l33t! 1 **/";
     exit;
   }
   else {
@@ -26,7 +26,7 @@ if (isset($_POST['chatroom_base'])) {
   }
 }
 else {
-  echo "/** UR3l33t! **/";
+  echo "/** UR3l33t! 2 **/";
   exit;
 }
 
@@ -39,7 +39,7 @@ if (isset($_POST['smileys_base'])) {
   if (!is_dir($smileys_base)                                   ||
       substr($smileys_base, 0, strlen('modules')) != 'modules' ||
       strpos($smileys_base, '..') !== FALSE)                    {
-    echo "/** UR3l33t! smiley **/";
+    echo "/** UR3l33t! 3 **/";
     exit;
   }
   else {
@@ -58,7 +58,7 @@ if (isset($_POST['chat_id'])) {
       !preg_match('/^\d+$/', $_POST['chat_id'])     ||
       !preg_match('/^\d+$/', $_POST['last_msg_id'])) {
 
-    echo '/** UR3l33t! first **/';
+    echo '/** UR3l33t! 4 **/';
     exit;
   }
 
@@ -71,7 +71,7 @@ if (isset($_POST['chat_id'])) {
         !preg_match('/^\d+$/', $_POST['timestamp'])    ||
         !preg_match('/^\d+$/', $_POST['update_count'])) {
 
-      echo '/** UR3l33t! second **/';
+      echo '/** UR3l33t! 5 **/';
       exit;
     }
   }
@@ -109,6 +109,9 @@ if (isset($_POST['chat_id'])) {
   }
   drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 
+  $recipient = empty($_POST['recipient']) ? "" : $_POST['recipient'];
+  $type      = is_null($_POST['type']) ? "msg" : $_POST['type'];
+
   // are we writing?
   if ($write_request) {
     if (get_magic_quotes_gpc()) {
@@ -117,12 +120,15 @@ if (isset($_POST['chat_id'])) {
     else {
       $msg = strip_tags(urldecode($_POST['chatroomMsg']));
     }
-    $recipient = empty($_POST['recipient']) ? "" : $_POST['recipient'];
-    $type      = is_null($_POST['type']) ? "msg" : $_POST['type'];
     chatroom_chat_write_msg($chat_id, $last_msg_id, $chat_cache_file, $msg, $recipient, $type, $timezone, $smileys);
   }
   else {
-    chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list, $timezone, $smileys);
+    if ($type == 'kick' && $recipient) {
+      chatroom_chat_kick_user($chat_id, $recipient);
+    } 
+    else {
+      chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list, $timezone, $smileys);
+    }
   }
   exit;
 }
@@ -151,7 +157,7 @@ if (isset($_POST['block_update'])) {
   $room_js = $chat_js = '[]';
   if (!$chat_cache_hit || !$room_cache_hit) {
     require './includes/bootstrap.inc';
-    require './modules/user.module';
+    require $user_module_file;
     require $chatroom_module_file;
     drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 

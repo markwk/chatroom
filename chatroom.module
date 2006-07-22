@@ -51,6 +51,10 @@ function chatroom_menu($may_cache) {
       'title' => t('chatroom'),
       'access' => user_access('administer chatrooms'),
       'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'chatrooms/kicked/user',
+      'callback' => 'chatroom_chat_kicked_user',
+      'access' => user_access('access chatrooms'),
+      'type' => MENU_CALLBACK);
   }
   else {
     $items[] = array('path' => 'chatrooms/chat',
@@ -104,6 +108,13 @@ function chatroom_form(&$node) {
     '#attributes' => $node->chatroom->auto_archive ? array('checked' => 'checked') : null,
     '#title' => t('Check this box if you would like chats to be automatically archived when all users leave')
   );
+  $form['chatroom']['idle_freq'] = array(
+    '#type' => 'select',
+    '#title' => t('Chatroom idle time, in seconds'),
+    '#default_value' => $node->chatroom->idle_freq / 1000,
+    '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
+    '#description' => t('How many seconds between each message before a last message time is written in the chat.'),
+  );
   $form['chatroom']['poll_freq'] = array(
     '#type' => 'select',
     '#title' => t('Chatroom update frequency, in seconds'),
@@ -124,6 +135,13 @@ function chatroom_form(&$node) {
     '#title' => t('Number of old messages to show when entering a chat'),
     '#default_value' => $node->chatroom->old_msg_count,    
     '#options' => drupal_map_assoc($old_msg_range),
+  );
+  $form['chatroom']['kicked_out_message'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Chatroom kicked out message'), 
+    '#default_value' => $node->chatroom->kicked_out_msg,
+    '#rows' => 3, 
+    '#description' => t('This text will appear on the page kicked out users are sent to.'),
   );
   $form['body_filter']['format'] = filter_form($node->format);
   if (count($node->chatroom->chats) && user_access('administer chatrooms')) {
@@ -152,8 +170,12 @@ function chatroom_form(&$node) {
  * Implementation of hook_update()
  */
 function chatroom_update($node) {
-  db_query("UPDATE {chatroom} SET poll_freq = %d, auto_archive = %d, old_msg_count = %d WHERE nid = %d", 
-            1000 * $node->poll_freq, $node->auto_archive, $node->old_msg_count, $node->nid);
+  db_query("UPDATE {chatroom} 
+            SET poll_freq = %d, idle_freq = %d, auto_archive = %d, 
+                old_msg_count = %d, kicked_out_message = '%s' 
+            WHERE nid = %d", 
+            1000 * $node->poll_freq, 1000 * $node->idle_freq, $node->auto_archive, 
+            $node->old_msg_count, $node->kicked_out_message, $node->nid);
   if (isset($node->chat_list)) {
     foreach ($node->chat_list as $chat_id) {
       if ($chat_id > 0) {
@@ -167,8 +189,10 @@ function chatroom_update($node) {
  * Implementation of hook_insert()
  */
 function chatroom_insert($node) {
-  $result = db_query("INSERT INTO {chatroom} (nid, poll_freq, modified) VALUES (%d, %d, UNIX_TIMESTAMP())", 
-                     $node->nid, 1000 * $node->poll_freq);
+  $result = db_query("INSERT INTO {chatroom} 
+                      (nid, poll_freq, idle_freq, kicked_out_message, modified) 
+                      VALUES (%d, %d, %d, '%s', UNIX_TIMESTAMP())", 
+                     $node->nid, 1000 * $node->poll_freq, 1000 * $node->idle_freq, $node->kicked_out_message);
   if ($result) {
     chatroom_block_update_cache('chatrooms');
   }
@@ -539,15 +563,18 @@ function chatroom_chat_set_away_status($chat_id, $status) {
            $status == 'away' ? 1 : 0, $chat_id, session_id());
   $users_js = $msgs_js = '[]';
   if ($users = chatroom_chat_get_online_list($chat_id)) {
-    $users_js = chatroom_chat_get_online_list_js($users);
+    $users_js = chatroom_chat_get_online_list_js($users, true);
   }
-  return chatroom_send_ajax_response("[$msgs_js, $users_js /** $status $chat_id away **/]");
+  return chatroom_send_ajax_response("[$msgs_js, $users_js]");
 }
 
 /**
  * handles requests that write a message into a chat
  */
 function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $recipient = null, $type = null, $timezone = 0, $smileys = false) {
+  if (!chatroom_chat_is_registered_user($chat_id)) {
+    return chatroom_send_ajax_response("[{kickUser:'". session_id() ."'}]");
+  }
   if ($type == 'away' || $type == 'back') {
     return chatroom_chat_set_away_status($chat_id, $type);
   }
@@ -565,7 +592,15 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $rec
   if ($result && $cache_timestamp = chatroom_chat_update_cache($chat_id, $cache_file)) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
   }
-  return chatroom_send_ajax_response("[$msg_js, [] $cache_js /** write $type **/]");
+  return chatroom_send_ajax_response("[$msg_js, [] $cache_js]");
+}
+
+/**
+ * checks if the user is registered in this chat
+ */
+function chatroom_chat_is_registered_user($chat_id) {
+  $sql = "SELECT coid FROM {chatroom_online_list} WHERE ccid = %d AND session_id = '%s'";
+  return db_num_rows(db_query($sql, $chat_id, session_id()));
 }
 
 /**
@@ -655,7 +690,7 @@ function chatroom_block_room_update_js($cache_file) {
 /**
  * takes an array of online users and formats as js
  */
-function chatroom_chat_get_online_list_js($users) {
+function chatroom_chat_get_online_list_js($users, $object = false) {
   $js_array = array();  
   foreach ($users as $ol_user) {    
     $name = $ol_user->name ? check_plain($ol_user->name) : "guest-{$ol_user->guest_id}";
@@ -664,6 +699,9 @@ function chatroom_chat_get_online_list_js($users) {
     $js .= '",uid:'. $ol_user->uid .',away:'. $ol_user->away .'}';    
     $js_array[] = $js;
   }  
+  if ($object) {
+    return '{onlineList:['. implode(',', $js_array) .']}';
+  }
   return '['. implode(',', $js_array) .']';
 }
 
@@ -684,7 +722,7 @@ function chatroom_chat_get_latest_msgs_js($msgs, $timezone = 0, $smileys = false
     $js .= '",user:"'. $name .'",time:"'. $time .'",recipient:"'. $msg->recipient .'",'; 
     $js .= 'type:"'. $msg->msg_type .'"}'. (++$i == $msg_count ? '' : ',');
   }
-  return "[$js]";
+  return "{msgs:[$js]}";
 }
 
 /**
@@ -703,8 +741,8 @@ function chatroom_chat_update_online_time($chat_id, $uid, $session_id) {
  * handles requests that read info about a chat
  */
 function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list = false, $timezone = 0, $smileys = false) {
-  if (!user_access('access chatrooms')) {
-    return chatroom_send_ajax_response('/** UR3l33T! **/');
+  if (!chatroom_chat_is_registered_user($chat_id)) {
+    return chatroom_send_ajax_response("[{kickUser:'". session_id() ."'}]");
   }
   global $user;
   $msg_js   = '[]';
@@ -716,7 +754,7 @@ function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_
   if ($online_list) {
     if ($update_count == 1 || $update_count % 4 == 0) {
       if ($users = chatroom_chat_get_online_list($chat_id)) {
-        $users_js = chatroom_chat_get_online_list_js($users);
+        $users_js = chatroom_chat_get_online_list_js($users, true);
       }
     }
   }
@@ -869,6 +907,7 @@ function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   if ($users = chatroom_chat_get_online_list($chat->ccid)) {
     $users_js = chatroom_chat_get_online_list_js($users);
   }
+  $kick_url       = dirname($_SERVER['PHP_SELF']) . ($clean_urls ? '' : '?q=') . 'chatrooms/kicked/user';
   $chat_url       = ($clean_urls ? '../../' : ''   ) . 'chatroomread.php';
   $user_url       = ($clean_urls ? '../../' : '?q=') . 'user/';
   $chatroom_base  = drupal_get_path('module', 'chatroom');
@@ -886,13 +925,14 @@ function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   else {
     $timezone = variable_get('date_default_timezone', 0);
   } 
-  
+ 
   $js = <<<JS
 var chatroom = {chatId         : $chat->ccid, 
                 lastMsgId      : 0, 
                 cacheTimestamp : $timestamp, 
                 updateCount    : 0, 
                 chatUrl        : '$chat_url',
+                kickUrl        : '$kick_url',
                 userBase       : '$user_base',
                 chatroomBase   : '$chatroom_base',
                 smileysBase    : $smileys_base,
@@ -900,6 +940,7 @@ var chatroom = {chatId         : $chat->ccid,
                 userUrl        : '$user_url',
                 chatCacheFile  : '$cache_file',
                 updateInterval : $chat->poll_freq,
+                idleInterval   : $chat->idle_freq,
                 userList       : $users_js,
                 onlineList     : $online_list,
                 userColours    : [],
@@ -933,6 +974,7 @@ function chatroom_block_add_state_js() {
   $chat_base   = $site_base .'chatrooms/chat/';
   $room_base   = $site_base .'node/';
   $module_base = drupal_get_path('module', 'chatroom');
+  $user_base = drupal_get_path('module', 'user');
   $block_url   = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) .'/chatroomread.php');
 
   // setup the cache file paths
@@ -946,7 +988,7 @@ function chatroom_block_add_state_js() {
   // put it all together
   $js = <<<JS
 var chatroomBlock = {blockUrl:'$block_url',moduleBase:'$module_base',smileysModuleBase:'$smileys_module_base',roomBase:'$room_base',
-                     chatBase:'$chat_base',chatCacheFile:'$chat_cache_file',roomCacheFile:'$room_cache_file',
+                     chatBase:'$chat_base',chatCacheFile:'$chat_cache_file',roomCacheFile:'$room_cache_file',userBase:'$user_base',
                      updateInterval:$poll_freq,chatTimestamp:$timestamp,roomTimestamp:$timestamp};
 JS;
 
@@ -998,13 +1040,25 @@ function chatroom_chat_close($chat_id) {
 }
 
 /**
+ * tells a kicked out user not to be a knob
+ */
+function chatroom_chat_kicked_user($chat_id = false) {
+  if (!$chat_id || !$chat = chatroom_chat_get_from_id($chat_id)) {
+    return drupal_not_found();
+  }
+  else {
+    $msg = $chat->kicked_out_message ? $chat->kicked_out_message : t('You have been kicked out of a chat for misbehaving.');
+  }
+  return '<div id="chatroom-kicked-msg">'. $msg .'</div>';
+}
+
+/**
  * kicks a user out of a chat
  */
-function chatroom_chat_kick($chat_id, $uid, $session_id) {
+function chatroom_chat_kick_user($chat_id, $session_id) {
   if (chatroom_chat_is_admin()) {
-    db_query("DELETE FROM {chatroom_online_list} WHERE uid = %d AND ccid = %d AND session_id = '%s'", 
-              $uid, $chat_id, $session_id);
-    chatroom_send_ajax_response("{sessionId:'$session_id'}");
+    db_query("DELETE FROM {chatroom_online_list} WHERE ccid = %d AND session_id = '%s'", $chat_id, $session_id);
+    chatroom_send_ajax_response("[{kickUser:'$session_id'}]");
   }
 }
 
@@ -1088,7 +1142,9 @@ function chatroom_chat_get_from_id($chat_id) {
   $result = db_query('SELECT     cc.*, 
                                  n.title AS chatroom_name,
                                  n.nid,
-                                 cr.poll_freq
+                                 cr.poll_freq,
+                                 cr.idle_freq,
+                                 cr.kicked_out_message
                       FROM       {chatroom_chat} AS cc
                       INNER JOIN {chatroom} AS cr 
                       ON         cr.crid = cc.crid

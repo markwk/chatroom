@@ -173,7 +173,7 @@ function chatroomUpdateActiveChatroomList(chatrooms) {
  * gets updates from the server for chatroom blocks
  */
 function chatroomBlockGetUpdates() {
-  var postData = {block_update:1,module_base:chatroomBlock.moduleBase};
+  var postData = {block_update:1,chatroom_base:chatroomBlock.moduleBase,user_base:chatroomBlock.userBase};
   var checkBlocks = false;
   if ($('chatroom-sitewide-chatrooms')) {
     postData.room_cache_file = chatroomBlock.roomCacheFile;

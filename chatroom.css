@@ -69,7 +69,7 @@
   margin-right: .4em;
   vertical-align: top;
 }
-.chatroom-old-msg .indent, .chatroom-system-msg .indent, .chatroom-msg .indent{
+.chatroom-old-msg .indent, .chatroom-system-msg .indent, .chatroom-msg .indent {
   padding-left: 1em;
 }
 .chatroomLink {

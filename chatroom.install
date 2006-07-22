@@ -20,6 +20,8 @@ function chatroom_install() {
         crid int(11) NOT NULL AUTO_INCREMENT,
         nid int(11) NOT NULL,
         poll_freq int(2) NOT NULL default '3000',
+        idle_freq int(3) NOT NULL default '60000',
+        kicked_out_message longtext,
         module varchar(255) default 'chatroom',
         auto_archive int(1) default '0',
         old_msg_count int(3) default '20',
