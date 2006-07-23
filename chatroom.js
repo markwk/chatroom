@@ -313,25 +313,24 @@ function chatroomUpdateMsgList(msgs) {
 }
 
 /**
- * process msgText and append to given domNode
+ * set a user as back if they send a message
  */
 function chatroomSetAsBack(user) {
-  var sessionId = chatroomFindUser(user);
-
-  // update on screen display
-  removeClass($(sessionId), 'chatroom-user-away');
-
-  // update the online list
   for (var i = 0; i < chatroom.userList.length; i++) {
     if (chatroom.userList[i].user == user) {
+      // update the online list
       chatroom.userList[i].away = 0;
-      break;
-    }
-  }
+      sessionId = chatroom.userList[i].sessionId;
 
-  // make sure away box is unchecked
-  if (chatroom.sessionId == sessionId) {
-    $('chatroom-msg-away').checked = 0;
+      // update on screen display
+      removeClass($(sessionId), 'chatroom-user-away');
+
+      // make sure away box is unchecked
+      if (chatroom.sessionId == sessionId) {
+        $('chatroom-msg-away').checked = 0;
+      }
+      return;
+    }
   }
 }
 
