@@ -289,7 +289,10 @@ function chatroomUpdateMsgList(msgs) {
       else {
         p = chatroomProcessMsgText(p, msgs[i].text);
       }
-
+      
+      // make sure the sender of this message is not set as away
+      chatroomSetAsBack(msgs[i].user);
+      
       // add to board
       msgBoard.appendChild(p);
       chatroom.lastUser    = msgs[i].user;
@@ -306,6 +309,29 @@ function chatroomUpdateMsgList(msgs) {
   if (scroll) {
     var msgBoard = $('chatroom-board');
     msgBoard.scrollTop = msgBoard.scrollHeight;
+  }
+}
+
+/**
+ * process msgText and append to given domNode
+ */
+function chatroomSetAsBack(user) {
+  var sessionId = chatroomFindUser(user);
+
+  // update on screen display
+  removeClass($(sessionId), 'chatroom-user-away');
+
+  // update the online list
+  for (var i = 0; i < chatroom.userList.length; i++) {
+    if (chatroom.userList[i].user == user) {
+      chatroom.userList[i].away = 0;
+      break;
+    }
+  }
+
+  // make sure away box is unchecked
+  if (chatroom.sessionId == sessionId) {
+    $('chatroom-msg-away').checked = 0;
   }
 }
 

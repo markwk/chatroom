@@ -391,13 +391,15 @@ function chatroom_administer_form() {
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
   $types = array(array('chats',             'active chats'),
                  array('chatrooms',         'active chatrooms'),
-                 array('online_chat_users', 'chat online list'));
+                 array('online_chat_users', 'chat online list'),
+                 array('online_site_users', 'sitewide online list'));
 
   switch ($op) {
     case 'list':
       $blocks[0]['info'] = t($types[0][1]);
       $blocks[1]['info'] = t($types[1][1]);
       $blocks[2]['info'] = t($types[2][1]);
+      $blocks[3]['info'] = t($types[3][1]);
       return $blocks;
 
     case 'configure':
@@ -462,7 +464,11 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
             break;
 
           case 'online_chat_users':
-            list($content, $block['subject']) = chatroom_chat_get_block_online_list();
+            list($content, $block['subject']) = chatroom_chat_block_online_list();
+            break;
+
+          case 'online_site_users':
+            list($content, $block['subject']) = chatroom_block_site_online_list();
             break;
         }
         if ($content) {
@@ -642,13 +648,20 @@ function chatroom_chat_set_away_status($chat_id, $status) {
  * handles requests that write a message into a chat
  */
 function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $recipient = null, $type = null, $timezone = 0, $smileys = false) {
+  $session_id = session_id();
   if (!chatroom_chat_is_registered_user($chat_id)) {
-    return chatroom_send_ajax_response("[{kickUser:'". session_id() ."'}]");
+    return chatroom_send_ajax_response("[{kickUser:'$session_id'}]");
   }
   if ($type == 'away' || $type == 'back') {
     return chatroom_chat_set_away_status($chat_id, $type);
   }
   global $user;
+  db_query("UPDATE {chatroom_online_list} 
+            SET away = 0 
+            WHERE uid = %d 
+            AND ccid = %d 
+            AND session_id = '%s'", 
+            $user->uid, $chat_id, $session_id); 
   $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg_type, msg, session_id, recipient, modified) 
                       VALUES (%d, %d, '%s', '%s', '%s', '%s', UNIX_TIMESTAMP())",
                       $chat_id, $user->uid, $type, stripslashes($msg), session_id(), $recipient); 
@@ -855,9 +868,18 @@ function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_
 }
 
 /**
+ * gets a list of online users for the whole site
+ */
+function chatroom_block_site_online_list() {
+  $title   = '';
+  $content = '';
+  return array($content, $title);
+}
+
+/**
  * gets a list of online users in a given chat
  */
-function chatroom_chat_get_block_online_list() {
+function chatroom_chat_block_online_list() {
   if (!preg_match('/^chatrooms\/chat\/(\d+)/', $_GET['q'], $matches)) {
     return array(false, false);
   }
@@ -880,6 +902,40 @@ function chatroom_chat_get_block_online_list() {
     $title = t('whois online in') .' <em>'. check_plain($ol_user->chatname) .'</em>';
   }
   return array($content, $title);
+}
+
+/**
+ * gets a list of sitewide online users 
+ */
+function chatroom_get_site_online_list() {
+  $result = db_query('SELECT     col.uid, 
+                                 col.session_id,
+                                 col.guest_id,
+                                 col.away,
+                                 cc.chatname,
+                                 du.name
+                      FROM       {chatroom_online_list} AS col
+                      INNER JOIN {chatroom_chat} AS cc
+                      ON         cc.ccid = col.ccid
+                      LEFT JOIN  {users} AS du
+                      ON         du.uid = col.uid
+                      WHERE      col.ccid = %d 
+                      AND        col.modified > (UNIX_TIMESTAMP() - 5)',
+                      $chat_id);
+  $users = array(); 
+  $session_id = session_id();
+  while ($row = db_fetch_object($result)) {
+    if ($row->session_id == $session_id) {
+      $current_user = $row;
+    }
+    else {
+      $users[] = $row;
+    }
+  }
+  if (isset($current_user)) {
+    array_unshift($users, $current_user);
+  }
+  return count($users) ? $users : FALSE; 
 }
 
 /**
