@@ -22,6 +22,22 @@ var chatroomAddEvents = function() {
       $('chatroom-msg-away').checked = chatroom.userList[i].away;
     }
   }
+  
+  // Handling focus
+  chatroom.pageTitle               = document.title;
+  chatroom.hasfocus                = true;
+  chatroom.warnedNewMsg            = true;  
+  document.onfocus                 = chatroomFocusHandler;
+  document.onblur                  = chatroomFocusHandler; 
+  $('chatroom-msg-submit').onfocus = chatroomFocusHandler;
+  $('chatroom-msg-submit').onblur  = chatroomFocusHandler;    
+  $('chatroom-msg-input').onfocus  = chatroomFocusHandler;
+  $('chatroom-msg-input').onblur   = chatroomFocusHandler;   
+  $('chatroom-msg-away').onfocus   = chatroomFocusHandler;
+  $('chatroom-msg-away').onblur    = chatroomFocusHandler;
+  $('chatroom-board').onfocus      = chatroomFocusHandler;
+  $('chatroom-board').onblur       = chatroomFocusHandler;    
+  
   chatroomGetUpdates();
   setInterval("chatroomGetUpdates()", chatroom.updateInterval);  
   return;
@@ -303,10 +319,13 @@ function chatroomUpdateMsgList(msgs) {
   else {
     chatroomSetWriteTime();
   }
+  
   if (scroll) {
     var msgBoard = $('chatroom-board');
     msgBoard.scrollTop = msgBoard.scrollHeight;
   }
+  
+  chatroomWarnNewMsg();  
 }
 
 /**
@@ -599,7 +618,7 @@ function chatroomSmileyInsert(acronym) {
 /**
  * toggle away status
  */
-function chatroomSetAway(obj){
+function chatroomSetAway(obj) {
   if (obj.checked) {
     var msg = chatroomGetCommandMsg('/away');
   } 
@@ -608,6 +627,40 @@ function chatroomSetAway(obj){
   }
   HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, chatroomPrepareMsg(msg));
 }
+
+/**
+ * focus handler
+ */
+function chatroomFocusHandler(e) {
+  if (!e) var e = window.event;
+  
+  if (e.type == 'focus') {
+    chatroom.hasfocus = true;
+    chatroom.warnedNewMsg = false;
+    document.title = chatroom.pageTitle;
+    clearInterval(chatroom.warnInterval);
+  } 
+  else{
+    chatroom.hasfocus = false;
+  }
+}
+
+function chatroomWarnNewMsg() {
+  if (chatroom.hasfocus == false && chatroom.warnedNewMsg == false) {      
+    chatroom.warnedNewMsg = true;
+    chatroom.warnInterval = setInterval("chatroomWarnNewMsgLoop()", 1000);
+  }
+}
+
+function chatroomWarnNewMsgLoop() {
+  if(document.title == chatroom.pageTitle) {
+    document.title = '* New message';
+  }
+  else {
+    document.title = chatroom.pageTitle;
+  }
+}
+
 
 // Global Killswitch
 if (isJsEnabled()) {
