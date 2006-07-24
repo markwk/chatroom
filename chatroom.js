@@ -261,13 +261,11 @@ function chatroomUpdateMsgList(msgs) {
         privSpan.appendChild(document.createTextNode(' (privately): '));
         addClass(privSpan, 'chatroom-private');        
         span.appendChild(privSpan);
-        p.appendChild(span);              
-        chatroom.lastUser = '';        
+        p.appendChild(span);                      
       }
       else if (msgs[i].type == 'me') {
         // * <username> msg
-        p.appendChild(document.createTextNode('* ' + msgs[i].user + ' '));          
-        chatroom.lastUser = '';        
+        p.appendChild(document.createTextNode('* ' + msgs[i].user + ' '));                       
       }
       else {             
         // normal msg
@@ -286,8 +284,16 @@ function chatroomUpdateMsgList(msgs) {
       
       // add to board
       msgBoard.appendChild(p);
-      chatroom.lastUser    = msgs[i].user;
       chatroom.lastMsgTime = msgs[i].time;
+      
+      // checking identation
+      if (msgs[i].recipient || msgs[i].type == 'me') {
+      	chatroom.lastUser = '';      
+      }
+      else {
+      	chatroom.lastUser = msgs[i].user;      
+      }     
+      
       scroll = true;      
     }    
   }  

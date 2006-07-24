@@ -64,14 +64,14 @@
   background-color: #f5f5f5;
   padding: .4em;
 }
-.chatroom-old-msg .header, .chatroom-system-msg .header, .chatroom-msg .header {
+.chatroom-old-msg .header, .chatroom-msg .header {
   font-weight: bold;
   margin-left: -1.8em;
   margin-right: .4em;
   vertical-align: top;
   padding-top: 10px;
 }
-.chatroom-old-msg, .chatroom-system-msg, .chatroom-msg{
+.chatroom-old-msg, .chatroom-msg{
   padding-left: 2.2em;
 }
 .chatroomLink {
