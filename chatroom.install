@@ -90,6 +90,18 @@ function chatroom_install() {
         PRIMARY KEY  (coid),
         KEY update_time (ccid,uid,session_id)
       ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_chat_invites} (
+        cciid int(11) NOT NULL AUTO_INCREMENT,
+        sender_uid int(11) NOT NULL,
+        invitee_uid int(11) NOT NULL,
+        declined int(1),
+        created_ccid int(11),
+        PRIMARY KEY  (cciid),
+        KEY sender_uid (sender_uid),
+        KEY invitee_uid (invitee_uid)
+      ) $utf_declaration;");
+      break;
+    case 'mysql':
       break;
   }
   $error = false;
@@ -99,7 +111,9 @@ function chatroom_install() {
     db_query('DROP TABLE {chatroom_chat}');
     db_query('DROP TABLE {chatroom_msg}');
     db_query('DROP TABLE {chatroom_msg_archive}');
+    db_query('DROP TABLE {chatroom_ban_list}');
     db_query('DROP TABLE {chatroom_online_list}');
+    db_query('DROP TABLE {chatroom_chat_invites}');
   }
   else {
     $cache_dir = drupal_get_path('module', 'chatroom') .'/chat_cache';

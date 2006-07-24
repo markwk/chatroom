@@ -5,6 +5,37 @@
  */
 var chatroomBlockAddEvents = function() {
   setInterval("chatroomBlockGetUpdates()", chatroomBlock.updateInterval);
+  
+  // if there's an online user list and this is a Drupal user, attach onclicks
+  if ($('chatroom-sitewide-online') && chatroomBlock.uid > 0) {
+    var userList = $('chatroom-sitewide-online').getElementsByTagName('a');
+    for (var i = 0; i < userList.length; i++) {
+      userList[i].onclick = function() {
+        chatroomBlockSendInvite(this);
+        return false;
+      }
+    }
+  }
+  // if there are any invites for this user, attach onclicks
+  if ($('chatroom-invites')) {
+    var invites = $('chatroom-invites').getElementsByTagName('a');
+    if (typeof invites.length != 'undefined') {
+      for (var i = 0; i < invites.length; i++) {
+        if (invites[i].id.indexOf('accepted') == -1) {
+          invites[i].onclick = function() {
+            chatroomBlockAcceptInvite(this);
+            return false;
+          }
+        }
+        else {
+          invites[i].onclick = function() {
+            chatroomBlockStartChat(this);
+            return false;
+          }
+        }
+      }
+    }
+  }
   return;
 }
 
@@ -15,11 +46,26 @@ var chatroomBlockCallback = function(responseText, HttpRequest, chatroomDummyPar
   if (HttpRequest.responseText) {
     var resArray = eval(HttpRequest.responseText);
     if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
-      if (resArray[0].length) {
-        chatroomUpdateActiveChatList(resArray[0]);
-      }
-      if (resArray[1].length) {
-        chatroomUpdateActiveChatroomList(resArray[1]);
+      for (var i = 0; i < resArray.length; i++) {
+        if (typeof resArray[i].timestamp != 'undefined') {
+          chatroomBlockUpdateActiveChatList(resArray[i].chatList);
+          break;
+        }
+        if (typeof resArray[i].chatList != 'undefined') {
+          chatroomBlockUpdateActiveChatList(resArray[i].chatList);
+          break;
+        }
+        if (typeof resArray[i].chatroomList != 'undefined') {
+          chatroomBlockUpdateActiveChatroomList(resArray[i].chatroomList);
+          break;
+        }
+        if (typeof resArray[i].userList != 'undefined') {
+          chatroomBlockUpdateOnlineList(resArray[i].userList);
+          break;
+        }
+        if (typeof resArray[i].chatInvites != 'undefined') {
+          chatroomBlockHandleInvites(resArray[i].chatInvites);
+        }
       }
     }
   }
@@ -27,9 +73,85 @@ var chatroomBlockCallback = function(responseText, HttpRequest, chatroomDummyPar
 }
 
 /**
+ * accepts an invite
+ */
+function chatroomBlockAcceptInvite(invite) {
+  alert('not implemented yet');
+}
+
+/**
+ * starts a popout chat
+ */
+function chatroomBlockStartChat(invite) {
+  alert('not implemented yet');
+}
+
+/**
  * handles updating the sitewide active chat list
  */
-function chatroomUpdateActiveChatList(chats) {
+function chatroomBlockSendInvite(userLink) {
+  var msg = {block_update:1,chatroom_base:chatroomBlock.moduleBase,user_base:chatroomBlock.userBase};
+  msg.inviter_uid = chatroomBlock.uid;
+  msg.invitee_uid = userLink.id.split('-')[1];
+  HTTPPost(chatroomBlock.blockUrl, chatroomBlockCallback, false, msg);
+}
+
+/**
+ * handles updating the sitewide online list
+ */
+function chatroomBlockUpdateOnlineList(userList) {
+  var usersToDelete = [];
+  var deleteFlag = true;
+
+  // loop through the in browser user list
+  for (var i = 0; i < chatroomBlockUsers.length; i++) {
+    deleteFlag = true;
+    
+    // loop through the list sent from the server 
+    for (var j = 0; j < userList.length; j++) {      
+      if (chatroomBlockUsers[i].uid == userList[j].uid) {
+        deleteFlag = false;
+        userList[j].noAdd = 1;
+      }
+    }
+    if (deleteFlag) {
+      usersToDelete.push([i, 'user-li-'+ chatroomBlockUsers[i].uid]);
+    }
+  }
+
+  // delete the flagged users
+  for (var i = 0; i < usersToDelete.length; i++) {
+    $('chatroom-sitewide-online').removeChild($(usersToDelete[i][1]));
+    chatroomBlockUsers.splice(usersToDelete[i][0], 1);
+  }
+
+  // add the users who are not in the browser list, but where in the update list
+  for (var i = 0; i < userList.length; i++) {
+    if (typeof userList[i].noAdd == 'undefined') {
+      chatroomBlockUsers.push(userList[i]);
+      
+      var userInfo = document.createElement('a');
+      userInfo.id = 'user-'+ userList[i].uid;
+      userInfo.appendChild(document.createTextNode(userList[i].user));
+      userInfo.setAttribute('href', '#');
+      userInfo.onclick = function() {
+        chatroomBlockSendInvite(this);
+        return false;
+      }
+
+      var li = document.createElement('li');
+      li.id = 'user-li-'+ userList[i].uid;
+      li.style.fontWeight = 'bold';
+      li.appendChild(userInfo);      
+      $('chatroom-sitewide-online').appendChild(li);          
+    }
+  }
+}
+
+/**
+ * handles updating the sitewide active chat list
+ */
+function chatroomBlockUpdateActiveChatList(chats) {
   var chatList = $('chatroom-sitewide-chats');
   var chatsToDelete = [];
 
@@ -106,7 +228,7 @@ function chatroomUpdateActiveChatList(chats) {
 /**
  * handles updating the sitewide active chatroom list
  */
-function chatroomUpdateActiveChatroomList(chatrooms) {
+function chatroomBlockUpdateActiveChatroomList(chatrooms) {
   var chatroomList = $('chatroom-sitewide-chatrooms');
   var chatroomsToDelete = [];
 
@@ -172,6 +294,58 @@ function chatroomUpdateActiveChatroomList(chatrooms) {
 /**
  * gets updates from the server for chatroom blocks
  */
+function chatroomBlockHandleInvites(invites) {
+  // if we don't have an invite list yet, create one
+  if ($('chatroom-invites')) {
+    var inviteList = $('chatroom-invites');
+  }
+  else {
+    var inviteList = document.createElement('div');
+    inviteList.id = 'chatroom-invites';
+    $('chatroom-sitewide-online').appendChild(inviteList);
+  }
+  for (var i = 0; i < invites.length; i++) {
+    var msg = invites[i];
+
+    if (typeof msg.ccid == 'undefined') {
+      // we got an invite
+      if (!$('invite-'+ msg.uid)) {
+        var a = document.createElement('a');
+        a.setAttribute('href', msg.uid);
+        a.id = 'invite-'+ msg.uid;
+        a.appendChild(document.createTextNode('User '+ msg.user +' has invited you to chat'));
+        a.onclick= function() {
+          chatroomBlockAcceptInvite(this);
+          return false;
+        }
+        var p = document.createElement('p');
+        p.appendChild(a);
+        $('chatroom-invites').appendChild(p);
+      }
+    }
+    else {
+      // an invite of ours was accepted
+      if (!$('accepted-'+ msg.uid)) {
+        var a = document.createElement('a');
+        a.setAttribute('href', chatroomBlock.siteBase +'chatrooms/popout-chat/'+ msg.cciid);
+        a.id = 'accepted-'+ msg.uid;
+        a.onclick= function() {
+          chatroomBlockStartChat(this);
+          return false;
+        }
+        a.appendChild(document.createTextNode('User '+ msg.user +' has accepted your invite you to chat'));
+        var p = document.createElement('p');
+        p.appendChild(a);
+        $('chatroom-invites').appendChild(p);
+      }
+    }
+
+  }
+}
+
+/**
+ * gets updates from the server for chatroom blocks
+ */
 function chatroomBlockGetUpdates() {
   var postData = {block_update:1,chatroom_base:chatroomBlock.moduleBase,user_base:chatroomBlock.userBase};
   var checkBlocks = false;
@@ -183,6 +357,10 @@ function chatroomBlockGetUpdates() {
   if ($('chatroom-sitewide-chats')) {
     postData.chat_cache_file = chatroomBlock.chatCacheFile;
     postData.chat_timestamp  = chatroomBlock.chatTimestamp;
+    checkBlocks = true;
+  }
+  if ($('chatroom-sitewide-online')) {
+    postData.uid = chatroomBlock.uid;
     checkBlocks = true;
   }
   if (checkBlocks) {

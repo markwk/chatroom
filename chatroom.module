@@ -37,39 +37,43 @@ function chatroom_perm() {
  */
 function chatroom_menu($may_cache) {
   $items = array();
-  if ($may_cache) {
-    $items[] = array('path' => 'node/add/chatroom',
-      'title' => t('chatroom'),
-      'access' => user_access('create chatrooms'));
-    $items[] = array('path' => 'chatrooms',
-      'callback' => 'chatroom_home',
-      'access' => user_access('access chatrooms'),
-      'title' => t('chatrooms'),
-      'type' => MENU_SUGGESTED_ITEM);
-    $items[] = array('path' => 'admin/chatroom',
-      'callback' => 'chatroom_administer_form',
-      'title' => t('chatroom'),
-      'access' => user_access('administer chatrooms'),
-      'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'chatrooms/kicked/user',
-      'callback' => 'chatroom_chat_kicked_user',
-      'access' => user_access('access chatrooms'),
-      'type' => MENU_CALLBACK);
-  }
-  else {
-    $items[] = array('path' => 'chatrooms/chat',
-      'callback' => 'chatroom_chat',
-      'access' => user_access('access chatrooms'),
-      'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'chatrooms/archives',
-      'callback' => 'chatroom_chat_archive',
-      'access' => user_access('access chatrooms'),
-      'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'chatrooms/command',
-      'callback' => 'chatroom_chat_command',
-      'access' => user_access('access chatrooms'),
-      'type' => MENU_CALLBACK);
-  }
+  $items[] = array('path' => 'node/add/chatroom',
+    'title' => t('chatroom'),
+    'access' => user_access('create chatrooms'));
+  $items[] = array('path' => 'chatrooms',
+    'callback' => 'chatroom_home',
+    'access' => user_access('access chatrooms'),
+    'title' => t('chatrooms'),
+    'type' => MENU_SUGGESTED_ITEM);
+  $items[] = array('path' => 'admin/chatroom',
+    'callback' => 'chatroom_administer_form',
+    'title' => t('chatroom'),
+    'access' => user_access('administer chatrooms'),
+    'type' => MENU_NORMAL_ITEM);
+  $items[] = array('path' => 'chatrooms/kicked/user',
+    'callback' => 'chatroom_chat_kicked_user',
+    'access' => user_access('access chatrooms'),
+    'type' => MENU_CALLBACK);
+  $items[] = array('path' => 'chatrooms/chat',
+    'callback' => 'chatroom_chat',
+    'access' => user_access('access chatrooms'),
+    'type' => MENU_CALLBACK);
+  $items[] = array('path' => 'chatrooms/popout-chat',
+    'callback' => 'chatroom_popout_chat',
+    'access' => user_access('access chatrooms'),
+    'type' => MENU_CALLBACK);
+  $items[] = array('path' => 'chatrooms/archives',
+    'callback' => 'chatroom_chat_archive',
+    'access' => user_access('access chatrooms'),
+    'type' => MENU_CALLBACK);
+  $items[] = array('path' => 'chatrooms/chat/insert-invite',
+    'callback' => 'chatroom_chat_insert_invite',
+    'access' => user_access('access chatrooms'),
+    'type' => MENU_CALLBACK);
+  $items[] = array('path' => 'chatrooms/chat/accept-invite',
+    'callback' => 'chatroom_chat_accept_invite',
+    'access' => user_access('access chatrooms'),
+    'type' => MENU_CALLBACK);
   return $items;
 }
 
@@ -755,6 +759,39 @@ function chatroom_block_update_cache($type) {
 }
 
 /**
+ * gets the js to update an online user list block
+ */
+function chatroom_block_online_list_update_js($uid) {
+  chatroom_site_update_online_time($uid);
+  $users = chatroom_get_site_online_list();
+  $invite_js = $user_js = '{}';
+  if (count($users)) {
+    $users_js = array();
+    foreach ($users as $ol_user) {
+      if ($uid != $ol_user->uid) {
+        $users_js[] = '{user:"'. $ol_user->name .'",uid:'. $ol_user->uid .'}';
+      }
+    }
+    $user_js = '{userList:['. implode(',', $users_js) .']}';
+  }
+  $invites = chatroom_chat_check_for_invites($uid);
+  if (count($invites)) {
+    $invites_js = array();
+    foreach ($invites as $invite) {
+      if ($invite->created_ccid) {
+        $invites_js[] = '{ccid:'. $invite->created_ccid.'",user:"'. $invite->invitee_name.'",'
+                      . 'uid:'. $invite->invitee_uid .',url:"#"}';
+      }
+      else {
+        $invites_js[] = '{user:"'. $invite->sender_name.'",uid:'. $invite->sender_uid .',url:"#"}';
+      }
+    }
+    $invite_js = '{chatInvites:['. implode(',', $invites_js) .']}';
+  }
+  return "$invite_js, $user_js"; 
+}
+
+/**
  * gets the js to update an active chats block 
  */
 function chatroom_block_chat_update_js($cache_file) {
@@ -766,9 +803,9 @@ function chatroom_block_chat_update_js($cache_file) {
       $chat_js .= '{chatName:"'. $chat->chatname . '",chatListId:"chat_'. $chat->ccid .'",';
       $chat_js .= 'ccid:'. $chat->ccid .',roomName:"'. $chat->room_name .'",crid:'. $chat->crid .'},';
     }
-    return "[$chat_js $timestamp]";
+    return "{chatList:[$chat_js $timestamp]}";
   }
-  return "[$timestamp]";
+  return "{chatList:[$timestamp]}";
 }
 
 /**
@@ -783,9 +820,9 @@ function chatroom_block_room_update_js($cache_file) {
       $room_js .= '{chatroomName:"'. $room->title . '",chatroomListId:"chatroom_'. $room->nid .'",';
       $room_js .= 'crid:'. $room->nid .'},';
     }
-    return "[$room_js $timestamp]";
+    return "{chatroomList:[$room_js $timestamp]}";
   }
-  return "[$timestamp]";
+  return "{chatroomList:[$timestamp]}";
 }
 
 /**
@@ -868,11 +905,123 @@ function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_
 }
 
 /**
- * gets a list of online users for the whole site
+ * updates a users online time 
+ */
+function chatroom_site_update_online_time($uid) {
+  db_query('UPDATE {users} SET access = %d WHERE uid = %d', time(), $uid);
+}
+
+/**
+ * gets a list of online users, not including the current user
+ */
+function chatroom_get_site_online_list() {
+  global $user;
+  $users = array();
+  $time_period = variable_get('chatroom_online_list_update_freq', 5);
+  $result = db_query('SELECT uid, name FROM {users} WHERE access >= %d AND uid != 0', time() - $time_period);
+  while ($ol_user = db_fetch_object($result)) {
+    if ($user->uid != $ol_user->uid) {
+      $users[] = $ol_user;
+    }
+  }
+  return $users;
+}
+
+/**
+ * checks for invites that have been sent to me, or that i have sent,
+ * and have been accepted, so created_ccid will be not null
+ */
+function chatroom_chat_check_for_invites($uid) {
+  global $user;
+  if ($user->uid != $uid) {
+    return array();
+  }
+  $result = db_query('SELECT    ui.name AS invitee_name,
+                                us.name AS sender_name,
+                                cci.*
+                      FROM      {chatroom_chat_invites} AS cci 
+                      LEFT JOIN {users} AS ui
+                      ON        ui.uid = cci.invitee_uid
+                      LEFT JOIN {users} AS us
+                      ON        us.uid = cci.sender_uid
+                      WHERE     (cci.sender_uid = %d AND cci.created_ccid IS NOT NULL)
+                      OR        (cci.invitee_uid = %d AND cci.created_ccid IS NULL)', 
+                      $uid, $uid);
+  $invites = array();
+  while ($invite = db_fetch_object($result)) {
+    $invites[] = $invite;
+  }
+  return $invites;
+}
+
+/**
+ * inserts an invite for a chat
+ */
+function chatroom_chat_insert_invite($uid, $invitee_uid) {
+  // check this is a valid request
+  global $user;
+  if ($user->uid != $uid) {
+    exit;
+  }
+
+  // insert the table row
+  // send 'ok, inserted' to the browser
+}
+
+/**
+ * accepts an invite for a chat
+ */
+function chatroom_chat_accept_invite($uid, $invitee_uid) {
+  // check this is a valid request
+  global $user;
+  if ($user->uid != $uid) {
+    exit;
+  }
+
+  // create a chat and get an id
+  
+  // update the invite table row
+  // send 'ok, here's your chat url with user X' to the browser
+}
+
+/**
+ * outputs html for list of online users for the whole site
  */
 function chatroom_block_site_online_list() {
-  $title   = '';
-  $content = '';
+  global $user;
+  $title    = t('online chatroom users');
+  $users    = chatroom_get_site_online_list();
+  $users_js = '';
+  if (count($users)) {
+    $users_js = array();
+    $content = '<ul class="menu" id="chatroom-sitewide-online">';
+    foreach ($users as $ol_user) {
+            $content .= '<li id="user-li-'. $ol_user->uid .'"><a href="#user" id="user-'. $ol_user->uid .'">';
+      $content .= check_plain($ol_user->name). '</a></li>';
+      $users_js[] = '{user:"'. $ol_user->name .'",uid:'. $ol_user->uid .'}';
+    }
+    $users_js = implode(',', $users_js);
+    $content .= '</ul>';
+  }
+  else {
+    $content = '<p><em>'. t('There are no online users') .'</em></p>';
+  }
+  $invites = chatroom_chat_check_for_invites($user->uid);
+  $content .= '<div id="chatroom-invites">';
+  if (count($invites)) {
+    foreach ($invites as $invite) {
+      if ($invite->created_ccid) {
+        $content .= '<p><a href="'. $invite->cciid .'" id="accepted-'. $invite->sender_uid .'">'; 
+        $content .= t('User ') . check_plain($invite->sender_name) . t(' has accepted your invite to chat') .'</a></p>';
+      }
+      else {
+        $content .= '<p><a href="'. $invite->sender_uid .'" id="invite-'. $invite->sender_uid .'">';
+        $content .= t('User ') . check_plain($invite->sender_name) . t(' has invited you to a chat') .'</a></p>';
+      }
+    }
+  }
+  $content .= '</div>';
+  drupal_set_html_head('<script type="text/javascript">var chatroomBlockUsers = ['. $users_js .'];</script>');
   return array($content, $title);
 }
 
@@ -902,40 +1051,6 @@ function chatroom_chat_block_online_list() {
     $title = t('whois online in') .' <em>'. check_plain($ol_user->chatname) .'</em>';
   }
   return array($content, $title);
-}
-
-/**
- * gets a list of sitewide online users 
- */
-function chatroom_get_site_online_list() {
-  $result = db_query('SELECT     col.uid, 
-                                 col.session_id,
-                                 col.guest_id,
-                                 col.away,
-                                 cc.chatname,
-                                 du.name
-                      FROM       {chatroom_online_list} AS col
-                      INNER JOIN {chatroom_chat} AS cc
-                      ON         cc.ccid = col.ccid
-                      LEFT JOIN  {users} AS du
-                      ON         du.uid = col.uid
-                      WHERE      col.ccid = %d 
-                      AND        col.modified > (UNIX_TIMESTAMP() - 5)',
-                      $chat_id);
-  $users = array(); 
-  $session_id = session_id();
-  while ($row = db_fetch_object($result)) {
-    if ($row->session_id == $session_id) {
-      $current_user = $row;
-    }
-    else {
-      $users[] = $row;
-    }
-  }
-  if (isset($current_user)) {
-    array_unshift($users, $current_user);
-  }
-  return count($users) ? $users : FALSE; 
 }
 
 /**
@@ -1101,6 +1216,8 @@ JS;
  * helper function to add some state information to block pages 
  */
 function chatroom_block_add_state_js() {
+  global $user;
+
   // only do this once per request
   static $state_set = false;
   if ($state_set === true) {
@@ -1135,7 +1252,7 @@ function chatroom_block_add_state_js() {
   $js = <<<JS
 var chatroomBlock = {blockUrl:'$block_url',moduleBase:'$module_base',smileysModuleBase:'$smileys_module_base',roomBase:'$room_base',
                      chatBase:'$chat_base',chatCacheFile:'$chat_cache_file',roomCacheFile:'$room_cache_file',userBase:'$user_base',
-                     updateInterval:$poll_freq,chatTimestamp:$timestamp,roomTimestamp:$timestamp};
+                     updateInterval:$poll_freq,chatTimestamp:$timestamp,roomTimestamp:$timestamp,uid:$user->uid,siteBase:'$site_base'};
 JS;
 
   drupal_set_html_head('<script type="text/javascript">'. $js .'</script>');
@@ -1222,6 +1339,38 @@ function chatroom_chat_kick_user($chat_id, $session_id) {
     db_query("DELETE FROM {chatroom_online_list} WHERE ccid = %d AND session_id = '%s'", $chat_id, $session_id);
     chatroom_send_ajax_response("[{kickUser:'$session_id'}]");
   }
+}
+
+/**
+ * loads the UI for popout chat, and registers this user as online
+ */
+function chatroom_popout_chat($chat_id = false) {
+  if ($chat_id === false || !($chat = chatroom_chat_get_from_id($chat_id))) {
+    return drupal_not_found();
+  } 
+  global $user;
+  $result = db_result(db_query('SELECT cciid FROM {chatroom_chat_invites} 
+                                WHERE created_ccid = %d 
+                                AND (invitee_uid = %d OR sender_uid = %d)',
+                                $chat->ccid, $user->uid));
+  if (!$result) {
+    return drupal_access_denied();
+  }
+  chatroom_chat_register_user($chat->ccid);
+  chatroom_chat_set_cache($chat->ccid);
+  $clean_urls = variable_get('clean_url', 0);
+  $css_path = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . '/');
+  drupal_add_link(array("rel" => "stylesheet", "type" => "text/css", 
+                        "href" => $css_path . drupal_get_path('module', 'chatroom') .'/chatroom.css'));
+  drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.js');
+  chatroom_chat_add_state_js($chat, session_id(), $clean_urls);
+
+  drupal_set_title(check_plain($chat->chatname));
+  $html = '<div id="chatroom-container">';
+  $html .= theme('chatroom_chat_board');
+  $html .= theme('chatroom_chat_textentry');
+  $html .= '</div>';
+  return $html;
 }
 
 /**

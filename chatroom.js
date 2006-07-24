@@ -15,7 +15,7 @@ var chatroomAddEvents = function() {
     return true;
   };
   $('chatroom-msg-away').onclick = function() { 
-      chatroomSetAway(this);       
+    chatroomSetAway(this);       
   };
   for (var i = 0; i < chatroom.userList.length; i++) {
     if (chatroom.userList[i].sessionId == chatroom.sessionId) {
