@@ -277,18 +277,9 @@ function chatroomUpdateMsgList(msgs) {
           span.appendChild(document.createTextNode(msgs[i].user + ':'));               
           p.appendChild(span);              
         }                
-      }  
+      }        
       
-      // indent if this message comes from the same user
-      if (msgs[i].user == chatroom.lastUser) {
-        var indentP = document.createElement('p');
-        addClass(indentP, 'indent');
-        indentP = chatroomProcessMsgText(indentP, msgs[i].text);
-        p.appendChild(indentP);              
-      }
-      else {
-        p = chatroomProcessMsgText(p, msgs[i].text);
-      }
+      p = chatroomProcessMsgText(p, msgs[i].text);      
       
       // make sure the sender of this message is not set as away
       chatroomSetAsBack(msgs[i].user);

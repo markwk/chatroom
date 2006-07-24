@@ -62,15 +62,17 @@
 }
 .chatroom-time-msg, .chatroom-me-msg, .chatroom-old-msg, .chatroom-system-msg, .chatroom-msg {
   background-color: #f5f5f5;
-  padding: 4px;
+  padding: .4em;
 }
 .chatroom-old-msg .header, .chatroom-system-msg .header, .chatroom-msg .header {
   font-weight: bold;
+  margin-left: -1.8em;
   margin-right: .4em;
   vertical-align: top;
+  padding-top: 10px;
 }
-.chatroom-old-msg .indent, .chatroom-system-msg .indent, .chatroom-msg .indent {
-  padding-left: 1em;
+.chatroom-old-msg, .chatroom-system-msg, .chatroom-msg{
+  padding-left: 2.2em;
 }
 .chatroomLink {
   font-style: italic;
