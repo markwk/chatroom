@@ -129,7 +129,8 @@ function chatroom_install() {
       $errors[] = "$cache_dir directory is not writable by php. Please correct this";
     }
     if (count($errors)) {
-      $error = implode('<br />', $errors);
+      $error  = implode('<br />', $errors);
+      $error .= t('Please fix these errors and attempt to enable chatroom.module again.');
     }
   }
   if ($error) {
