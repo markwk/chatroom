@@ -250,8 +250,10 @@ function chatroomGetUrl(type) {
 function chatroomUpdateMsgList(msgs) {
   var msgBoard = $('chatroom-board');
   var scroll = false;
+  var newMsgUser = false;
   for (var i = 0; i < msgs.length; i++) {
     if (chatroomUpdateLastMsg(msgs[i].id)) {        
+
       var p = document.createElement('p');
       if (chatroom.updateCount == 1) {
         // first load of page - greys out old msgs
@@ -265,6 +267,11 @@ function chatroomUpdateMsgList(msgs) {
         // normal msg
         addClass(p, 'chatroom-msg');
         p.style.color = chatroomGetUserColour(msgs[i].user);        
+      }
+
+      // get the user for the first message where update count != 1
+      if (chatroom.updateCount != 1 && newMsgUser == false) {
+        newMsgUser = msgs[i].user;
       }
 
       if (msgs[i].recipient) {
@@ -291,8 +298,7 @@ function chatroomUpdateMsgList(msgs) {
           span.appendChild(document.createTextNode(msgs[i].user + ':'));               
           p.appendChild(span);              
         }                
-      }        
-      
+      }    
       p = chatroomProcessMsgText(p, msgs[i].text);      
       
       // make sure the sender of this message is not set as away
@@ -311,6 +317,8 @@ function chatroomUpdateMsgList(msgs) {
       }     
       
       scroll = true;      
+
+      chatroomWarnNewMsg(newMsgUser);  
     }    
   }  
   if (chatroom.updateCount == 1) {
@@ -325,7 +333,6 @@ function chatroomUpdateMsgList(msgs) {
     msgBoard.scrollTop = msgBoard.scrollHeight;
   }
   
-  chatroomWarnNewMsg();  
 }
 
 /**
@@ -633,7 +640,9 @@ function chatroomSetAway(obj) {
  * focus handler
  */
 function chatroomFocusHandler(e) {
-  if (!e) var e = window.event;
+  if (!e) {
+    var e = window.event;
+  }
   
   if (e.type == 'focus') {
     chatroom.hasfocus = true;
@@ -641,21 +650,22 @@ function chatroomFocusHandler(e) {
     document.title = chatroom.pageTitle;
     clearInterval(chatroom.warnInterval);
   } 
-  else{
+  else {
     chatroom.hasfocus = false;
   }
 }
 
-function chatroomWarnNewMsg() {
+function chatroomWarnNewMsg(user) {
   if (chatroom.hasfocus == false && chatroom.warnedNewMsg == false) {      
+    chatroom.newMsgInfo = user +' says ...';
     chatroom.warnedNewMsg = true;
-    chatroom.warnInterval = setInterval("chatroomWarnNewMsgLoop()", 1000);
+    chatroom.warnInterval = setInterval("chatroomWarnNewMsgLoop()", 1500);
   }
 }
 
 function chatroomWarnNewMsgLoop() {
-  if(document.title == chatroom.pageTitle) {
-    document.title = '* New message';
+  if (document.title == chatroom.pageTitle) {
+    document.title = chatroom.newMsgInfo;
   }
   else {
     document.title = chatroom.pageTitle;
