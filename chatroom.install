@@ -116,7 +116,7 @@ function chatroom_install() {
     db_query('DROP TABLE {chatroom_chat_invites}');
   }
   else {
-    $cache_dir = drupal_get_path('module', 'chatroom') .'/chat_cache';
+    $cache_dir = file_directory_temp() .'/chat_cache';
     $errors = array();
     $path = realpath(dirname($_SERVER['SCRIPT_FILENAME'])) .'/chatroomread.php';
     if (!file_exists($path)) {

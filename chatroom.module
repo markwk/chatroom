@@ -608,7 +608,7 @@ function chatroom_chat_set_cache($chat_id) {
  */
 function chatroom_chat_get_cache_file_path($chat_id) {
   $cache_file = chatroom_chat_get_cache_file_name($chat_id);
-  return './'. drupal_get_path('module', 'chatroom') ."/chat_cache/$cache_file";
+  return file_directory_temp() ."/drupal_chat_cache/$cache_file";
 }
 
 /**
@@ -748,7 +748,7 @@ function chatroom_chat_register_user($chat_id) {
  */
 function chatroom_block_get_cache_file($type) {
   $url  = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . '/chatroomread.php');
-  return drupal_get_path('module', 'chatroom') ."/chat_cache/{$type}_". md5($_SERVER['HTTP_HOST'] . $url);
+  return file_directory_temp() ."/drupal_chat_cache/{$type}_". md5($_SERVER['HTTP_HOST'] . $url);
 }
 
 /**
@@ -878,7 +878,7 @@ function chatroom_chat_update_online_time($chat_id, $uid, $session_id) {
 /**
  * handles requests that read info about a chat
  */
-function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list = false, $timezone = 0, $smileys = false) {
+function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $cache_file, $online_list = false, $timezone = 0, $smileys = false) {
   if (!chatroom_chat_is_registered_user($chat_id)) {
     return chatroom_send_ajax_response("[{kickUser:'". session_id() ."'}]");
   }
@@ -896,7 +896,7 @@ function chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_
       }
     }
   }
-  $cache_timestamp = @filemtime('chat_cache/chat_'. $chat_id);
+  $cache_timestamp = @filemtime($cache_file);
   $cache_js = '';
   if ($cache_timestamp) {
     $cache_js = ",{cacheTimestamp:$cache_timestamp}";
@@ -1172,7 +1172,7 @@ function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   $user_url       = ($clean_urls ? '../../' : '?q=') . 'user/';
   $chatroom_base  = drupal_get_path('module', 'chatroom');
   $user_base      = drupal_get_path('module', 'user');
-  $cache_file     = chatroom_chat_get_cache_file_name($chat->ccid);
+  $cache_file     = file_directory_temp() .'/drupal_chat_cache/'. chatroom_chat_get_cache_file_name($chat->ccid);
   $smileys_base   = drupal_get_path('module', 'smileys') ? "'". drupal_get_path('module', 'smileys') ."'" : 'false';
   $smileys_marker = '------';
   $timestamp      = time() - (60 * 60);
@@ -1237,7 +1237,7 @@ function chatroom_block_add_state_js() {
   $chat_base   = $site_base .'chatrooms/chat/';
   $room_base   = $site_base .'node/';
   $module_base = drupal_get_path('module', 'chatroom');
-  $user_base = drupal_get_path('module', 'user');
+  $user_base   = drupal_get_path('module', 'user');
   $block_url   = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) .'/chatroomread.php');
 
   // setup the cache file paths

@@ -15,7 +15,7 @@ if (isset($_POST['chatroom_base'])) {
       substr($chatroom_base, 0, strlen('modules')) != 'modules' ||
       strpos($chatroom_base, '..') !== FALSE                    || 
       !is_dir($user_base)                                       ||
-      substr($user_base, 0, strlen('modules')) != 'modules'     ||
+      !(substr($user_base, 0, strlen('modules')) == 'modules' || substr($user_base, 0, strlen('sites')) == 'sites')     ||
       strpos($user_base, '..') !== FALSE)                        {
     echo "/** UR3l33t! 1 **/";
     exit;
@@ -37,7 +37,7 @@ if (isset($_POST['smileys_base'])) {
   // if module base looks dodge, just exit
   $smileys_base = urldecode($_POST['smileys_base']);
   if (!is_dir($smileys_base)                                   ||
-      substr($smileys_base, 0, strlen('modules')) != 'modules' ||
+      !(substr($smileys_base, 0, strlen('modules')) == 'modules' || substr($smileys_base, 0, strlen('sites')) == 'sites') ||
       strpos($smileys_base, '..') !== FALSE)                    {
     echo "/** UR3l33t! 3 **/";
     exit;
@@ -66,7 +66,6 @@ if (isset($_POST['chat_id'])) {
   $write_request = empty($_POST['chatroomMsg']) ? false : true;
   if ($write_request === false) {
     if (!isset($_POST['timestamp'])                    ||
-        !isset($_POST['chat_cache_file'])              ||
         !isset($_POST['update_count'])                 ||
         !preg_match('/^\d+$/', $_POST['timestamp'])    ||
         !preg_match('/^\d+$/', $_POST['update_count'])) {
@@ -81,7 +80,7 @@ if (isset($_POST['chat_id'])) {
   $update_count      = $_POST['update_count'];
   $chat_id           = $_POST['chat_id'];
   $last_msg_id       = $_POST['last_msg_id'];
-  $chat_cache_file   = $module_base .'/chat_cache/'. $_POST['chat_cache_file'];
+  $chat_cache_file   = $_POST['chat_cache_file'];
   $online_list       = isset($_POST['online_list']) ? true : false;
   $timezone          = isset($_POST['timezone']) ? $_POST['timezone'] : 0;
 
@@ -89,6 +88,7 @@ if (isset($_POST['chat_id'])) {
     // see if we have a cache hit by comparing the timestamps
     if (@file_exists($chat_cache_file)) {
       if (($browser_timestamp - 1) >= @filemtime($chat_cache_file)) {
+        echo '/** 6 **/';
         exit;
       }
     }
@@ -106,6 +106,14 @@ if (isset($_POST['chat_id'])) {
   $recipient = empty($_POST['recipient']) ? "" : $_POST['recipient'];
   $type      = is_null($_POST['type']) ? "msg" : $_POST['type'];
 
+  if ($type == 'ban' && $recipient) {
+    if (!isset($_POST['uid'])       || !preg_match('/^\d+$/', $_POST['uid'])       ||
+        !isset($_POST['admin_uid']) || !preg_match('/^\d+$/', $_POST['admin_uid'])) { 
+      echo '/** UR3l33T! 7 **/';
+      exit;
+    }
+  }
+
   // are we writing?
   if ($write_request) {
     if (get_magic_quotes_gpc()) {
@@ -121,12 +129,10 @@ if (isset($_POST['chat_id'])) {
       chatroom_chat_kick_user($chat_id, $recipient);
     } 
     else if ($type == 'ban' && $recipient) {
-      $uid       = isset($_POST['uid']) ? $_POST['uid'] : false;
-      $admin_uid = isset($_POST['admin_uid']) ? $_POST['admin_uid'] : false;
-      chatroom_ban_user($chat_id, $recipient, $uid, $admin_uid);
+      chatroom_ban_user($chat_id, $recipient, $_POST['uid'], $_POST['admin_uid']);
     } 
     else {
-      chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $online_list, $timezone, $smileys);
+      chatroom_chat_read_msgs($chat_id, $last_msg_id, $update_count, $chat_cache_file, $online_list, $timezone, $smileys);
     }
   }
   exit;
