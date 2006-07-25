@@ -130,10 +130,10 @@ function chatroom_install() {
     }
     if (count($errors)) {
       $error  = implode('<br />', $errors);
-      $error .= t('Please fix these errors and attempt to enable chatroom.module again.');
     }
   }
   if ($error) {
+    $error .= t('Please fix these errors and attempt to enable chatroom.module again.');
     drupal_set_message(t($error), 'error');
     db_query("UPDATE {system} SET status = 0 WHERE name = 'chatroom'");
   }
