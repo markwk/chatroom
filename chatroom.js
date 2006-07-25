@@ -526,6 +526,7 @@ function chatroomWriteTime() {
   addClass(p, 'chatroom-time-msg');
   msgBoard.appendChild(p);
   msgBoard.scrollTop = msgBoard.scrollHeight;
+  chatroom.lastUser = '';
 }
 
 /**
