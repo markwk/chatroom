@@ -385,6 +385,9 @@ function chatroomProcessMsgText(domNode, text) {
  * take a list of users and draw a whois online list
  */
 function chatroomUpdateChatOnlineList(updateUsers) {
+  if (!$('chatroom-online')) {
+    return;
+  }
   var usersToDelete = [];
   var deleteFlag = true;
 
