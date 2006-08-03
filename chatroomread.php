@@ -12,7 +12,7 @@ if (isset($_POST['chatroom_base'])) {
   $chatroom_base = urldecode($_POST['chatroom_base']);
   $user_base     = urldecode($_POST['user_base']);
   if (!is_dir($chatroom_base)                                   ||
-      substr($chatroom_base, 0, strlen('modules')) != 'modules' ||
+      !(substr($chatroom_base, 0, strlen('modules')) == 'modules' || substr($chatroom_base, 0, strlen('sites')) == 'sites')     ||
       strpos($chatroom_base, '..') !== FALSE                    || 
       !is_dir($user_base)                                       ||
       !(substr($user_base, 0, strlen('modules')) == 'modules' || substr($user_base, 0, strlen('sites')) == 'sites')     ||
