@@ -598,7 +598,10 @@ function chatroom_create_chat_form($room_id) {
  * sets the chat's cache file by touching it
  */
 function chatroom_chat_set_cache($chat_id) {
-  @touch(chatroom_chat_get_cache_file_path($chat_id));
+  $chat_file = chatroom_chat_get_cache_file_path($chat_id);
+  if (!file_exists($chat_file)) {
+    @touch($chat_file);
+  }
 }
 
 /**
