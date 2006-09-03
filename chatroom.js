@@ -346,7 +346,10 @@ function chatroomSetAsBack(user) {
       sessionId = chatroom.userList[i].sessionId;
 
       // update on screen display
-      removeClass($(sessionId), 'chatroom-user-away');
+      sessionIdObj = $(sessionId);
+      if (sessionIdObj) {
+        removeClass(sessionIdObj, 'chatroom-user-away');
+      }
 
       // make sure away box is unchecked
       if (chatroom.sessionId == sessionId) {
