@@ -118,12 +118,11 @@ function chatroom_install() {
   else {
     $cache_dir = file_directory_temp() .'/drupal_chat_cache';
     $errors = array();
-    $path = realpath(dirname($_SERVER['SCRIPT_FILENAME'])) .'/chatroomread.php';
-    if (!file_exists($path)) {
-      $errors[] = "Please copy chatroomread.php from the chatroom module directory into your Drupal base directory"; 
-    } 
+    $source = realpath(dirname($_SERVER['SCRIPT_FILENAME'])) . '/modules/chatroom/chatroomread.php';
+    $dest = realpath(dirname($_SERVER['SCRIPT_FILENAME'])) . '/chatroomread.php';
+    copy($source, $dest);
     if (!@is_dir($cache_dir)) {
-      $errors[] = "$cache_dir directory does not exist. Please create it"; 
+      mkdir($cache_dir);
     }
     if (!@is_writable($cache_dir)) {
       $errors[] = "$cache_dir directory is not writable by php. Please correct this";

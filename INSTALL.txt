@@ -4,15 +4,8 @@ $Id$
 
 1. Unpack the chatroom module in your modules directory.
 
-2. Create a directory called 'drupal_chat_cache' in the your Drupal site temp 
-directory, and make sure it is writable by your webserver. You can
-find the value for your site in admin->settings.
+2. Enable the module in the administer->modules screen.
 
-3. Copy the chatroomread.php file from the chatroom directory into the base
-Drupal install directory. It should sit next to the Drupal index.php file.
-
-4. Enable the module in the administer->modules screen.
-
-5. By default, chatrooms are not accessable, so enable it for the roles
+3. By default, chatrooms are not accessable, so enable it for the roles
 you want to be able to use chatrooms in the administer->access control
 

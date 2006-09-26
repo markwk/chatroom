@@ -12,5 +12,5 @@ Your best bet is to go here and look around:
 
 http://drupal.org/project/issues/chatroom
 
-Things have been moving to fast to keep this file up to date.
+Things have been moving too fast to keep this file up to date.
 
