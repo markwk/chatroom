@@ -4,6 +4,8 @@
  * @file handles ajax requests to check for new messages in a given chat
  */
 
+chdir('../../');
+
 /**
  * make sure we can get the chatroom module
  */
