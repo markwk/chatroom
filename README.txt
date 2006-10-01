@@ -2,26 +2,11 @@ CHATROOM MODULE
 ---------------
 $Id$
 
-This module enables chatrooms to be set up in Drupal 4.7 sites.
-
-As July 21, 2006, alpha code - still lots of development.
-It seems to work ok, but expect changes and new features,
-so expect BUGS.
-
-Also, although a caching mechanism is in place, this code may
-eat your server - DON'T use this on a machine you care about
-without testing it first, as it can generate a lot of requests
-in a short period of time.
-
-Another note: full utf8 support is only available if you are
+This module enables chatrooms to be set up in Drupal 4.7 sites. Full utf8 support is only available if you are
 using mysql 4.1 or greater.
 
 Please visit: 
 
 http://drupal.org/project/issues/chatroom 
 
-to see where things are at.
-
-Please, send bug reports, feature requests, or other comments to me:
-Justin Randell <justin DOT randell AT gmail DOT com>
-
+to see the current status of this project.
