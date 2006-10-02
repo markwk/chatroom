@@ -1,9 +1,10 @@
 <?php
-/**
- * $Id$ 
- * @file handles ajax requests to check for new messages in a given chat
- */
+// $Id$
 
+/**
+ * @file
+ * Handles AJAX requests to check for new messages in a given chat.
+ */
 chdir('../../');
 
 /**
@@ -208,5 +209,3 @@ if (isset($_POST['invite_uid']) || isset($_POST['invite_uid'])) {
   drupal_bootstrap(DRUPAL_BOOTSTRAP_SESSION);
 }
 
-/* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */
-?>

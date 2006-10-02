@@ -1,5 +1,6 @@
 <?php
-/* $Id$ */
+// $Id$
+
 /**
  * Implementation of hook_install()
  */
@@ -142,5 +143,3 @@ function chatroom_install() {
   }
 }
 
-/* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */
-?>

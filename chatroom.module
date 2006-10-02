@@ -1,9 +1,9 @@
 <?php
+// $Id$
+
 /**
- * $Id$
- * 
  * @file
- * Enable chatroom support in Drupal
+ * Enable chatroom support in Drupal.
  */
 
 /**
@@ -1676,4 +1676,3 @@ function theme_chatroom_chat_textentry() {
   return $output;
 }
 
-/* vim: set expandtab tabstop=2 shiftwidth=2 autoindent smartindent: */
