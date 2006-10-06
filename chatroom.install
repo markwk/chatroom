@@ -102,7 +102,77 @@ function chatroom_install() {
         KEY invitee_uid (invitee_uid)
       ) $utf_declaration;");
       break;
-    case 'mysql':
+    case 'pgsql':
+      $ok = db_query("CREATE TABLE {chatroom} (
+        crid SERIAL NOT NULL,
+        nid INTEGER NOT NULL,
+        poll_freq INTEGER NOT NULL default 3000,
+        idle_freq INTEGER NOT NULL default 60000,
+        kicked_out_message TEXT,
+        banned_message TEXT,
+        module VARCHAR default 'chatroom',
+        auto_archive INTEGER default 0,
+        old_msg_count INTEGER default 20,
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY (crid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_chat} (
+        ccid SERIAL NOT NULL,
+        crid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        chatname VARCHAR NOT NULL,
+        modified INTEGER NOT NULL default 0,
+        when_archived INTEGER default NULL,
+        PRIMARY KEY  (ccid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg} (
+        cmid SERIAL NOT NULL,
+        ccid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        msg_type VARCHAR NOT NULL,
+        msg TEXT NOT NULL,
+        session_id VARCHAR NOT NULL,
+        recipient VARCHAR NOT NULL,
+        modified INTEGER NOT NULL default 0,
+        PRIMARY KEY  (cmid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg_archive} (
+        cmid INTEGER NOT NULL,
+        ccid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        msg_type VARCHAR NOT NULL,
+        msg TEXT NOT NULL,
+        session_id VARCHAR NOT NULL,
+        recipient VARCHAR NOT NULL,
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY  (cmid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_ban_list} (
+        crid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        admin_uid INTEGER NOT NULL,
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY (crid,uid)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
+        coid INTEGER NOT NULL,
+        ccid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        session_id VARCHAR NOT NULL,
+        guest_id INTEGER NOT NULL default '1',
+        away INTEGER default '0',
+        is_admin INTEGER default '0',
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY  (coid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_chat_invites} (
+        cciid INTEGER NOT NULL,
+        sender_uid INTEGER NOT NULL,
+        invitee_uid INTEGER NOT NULL,
+        declined INTEGER,
+        created_ccid INTEGER,
+        PRIMARY KEY  (cciid)
+      );");
       break;
   }
   $error = false;
