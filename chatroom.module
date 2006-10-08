@@ -1149,7 +1149,7 @@ function chatroom_chat_get_latest_msgs($chat_id, $last_msg_id) {
                       ON         du.uid = cm.uid
                       WHERE      cm.ccid = %d
                       AND        cm.cmid > %d
-                      AND        (cm.recipient = '' || cm.recipient = '%s' || cm.session_id = '%s')
+                      AND        (cm.recipient = '' OR cm.recipient = '%s' OR cm.session_id = '%s')
                       $order_by_clause",
                       $chat_id, $last_msg_id, $session_id, $session_id);
   $msgs = array();
