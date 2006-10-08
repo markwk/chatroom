@@ -137,7 +137,7 @@ function chatroom_install() {
         PRIMARY KEY  (cmid)
       );");
       $ok = $ok && db_query("CREATE TABLE {chatroom_msg_archive} (
-        cmid INTEGER NOT NULL,
+        cmid SERIAL NOT NULL,
         ccid INTEGER NOT NULL,
         uid INTEGER NOT NULL,
         msg_type VARCHAR NOT NULL,
@@ -148,14 +148,14 @@ function chatroom_install() {
         PRIMARY KEY  (cmid)
       );");
       $ok = $ok && db_query("CREATE TABLE {chatroom_ban_list} (
-        crid INTEGER NOT NULL,
+        crid SERIAL NOT NULL,
         uid INTEGER NOT NULL,
         admin_uid INTEGER NOT NULL,
         modified INTEGER NOT NULL default '0',
         PRIMARY KEY (crid,uid)
       ) $utf_declaration;");
       $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
-        coid INTEGER NOT NULL,
+        coid SERIAL NOT NULL,
         ccid INTEGER NOT NULL,
         uid INTEGER NOT NULL,
         session_id VARCHAR NOT NULL,
@@ -166,7 +166,7 @@ function chatroom_install() {
         PRIMARY KEY  (coid)
       );");
       $ok = $ok && db_query("CREATE TABLE {chatroom_chat_invites} (
-        cciid INTEGER NOT NULL,
+        cciid SERIAL NOT NULL,
         sender_uid INTEGER NOT NULL,
         invitee_uid INTEGER NOT NULL,
         declined INTEGER,
