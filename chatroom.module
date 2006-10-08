@@ -1483,7 +1483,7 @@ function chatroom_get_room_summary($room_id) {
                       LEFT JOIN  {chatroom_msg_archive} AS cma
                       ON         cma.ccid = cc.ccid
                       WHERE      cr.crid =  %d
-                      GROUP BY   cc.ccid', 
+                      GROUP BY   cc.ccid, cc.chatname, cc.when_archived', 
                       $room_id);
   $chats = array();
   $msg_ids = array();
