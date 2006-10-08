@@ -41,7 +41,7 @@ function chatroom_menu($may_cache) {
     'title' => t('chatroom'),
     'access' => user_access('create chatrooms'));
   $items[] = array('path' => 'chatrooms',
-    'callback' => 'chatroom_home',
+    'callback' => 'chatroom_page',
     'access' => user_access('access chatrooms'),
     'title' => t('chatrooms'),
     'type' => MENU_SUGGESTED_ITEM);
@@ -1409,37 +1409,13 @@ function chatroom_chat($chat_id = false) {
 }
 
 /**
- * chatroom module home
+ * Menu callback; prints a chatroom listing.
  */
-function chatroom_home() {
-  global $user;
-  if ($node->type == 'chatroom') {
-    $bc = drupal_get_breadcrumb();
-    $bc[] = l('Chatrooms', 'chatrooms/');
-    drupal_set_breadcrumb($bc);
+function chatroom_page() {
+  foreach (chatroom_get_chatroom_list() as $room) {
+    $tree[$room->nid] = node_load($room->nid);
   }
-  $out = '';
-  if (user_access('create chatrooms')) {
-    $out .= '<ul><li>' . l(t('create a chatroom'), "node/add/chatroom") . '</li></ul>';
-  }
-  if ($chatrooms = chatroom_get_chatroom_list()) {
-    if ($list_description = variable_get('chatroom_list_description', '')) {
-      $out .= theme('chatroom_list_description', $list_description);
-    }
-    $header = array(t('Name'), t('Description'), t('Active chats'));
-    foreach ($chatrooms as $room) {
-      $rows[] = array(
-        array('data' => l(check_plain($room->title), "node/$room->nid")),
-        array('data' => filter_xss($room->body)),
-        array('data' => $room->chat_count)
-      );
-    }
-    $out .= theme('table', $header, $rows); 
-  } 
-  else {
-    $out .= '<h2>' . t('There are no chatrooms'). '</h2>';
-  }
-  return $out;
+  return theme('chatroom_display', $tree);
 }
 
 /**
@@ -1676,3 +1652,74 @@ function theme_chatroom_chat_textentry() {
   return $output;
 }
 
+/**
+ * Format the chatroom listing.
+ *
+ * @ingroup themeable
+ */
+function theme_chatroom_display($tree) {
+  global $user;
+  // chatroom list, chats list, and 'add new chat' link
+
+  if (count($tree)) {
+    $output  = '<div id="chatroom">';
+    $output .= '<ul>';
+
+    if (user_access('create chatrooms')) {
+      $output .= '<li>'. l(t('Post new chatroom.'), "node/add/chatroom") .'</li>';
+    }
+    else if ($user->uid) {
+      //
+    }
+    else {
+      $output .= '<li>'. t('<a href="%login">Login</a> to post a new forum topic.', array('%login' => url('user/login'))) .'</li>';
+    }
+    $output .= '</ul>';
+    $output .= theme('chatroom_list', $tree);
+    $output .= '</div>';
+  }
+  else {
+    drupal_set_title(t('No chatrooms defined'));
+    $output = '';
+  }
+
+  return $output;
+}
+
+/**
+ * Format the chatroom table.
+ *
+ * @ingroup themeable
+ */
+function theme_chatroom_list($tree) {
+  global $user;
+
+  if ($tree) {
+    $header = array(t('Chatroom'), t('Chats'), t('Messages'), t('Last message'));
+    foreach ($tree as $room) {
+      $description  = "<div>\n";
+      $description .= ' <div class="name">'. l($room->title, "node/$room->nid"). '</div>';
+
+      if ($room->body) {
+        $description .= ' <div class="description">'. filter_xss_admin($room->body) ."</div>\n";
+      }
+      $description .= "</div>\n";
+
+      $rows[] = array(array('data' => $description, 'class' => 'container', 'colspan' => '4'));
+      
+      foreach ($room->chatroom->chats as $id => $chat) {
+        $description  = "<div>\n";
+        $description .= ' <div class="name">'. l($chat->chatname, "chatrooms/chat/$chat->ccid") ."</div>\n";
+        $description .= "</div>\n";
+
+        $row[] = array('data' => '&nbsp;');
+        $row[] = array('data' => $description, 'class' => 'chatroom-chat');
+        $row[] = array('data' => $chat->msg_count, 'class' => 'chatroom-msg-count');
+        $row[] = array('data' => $chat->msg_info, 'class' => 'chatrom-msg-info');
+        $rows[] = $row;
+        unset($row);
+      }
+    }
+    return theme('table', $header, $rows);
+  }
+}
