@@ -224,9 +224,9 @@ function chatroom_update($node) {
 function chatroom_insert($node) {
   $result = db_query("INSERT INTO {chatroom} 
                       (nid, poll_freq, idle_freq, kicked_out_message, banned_message, modified) 
-                      VALUES (%d, %d, %d, '%s', '%s', UNIX_TIMESTAMP())", 
+                      VALUES (%d, %d, %d, '%s', '%s', %d)", 
                      $node->nid, 1000 * $node->poll_freq, 1000 * $node->idle_freq, 
-                     $node->kicked_out_message, $node->banned_message);
+                     $node->kicked_out_message, $node->banned_message, time());
   if ($result) {
     chatroom_block_update_cache('chatrooms');
   }
@@ -519,8 +519,8 @@ function chatroom_get_active_chats($start = null, $end = null) {
  */
 function chatroom_archive_chat($chat_id) {
   db_query('UPDATE {chatroom_chat} 
-            SET when_archived = UNIX_TIMESTAMP() 
-            WHERE ccid = %d', $chat_id);
+            SET when_archived = %d 
+            WHERE ccid = %d', time(), $chat_id);
   $result = db_query('INSERT INTO {chatroom_msg_archive} 
                       (cmid, ccid, uid, msg_type, msg, session_id, recipient, modified)
                           SELECT *
@@ -544,8 +544,8 @@ function chatroom_archive_chat($chat_id) {
 function chatroom_create_chat_submit($f_id, $f_values) {
   global $user;
   $created = db_query("INSERT INTO {chatroom_chat} (crid, uid, chatname, modified) 
-                       VALUES (%d, %d, '%s', UNIX_TIMESTAMP())", 
-                      $f_values['room_id'], $user->uid, $f_values['chat_name']);
+                       VALUES (%d, %d, '%s', %d)", 
+                      $f_values['room_id'], $user->uid, $f_values['chat_name'], time());
   if (!$created) {
     drupal_set_message(t("There was an error creating your chat"), 'error');
   }
@@ -670,8 +670,8 @@ function chatroom_chat_write_msg($chat_id, $last_msg_id, $cache_file, $msg, $rec
             AND session_id = '%s'", 
             $user->uid, $chat_id, $session_id); 
   $result = db_query("INSERT INTO {chatroom_msg} (ccid, uid, msg_type, msg, session_id, recipient, modified) 
-                      VALUES (%d, %d, '%s', '%s', '%s', '%s', UNIX_TIMESTAMP())",
-                      $chat_id, $user->uid, $type, stripslashes($msg), session_id(), $recipient); 
+                      VALUES (%d, %d, '%s', '%s', '%s', '%s', %d)",
+                      $chat_id, $user->uid, $type, stripslashes($msg), session_id(), $recipient, time()); 
   if ($msgs = chatroom_chat_get_latest_msgs($chat_id, $last_msg_id)) {
     $msg_js = chatroom_chat_get_latest_msgs_js($msgs, $timezone, $smileys);
   }
@@ -739,8 +739,8 @@ function chatroom_chat_register_user($chat_id) {
     if ($result && db_num_rows($result)) {    
       $is_admin = user_access('administer chats') ? 1 : 0;
       db_query("INSERT INTO {chatroom_online_list} (ccid, uid, is_admin, session_id, guest_id, modified) 
-                VALUES (%d, %d, %d, '%s', %d, UNIX_TIMESTAMP())",
-                $chat_id, $user->uid, $is_admin, $session_id, db_result($result));
+                VALUES (%d, %d, %d, '%s', %d, %d)",
+                $chat_id, $user->uid, $is_admin, $session_id, db_result($result), time());
     }
     db_unlock_tables();
   }
@@ -871,11 +871,11 @@ function chatroom_chat_get_latest_msgs_js($msgs, $timezone = 0, $smileys = false
  */
 function chatroom_chat_update_online_time($chat_id, $uid, $session_id) {
    db_query("UPDATE {chatroom_online_list} 
-             SET modified = UNIX_TIMESTAMP() 
+             SET modified = %d 
              WHERE ccid = %d 
              AND uid = %d 
              AND session_id = '%s'",
-             $chat_id, $uid, $session_id);
+             time(), $chat_id, $uid, $session_id);
 }
 
 /**
@@ -1073,8 +1073,8 @@ function chatroom_chat_get_online_list($chat_id) {
                       LEFT JOIN  {users} AS du
                       ON         du.uid = col.uid
                       WHERE      col.ccid = %d 
-                      AND        col.modified > (UNIX_TIMESTAMP() - 5)',
-                      $chat_id);
+                      AND        col.modified > (%d - 5)',
+                      $chat_id, time());
   $users = array(); 
   $session_id = session_id();
   while ($row = db_fetch_object($result)) {
