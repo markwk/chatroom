@@ -1,11 +1,23 @@
-INSTALL 
--------
 $Id$
 
-1. Unpack the chatroom module in your modules directory.
+REQUIREMENTS
+------------
 
-2. Enable the module in the administer->modules screen.
+Drupal 4.7
 
-3. By default, chatrooms are not accessable, so enable it for the roles
-you want to be able to use chatrooms in the administer->access control
+INSTALLATION
+------------
 
+1. DOWNLOAD CHATROOM
+
+   Unpack the chatroom module in your modules directory.
+
+2. CREATE THE DRUPAL DATABASE
+
+   Enable the module in the administer->modules screen.
+
+CONFIGURATION
+-------------
+
+By default, chatrooms are not accessable, so enable access for the roles you
+want to be able to use chatrooms in the administer->access control
