@@ -5,6 +5,9 @@ REQUIREMENTS
 
 Drupal 4.7
 
+Support for special characters is only available if you are using MySQL 4.1
+or greater.
+
 INSTALLATION
 ------------
 
