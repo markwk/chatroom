@@ -19,5 +19,5 @@ INSTALLATION
 CONFIGURATION
 -------------
 
-By default, chatrooms are not accessable, so enable access for the roles you
-want to be able to use chatrooms in the administer->access control
+By default, chatrooms are not accessable, so enable access for the roles
+you want to be able to use chatrooms in the administer->access control
