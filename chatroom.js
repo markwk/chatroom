@@ -1,4 +1,5 @@
 /* $Id$ */
+
 /**
  * function to add chatroom events handlers to the onscreen widgets
  */
