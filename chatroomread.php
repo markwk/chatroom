@@ -5,23 +5,27 @@
  * @file
  * Handles AJAX requests to check for new messages in a given chat.
  */
-chdir('../../');
 
 /**
  * make sure we can get the chatroom module
  */
 if (isset($_POST['chatroom_base'])) {
-  // if module base looks dodge, just exit
   $chatroom_base = urldecode($_POST['chatroom_base']);
+  // we must be in drupal root for core drupal to work
+  $depth = substr_count($chatroom_base, '/');
+	chdir(str_repeat('../', $depth+1));
+
   $user_base     = urldecode($_POST['user_base']);
-  if (!is_dir($chatroom_base)                                   ||
+  
+  // if module base looks dodgy, just exit
+  if (!is_dir($chatroom_base) ||
       !(substr($chatroom_base, 0, strlen('modules')) == 'modules' || substr($chatroom_base, 0, strlen('sites')) == 'sites')     ||
       strpos($chatroom_base, '..') !== FALSE                    || 
       !is_dir($user_base)                                       ||
       !(substr($user_base, 0, strlen('modules')) == 'modules' || substr($user_base, 0, strlen('sites')) == 'sites')     ||
-      strpos($user_base, '..') !== FALSE)                        {
-    echo "/** UR3l33t! 1 **/";
-    exit;
+      strpos($user_base, '..') !== FALSE) {
+    		echo "/** UR3l33t! 1 **/";
+    		exit;
   }
   else {
     $chatroom_module_file = "./$chatroom_base/chatroom.module";

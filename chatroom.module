@@ -1171,9 +1171,9 @@ function chatroom_chat_add_state_js($chat, $session_id, $clean_urls) {
   }
   $kick_url       = dirname($_SERVER['PHP_SELF']) . ($clean_urls ? '' : '?q=') . 'chatrooms/kicked/user';
   $ban_url        = dirname($_SERVER['PHP_SELF']) . ($clean_urls ? '' : '?q=') . 'chatrooms/banned/user';
-  $chat_url       = ($clean_urls ? '../../' : ''   ) . 'modules/chatroom/chatroomread.php';
   $user_url       = ($clean_urls ? '../../' : '?q=') . 'user/';
   $chatroom_base  = drupal_get_path('module', 'chatroom');
+  $chat_url       = ($clean_urls ? '../../' : ''   ) . $chatroom_base . '/chatroomread.php';
   $user_base      = drupal_get_path('module', 'user');
   $cache_file     = file_directory_temp() .'/drupal_chat_cache/'. chatroom_chat_get_cache_file_name($chat->ccid);
   $smileys_base   = drupal_get_path('module', 'smileys') ? "'". drupal_get_path('module', 'smileys') ."'" : 'false';
@@ -1241,7 +1241,7 @@ function chatroom_block_add_state_js() {
   $room_base   = $site_base .'node/';
   $module_base = drupal_get_path('module', 'chatroom');
   $user_base   = drupal_get_path('module', 'user');
-  $block_url   = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) .'/modules/chatroom/chatroomread.php');
+  $block_url   = str_replace('//', '/', dirname($_SERVER['PHP_SELF']) . $module_base . '/chatroomread.php');
 
   // setup the cache file paths
   $chat_cache_file = chatroom_block_get_cache_file('chats');
