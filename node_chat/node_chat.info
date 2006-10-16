@@ -1,0 +1,5 @@
+; $Id$
+name = Chat Invite API
+description = Enables topic-based chats.
+dependencies = 
+package = Chat - optional

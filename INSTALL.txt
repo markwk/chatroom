@@ -1,26 +1,8 @@
 $Id$
 
-REQUIREMENTS
-------------
+Installation
+============
 
-Drupal 4.7
+Node chat
 
-Support for special characters is only available if you are using MySQL 4.1
-or greater.
-
-INSTALLATION
-------------
-
-1. DOWNLOAD CHATROOM
-
-   Unpack the chatroom module in your modules directory.
-
-2. CREATE THE DRUPAL DATABASE
-
-   Enable the module in the administer->modules screen.
-
-CONFIGURATION
--------------
-
-By default, chatrooms are not accessable, so enable access for the roles
-you want to be able to use chatrooms in the administer->access control
+Spontaneous chat

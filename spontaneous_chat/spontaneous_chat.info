@@ -1,0 +1,5 @@
+; $Id$
+name = Spontaneous Chat
+description = Enables users to chat spontaneously.
+dependencies = chat_invite
+package = Chat - optional

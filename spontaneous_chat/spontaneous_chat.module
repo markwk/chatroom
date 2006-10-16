@@ -1,0 +1,75 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Server functions for spontaneous chat.
+ *
+ * Explanation.
+ */
+
+/**
+ * @ingroup message
+ * @{
+ */
+
+/**
+ * Add comment to temporary file (keep it secure).
+ */
+
+/**
+ * Retrieve comment from temporary file.
+ */
+
+/**
+ * Delete temporary file.
+ */
+
+/**
+ * Save transcript for user.
+ * Start transcript at user join message.
+ * End transcript at user exit message.
+ */
+
+/**
+ * Retrieve transcript for user.
+ */
+
+/**
+ * Delete transcript for user.
+ */
+
+/**
+ * @} End of "ingroup message"
+ */
+
+/**
+ * @defgroup peer Peer-to-peer chat
+ * @{
+ * Enable direct connections between users.
+ *
+ * Explanation.
+ */
+
+/**
+ * Add user IP address to database
+ */
+
+/**
+ * @} End of "defgroup peer"
+ */
+
+/**
+ * Interface
+ *   Comments
+ *     Add
+ *   Status of users
+ *     Invite
+ *     Kick
+ *     Silence
+ *     Exclude
+ *     Make moderator
+ *     Make owner
+ *   Transcript
+ *     Save
+ */

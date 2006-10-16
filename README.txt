@@ -1,29 +1,90 @@
 $Id$
 
-The chatroom module allows users to talk together in real time. Users enter
-chat rooms which can have multiple chats. Permissions can be set to
-restrict who can access, edit, and create chats and chat rooms.
+This version of the project is for developers only. It is not intended for
+production use. We are working on spontaneous chat and node-based chat. When
+the code becomes stable, it may be split into separate projects.
 
-The following commands can be used by administrators while they are in a
-chat:
+Usage
+=====
 
-/kick (username) - The user will be kicked from the chat and be redirected
-to a message page (message is configurable). The other users in the chat
-will just see that the user has left the chat. The kicked user can enter
-the chat again.
 
-/ban (username) - Users can be banned from either specific chats or from
-using any chatroom. [Needs documentation. How are they unbanned?]
+Files
+=====
 
-The following commands can be used by all users while they are in a chat:
+INSTALL.txt
+Installation instructions.
 
-/invite (username) - [Needs documentation. This command doesn't seem to
-work. I type in /invite (username) and it just displays those words on the
-screen and doesn't seem to invite the test user.]
+README.txt
+Usage instructions and file descriptions.
 
-/block (username) - [Not completed yet.]
 
-You can:
+Chat Api
+--------
+A common foundation for chat modules.
 
-View chatrooms (link to /chatrooms)
-Administer chatrooms (link to /admin/chatroom)
+chat_invite.info
+Module information.
+
+chat_invite.install
+Add user status and invitation filter tables.
+
+chat_invite.js
+Client functions for invitation exchange.
+
+chat_invite.module
+Server functions for invitation exchange.
+
+chat_message.js
+Client functions for message display.
+
+
+Spontaneous Chat
+----------------
+Allow users to send each other instant messages.
+
+spontaneous_chat.css
+Styles for spontaneous chat display.
+
+spontaneous_chat.info
+Module information.
+
+spontaneous_chat.js
+Client and peer-to-peer functions for spontaneous chat.
+
+spontaneous_chat.module
+Server functions and user interface for spontaneous chat.
+
+
+Node Chat
+---------
+Add chat to any node.
+
+node_chat.info
+Module information.
+
+node_chat.install
+Add modification time column to comment table.
+
+node_chat.js
+Client functions for node chat.
+
+node_chat.module
+Server functions for node chat. Store, retrieve, and delete comments.
+
+
+Chatroom
+--------
+A forum topic with new comments displayed in real time.
+
+chatroom.css
+Styles for chatroom display.
+
+chatroom.info
+Module information.
+
+chatroom.install
+Add table for the chatroom content type.
+Uninstall the chatroom module.
+
+chatroom.module
+Chatroom content type.
