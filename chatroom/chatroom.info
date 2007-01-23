@@ -1,5 +1,0 @@
-; $Id$
-name = Chatroom
-description = Enables topic-based chat forums.
-dependencies = taxonomy node_chat
-package = Chat - optional

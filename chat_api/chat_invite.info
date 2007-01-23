@@ -1,5 +1,0 @@
-; $Id$
-name = Chat Invite API
-description = Enables users to invite one another to chat.
-dependencies = 
-package = Chat
