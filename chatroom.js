@@ -1,4 +1,5 @@
-/* $Id$ */
+// $Id$
+
 /**
  * function to add chatroom events handlers to the onscreen widgets
  */
@@ -46,7 +47,7 @@ var chatroomAddEvents = function() {
 /**
  * handles response from msg HTTP requests
  */
-var chatroomMsgCallback = function(responseText, HttpRequest, chatroomDummyParam) {
+var chatroomMsgCallback = function(responseText, HttpRequest) {
   if (HttpRequest.responseText) {
     var resArray = eval(HttpRequest.responseText);
     if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
@@ -121,7 +122,7 @@ function chatroomSendMessage() {
   }
   chatroom.skipUpdate = true;
   chatroom.updateCount++;
-  HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, chatroomPrepareMsg(msg));
+  $.post(chatroomGetUrl('write'), chatroomPrepareMsg(msg), chatroomMsgCallback);
 }
 
 /**
@@ -551,7 +552,7 @@ function chatroomGetUpdates() {
     return;
   }
   chatroom.updateCount++;
-  return HTTPPost(chatroomGetUrl('read'), chatroomMsgCallback, false, chatroomPrepareMsg({}));
+  return $.post(chatroomGetUrl('read'), chatroomPrepareMsg({}), chatroomMsgCallback);
 }
 
 /**
@@ -639,7 +640,7 @@ function chatroomSetAway(obj) {
   else {
     var msg = chatroomGetCommandMsg('/back');
   }
-  HTTPPost(chatroomGetUrl('write'), chatroomMsgCallback, false, chatroomPrepareMsg(msg));
+  $.post(chatroomGetUrl('write'), chatroomPrepareMsg(msg), chatroomMsgCallback);
 }
 
 /**
@@ -678,9 +679,8 @@ function chatroomWarnNewMsgLoop() {
   }
 }
 
-
 // Global Killswitch
-if (isJsEnabled()) {
-  addLoadEvent(chatroomAddEvents);
+if (Drupal.JsEnabled) {
+  $(document).ready(chatroomAddEvents);
 }
 

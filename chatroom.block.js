@@ -1,4 +1,4 @@
-/* $Id$ */
+// $Id$
 
 /**
  * function to add chatroom events handlers to the onscreen widgets
@@ -11,7 +11,7 @@ var chatroomBlockAddEvents = function() {
 /**
  * handles response from msg HTTP requests
  */
-var chatroomBlockCallback = function(responseText, HttpRequest, chatroomDummyParam) {
+var chatroomBlockCallback = function(responseText, HttpRequest) {
   if (HttpRequest.responseText) {
     var resArray = eval(HttpRequest.responseText);
     if (typeof resArray == 'object' && typeof resArray.length != 'undefined') {
@@ -263,13 +263,13 @@ function chatroomBlockGetUpdates() {
     checkBlocks = true;
   }
   if (checkBlocks) {
-    return HTTPPost(chatroomBlock.blockUrl, chatroomBlockCallback, false, postData);
+    return $.post(chatroomBlock.blockUrl, postData, chatroomBlockCallback);
   }
   return;
 }
 
 // Global Killswitch
-if (isJsEnabled()) {
-  addLoadEvent(chatroomBlockAddEvents);
+if (Drupal.JsEnabled) {
+  $(document).ready(chatroomBlockAddEvents);
 }
 

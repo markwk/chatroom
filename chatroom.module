@@ -45,39 +45,46 @@ function chatroom_perm() {
  */
 function chatroom_menu($may_cache) {
   $items = array();
-  $items[] = array('path' => 'admin/settings/chatroom',
-    'callback' => 'chatroom_administer_form',
-    'title' => t('chat room'),
-    'access' => user_access('administer chat rooms'),
-    'type' => MENU_NORMAL_ITEM);
-  $items[] = array('path' => 'node/add/chatroom',
-    'title' => t('chat room'),
-    'access' => user_access('create chat rooms'));
-  $items[] = array('path' => 'chatrooms',
+  $items[] = array(
+    'path' => 'admin/settings/chatroom',
+    'callback' => 'drupal_get_form',
+    'callback arguments' => array('chatroom_admin_settings'),
+    'title' => t('Chat room'),
+    'description' => t('Configure chat rooms.'),
+    'access' => user_access('administer chat rooms')
+  );
+  $items[] = array(
+    'path' => 'chatrooms',
     'callback' => 'chatroom_page',
     'access' => user_access('access chat rooms'),
-    'title' => t('chat rooms'),
-    'type' => MENU_SUGGESTED_ITEM);
-  $items[] = array('path' => 'chatrooms/kicked/user',
+    'title' => t('Chat rooms'),
+    'type' => MENU_SUGGESTED_ITEM
+  );
+  $items[] = array(
+    'path' => 'chatrooms/kicked/user',
     'callback' => 'chatroom_chat_kicked_user',
     'access' => user_access('access chat rooms'),
-    'type' => MENU_CALLBACK);
-  $items[] = array('path' => 'chatrooms/chat',
+    'type' => MENU_CALLBACK
+  );
+  $items[] = array(
+    'path' => 'chatrooms/chat',
     'callback' => 'chatroom_chat',
     'access' => user_access('access chat rooms'),
-    'type' => MENU_CALLBACK);
-  $items[] = array('path' => 'chatrooms/archives',
+    'type' => MENU_CALLBACK
+  );
+  $items[] = array(
+    'path' => 'chatrooms/archives',
     'callback' => 'chatroom_chat_archive',
     'access' => user_access('access chat rooms'),
-    'type' => MENU_CALLBACK);
+    'type' => MENU_CALLBACK
+  );
   return $items;
 }
 
 /**
- * Replacement for hook_settings(), which will be deprecated with 5.0.
- * This function display's site wide chat room settings.
+ * Menu callback; display site-wide chat room settings.
  */
-function chatroom_administer_form() {
+function chatroom_admin_settings() {
   $form['chatroom_list_description'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat room submission information title'),
@@ -105,44 +112,26 @@ function chatroom_administer_form() {
      '#type' => 'checkbox',
      '#title' => t('show smileys in entry boxes'),
      '#default_value' => variable_get('chatroom_smileys_showtextentry', 0),
+     '#disabled' => TRUE,
     );
-  }
-  $form['chatroom_administer']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save settings')
-  );
-  return drupal_get_form('chatroom_administer', $form);
-}
-
-/**
- * Replacement for hook_settings(), which will be deprecated with 5.0.
- * Saves information from settings form.
- */
-function chatroom_administer_submit($f_id, $f_values) {
-  $vars = array('list_description', 'auto_archive', 'smileys_enabled', 'smileys_showtextentry');
-  foreach ($vars as $var) {
-    variable_set('chatroom_'. $var, $f_values['chatroom_'. $var]);
-  }
-  drupal_set_message(t('Sitewide chat room settings were saved.'));
-}
-
-/**
- * Replacement for hook_settings(), which will be deprecated with 5.0.
- * This function validates info from settings form.
- */
-function chatroom_administer_validate($f_id, $f_values) {
-  if ($f_values['chatroom_smileys_enabled'] == 0) {
-    if ($f_values['chatroom_smileys_showtextentry'] == 1) {
-      form_set_error('chatroom_smileys_showtextentry', t("You can't display smileys without enabling support for the module"));
+    if (variable_get('chatroom_smileys_enabled', 0)) {
+      $form['chatroom_smileys_support']['chatroom_smileys_showtextentry']['#disabled'] = FALSE;
     }
   }
+  return system_settings_form($form);
 }
 
 /**
  * Implementation of hook_node_info().
  */
 function chatroom_node_info() {
-  return array('chatroom' => array('name' => t('chat room'), 'base' => 'chatroom'));
+  return array(
+    'chatroom' => array(
+      'name' => t('Chat room'),
+      'module' => 'chatroom',
+      'description' => t('A chat room provides access to chats and chat archives.'),
+    ),
+  );
 }
 
 /**
@@ -181,7 +170,6 @@ function chatroom_form(&$node) {
     '#rows' => 3,
     '#weight' => -20,
     '#description' => t('Describe your chat room so other people will know if they want to join.'),
-    '#required' => TRUE
   );
   $form['chatroom']['old_msg_count'] = array(
     '#type' => 'select',
@@ -347,7 +335,7 @@ function chatroom_get_room_summary($room_id) {
   while ($chat = db_fetch_object($result)) {
     if ($chat->when_archived) {
       $chat->section = 'archives';
-      $chat->msg_info = t('This chat was archived on ') . format_date($chat->when_archived, 'medium');
+      $chat->msg_info = t('This chat was archived on !date.', array('!date' => format_date($chat->when_archived, 'medium')));
     }
     else {
       $chat->section = 'chat';
@@ -409,7 +397,8 @@ function chatroom_get_banned_users($crid) {
 /**
  * Implementation of hook_view().
  */
-function chatroom_view(&$node) {
+function chatroom_view($node) {
+  $node = node_prepare($node);
   $bc = drupal_get_breadcrumb();
   if (count($bc)) {
     $bc[] = l('Chat rooms', 'chatrooms/');
@@ -418,13 +407,16 @@ function chatroom_view(&$node) {
 
   // if the user is banned, just tell them why
   if (chatroom_is_banned_user($node->chatroom->crid)) {
-    $node->body = $node->chatroom->banned_message ? $node->chatroom->banned_message : t('You have been banned from this chat room.');
+    $node->content['body']['#value'] = $node->chatroom->banned_message ? $node->chatroom->banned_message : t('You have been banned from this chat room.');
     return;
   }
 
   // if the user can create chats, show the form
   if (user_access('create chats')) {
-    $node->body .= chatroom_create_chat_form($node->chatroom->crid);
+    $node->content['add_chat'] = array(
+      '#value' => drupal_get_form('chatroom_create_chat_form', $node->chatroom->crid),
+      '#weight' => 1,
+    );
   }
 
   // if there are some chats, build some tables to display them
@@ -438,14 +430,29 @@ function chatroom_view(&$node) {
       );
     }
     if (count($rows['open'])) {
-      $node->body .= '<h2>'. t('Open chats in this room') .'</h2>';
-      $node->body .= theme('table', array(t('Chat name'), t('Message count'), t('Last message')), $rows['open']);
+      $node->content['open_chats']['#weight'] = 2;
+      $node->content['open_chats']['title'] = array(
+        '#value' => '<h2>'. t('Open chats in this room') .'</h2>',
+        '#weight' => 0,
+      );
+      $node->content['open_chats']['table'] = array(
+        '#value' => theme('table', array(t('Chat name'), t('Message count'), t('Last message')), $rows['open']),
+        '#weight' => 1,
+      );
     }
     if (count($rows['archived'])) {
-      $node->body .= '<h2>'. t('Archived chats in this room') .'</h2>';
-      $node->body .= theme('table', array(t('Chat name'), t('Message count'), t('When archived')), $rows['archived']);
+      $node->content['archived_chats']['#weight'] = 3;
+      $node->content['archived_chats']['header'] = array(
+        '#value' => '<h2>'. t('Archived chats in this room') .'</h2>',
+        '#weight' => 0,
+      );
+      $node->content['archived_chats']['table'] = array(
+        '#value' => theme('table', array(t('Chat name'), t('Message count'), t('When archived')), $rows['archived']),
+        '#weight' => 1,
+      );
     }
   }
+  return $node;
 }
 
 /**
@@ -473,13 +480,25 @@ function chatroom_create_chat_form($room_id) {
     '#type' => 'submit',
     '#value' => t('Create chat')
   );
-  return drupal_get_form('chatroom_create_chat', $form);
+  return $form;
+}
+
+/**
+ * validates attempt to create chat - checks this name is not already in use
+ */
+function chatroom_create_chat_form_validate($f_id, $f_values) {
+  $crid = $f_values['room_id'];
+  $name = $f_values['chat_name'];
+  $sql = "SELECT ccid FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s' AND when_archived IS NULL";
+  if (db_num_rows(db_query($sql, $crid, $name))) {
+    form_set_error('chatroom_chat_name', t('A chat called %name already exists.', array('%name' => $name)));
+  }
 }
 
 /**
  * creates a chat
  */
-function chatroom_create_chat_submit($f_id, $f_values) {
+function chatroom_create_chat_form_submit($f_id, $f_values) {
   global $user;
   $created = db_query("INSERT INTO {chatroom_chat} (crid, uid, chatname, modified)
                        VALUES (%d, %d, '%s', %d)",
@@ -489,18 +508,6 @@ function chatroom_create_chat_submit($f_id, $f_values) {
   }
   else {
     chatroom_block_update_cache('chats');
-  }
-}
-
-/**
- * validates attempt to create chat - checks this name is not already in use
- */
-function chatroom_create_chat_validate($f_id, $f_values) {
-  $crid = $f_values['room_id'];
-  $name = $f_values['chat_name'];
-  $sql = "SELECT ccid FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s' AND when_archived IS NULL";
-  if (db_num_rows(db_query($sql, $crid, $name))) {
-    form_set_error('chatroom_chat_name', t('A chat called "%name" already exists', array('%name' => $name)));
   }
 }
 
@@ -533,11 +540,11 @@ function chatroom_archive_chat($chat_id) {
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
   $types = array(
-    array('chats', t('active chats')),
-    array('chat_rooms', t('active chat rooms')),
-    array('online_chat_users', t('chat online list')),
-    array('online_site_users', t('sitewide online list')),
-    array('command_list', t('chat commands')),
+    array('chats', t('Active chats')),
+    array('chat_rooms', t('Active chat rooms')),
+    array('online_chat_users', t('Chat online list')),
+    array('online_site_users', t('Site-wide online list')),
+    array('command_list', t('Chat commands')),
   );
   switch ($op) {
     case 'list':
@@ -550,7 +557,7 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
     case 'configure':
       $form["chatroom_block_{$types[$delta][0]}"] = array(
         '#type' => 'select',
-        '#title' => t('Number of %types to display', array('%type' => $types[$delta][1])),
+        '#title' => t('Number of !types to display', array('!type' => $types[$delta][1])),
         '#default_value' => variable_get("chatroom_block_{$types[$delta][0]}", '5'),
         '#options' => drupal_map_assoc(range(1, 15))
       );
@@ -712,7 +719,7 @@ function chatroom_block_chat_online_list() {
       }
     }
     $content .= '</ul>';
-    $title = t('who is online in') .' <em>'. check_plain($ol_user->chatname) .'</em>';
+    $title = t('Who is online in %chat', array('%chat' => $ol_user->chatname));
   }
   return array($content, $title);
 }
@@ -765,7 +772,7 @@ function chatroom_block_add_state_js() {
 
   // need some css for the user list display when not in chat room chat page
   if (substr($_GET['q'], 0, strlen('chatrooms/chat/')) != 'chatrooms/chat/') {
-    theme_add_style(drupal_get_path('module', 'chatroom') .'/chatroom.css');
+    drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
   }
 
   $chat_cache_file = chatroom_block_get_cache_file('chats');
@@ -822,7 +829,7 @@ function theme_chatroom_display($tree) {
       //
     }
     else {
-      $output .= '<li>'. t('<a href="%login">Login</a> to post a new chat room.', array('%login' => url('user/login'))) .'</li>';
+      $output .= '<li>'. t('<a href="!login">Login</a> to post a new chat room.', array('!login' => url('user/login'))) .'</li>';
     }
     $output .= '</ul>';
     $output .= theme('chatroom_list', $tree);
@@ -910,7 +917,7 @@ function chatroom_chat($chat_id = false) {
   }
   chatroom_chat_register_user($chat->ccid);
   chatroom_chat_set_cache($chat->ccid);
-  theme_add_style(drupal_get_path('module', 'chatroom') .'/chatroom.css');
+  drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
   drupal_add_js(drupal_get_path('module', 'chatroom') .'/chatroom.js');
   chatroom_chat_add_state_js($chat, session_id());
 
@@ -1097,12 +1104,12 @@ function chatroom_chat_archive($chat_id = false) {
     $msg = $chat->banned_message ? $chat->banned_message : t('You have been banned from this chat room.');
     return '<div id="chatroom-banned-msg">'. $msg .'</div>';
   }
-  theme_add_style(drupal_get_path('module', 'chatroom') .'/chatroom.css');
+  drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
   $bc = drupal_get_breadcrumb();
   $bc[] = l(check_plain($chat->chatroom_name), "node/$chat->nid");
   drupal_set_breadcrumb($bc);
   drupal_set_title(check_plain($chat->chatname));
-  $html = '<p>'. t('This chat was archived on ') . format_date($chat->when_archived, 'medium') .'</p>';
+  $html = '<p>'. t('This chat was archived on !date.', array('!date' => format_date($chat->when_archived, 'medium'))) .'</p>';
   $html .= '<div id="chatroom-container-archive">';
   if ($msgs = chatroom_get_all_msgs($chat->ccid, TRUE)) {
     foreach ($msgs as $msg) {

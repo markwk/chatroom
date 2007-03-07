@@ -166,7 +166,6 @@ function chatroom_install() {
     db_query('DROP TABLE {chatroom_msg_archive}');
     db_query('DROP TABLE {chatroom_ban_list}');
     db_query('DROP TABLE {chatroom_online_list}');
-    db_query('DROP TABLE {chatroom_chat_invites}');
   }
   if ($error) {
     $error .= t('Please fix these errors and attempt to enable Chat Room again.');
@@ -180,6 +179,30 @@ function chatroom_install() {
     db_query("INSERT INTO {blocks} (status, weight, region, throttle, module, delta, theme) VALUES (1, -10, 'left', 0, 'chatroom', '2', '%s')", $theme);
     drupal_set_message(t('Chat Room is ready to go.'));
   }
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function chatroom_uninstall() {
+  db_query('DROP TABLE {chatroom}');
+  db_query('DROP TABLE {chatroom_chat}');
+  db_query('DROP TABLE {chatroom_msg}');
+  db_query('DROP TABLE {chatroom_msg_archive}');
+  db_query('DROP TABLE {chatroom_ban_list}');
+  db_query('DROP TABLE {chatroom_online_list}');
+  variable_del('chatroom_list_description');
+  variable_del('chatroom_auto_archive');
+  variable_del('chatroom_smileys_enabled');
+  variable_del('chatroom_smileys_showtextentry');
+  variable_del('chatroom_block_poll_freq');
+  variable_del('chatroom_online_list_update_freq');
+  variable_del('chatroom_online_list');
+  variable_del('chatroom_block_chats');
+  variable_del('chatroom_block_chatrooms');
+  variable_del('chatroom_block_online_chat_users');
+  variable_del('chatroom_block_online_site_users');
+  variable_del('chatroom_block_command_list');
 }
 
 /**
