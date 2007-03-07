@@ -1,0 +1,32 @@
+$Id$
+
+REQUIREMENTS
+------------
+
+Drupal 4.7
+
+Support for special characters is only available if you are using MySQL 4.1
+or greater.
+
+Drupal versions 4.7.6 and below require the patch for drupal_to_js at http://drupal.org/node/121876#comment-207825.
+
+INSTALLATION
+------------
+
+1. DOWNLOAD CHATROOM
+
+   Unpack the chatroom module in your modules directory.
+
+2. CREATE THE DRUPAL DATABASE
+
+   Enable the module in the administer->modules screen.
+
+CONFIGURATION
+-------------
+
+By default, chatrooms are not accessable, so enable access for the roles
+you want to be able to use chatrooms in the administer->access control.
+
+If you want smileys support, you must install the smileys module and enable
+smileys in the chat room configuration.
+

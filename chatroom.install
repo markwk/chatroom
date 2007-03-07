@@ -1,0 +1,226 @@
+<?php
+// $Id$
+
+/**
+ * Implementation of hook_install()
+ */
+function chatroom_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      // check to see if we have mysql 4.1. if we do, then we want to
+      // set the default charset to utf8. snippet taken from db_connect()
+      // in includes/database.mysql.inc and utf8 declaration taken from
+      // database/database.4.1.mysql
+      $utf_declaration = '';
+      if (version_compare(mysql_get_server_info(), '4.1.0', '>=')) {
+        $utf_declaration = 'DEFAULT CHARACTER SET utf8';
+      }
+      global $active_db;
+      $ok = db_query("CREATE TABLE {chatroom} (
+        crid int(11) NOT NULL AUTO_INCREMENT,
+        nid int(11) NOT NULL,
+        poll_freq int(2) NOT NULL default '3000',
+        idle_freq int(3) NOT NULL default '60000',
+        kicked_out_message longtext,
+        banned_message longtext,
+        module varchar(255) default 'chatroom',
+        auto_archive int(1) default '0',
+        old_msg_count int(3) default '20',
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY (crid),
+        KEY nid (nid)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_chat} (
+        ccid int(11) NOT NULL AUTO_INCREMENT,
+        crid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        chatname varchar(255) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        when_archived int(11) default NULL,
+        PRIMARY KEY  (ccid),
+        KEY crid (crid),
+        KEY modified (modified)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg} (
+        cmid int(11) NOT NULL AUTO_INCREMENT,
+        ccid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        msg_type varchar(64) NOT NULL,
+        msg longtext NOT NULL,
+        session_id varchar(255) NOT NULL,
+        recipient varchar(255) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY  (cmid),
+        KEY ccid (ccid),
+        KEY session_id (session_id),
+        KEY recipient (recipient),
+        KEY modified (modified)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg_archive} (
+        cmid int(11) NOT NULL,
+        ccid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        msg_type varchar(64) NOT NULL,
+        msg longtext NOT NULL,
+        session_id varchar(255) NOT NULL,
+        recipient varchar(255) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY  (cmid),
+        KEY ccid (ccid),
+        KEY session_id (session_id),
+        KEY recipient (recipient),
+        KEY modified (modified)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_ban_list} (
+        crid int(11) NOT NULL AUTO_INCREMENT,
+        uid int(11) NOT NULL,
+        admin_uid int(11) NOT NULL,
+        modified int(11) NOT NULL default '0',
+        KEY crid_uid (crid,uid)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
+        coid int(11) NOT NULL AUTO_INCREMENT,
+        ccid int(11) NOT NULL,
+        uid int(11) NOT NULL,
+        session_id varchar(255) NOT NULL,
+        guest_id int(11) NOT NULL default '1',
+        away int(1) default '0',
+        is_admin int(1) default '0',
+        modified int(11) NOT NULL default '0',
+        PRIMARY KEY  (coid),
+        KEY update_time (ccid,uid,session_id)
+      ) $utf_declaration;");
+      break;
+    case 'pgsql':
+      $ok = db_query("CREATE TABLE {chatroom} (
+        crid SERIAL NOT NULL,
+        nid INTEGER NOT NULL,
+        poll_freq INTEGER NOT NULL default 3000,
+        idle_freq INTEGER NOT NULL default 60000,
+        kicked_out_message TEXT,
+        banned_message TEXT,
+        module VARCHAR default 'chatroom',
+        auto_archive INTEGER default 0,
+        old_msg_count INTEGER default 20,
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY (crid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_chat} (
+        ccid SERIAL NOT NULL,
+        crid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        chatname VARCHAR NOT NULL,
+        modified INTEGER NOT NULL default 0,
+        when_archived INTEGER default NULL,
+        PRIMARY KEY  (ccid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg} (
+        cmid SERIAL NOT NULL,
+        ccid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        msg_type VARCHAR NOT NULL,
+        msg TEXT NOT NULL,
+        session_id VARCHAR NOT NULL,
+        recipient VARCHAR NOT NULL,
+        modified INTEGER NOT NULL default 0,
+        PRIMARY KEY  (cmid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_msg_archive} (
+        cmid SERIAL NOT NULL,
+        ccid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        msg_type VARCHAR NOT NULL,
+        msg TEXT NOT NULL,
+        session_id VARCHAR NOT NULL,
+        recipient VARCHAR NOT NULL,
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY  (cmid)
+      );");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_ban_list} (
+        crid SERIAL NOT NULL,
+        uid INTEGER NOT NULL,
+        admin_uid INTEGER NOT NULL,
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY (crid,uid)
+      ) $utf_declaration;");
+      $ok = $ok && db_query("CREATE TABLE {chatroom_online_list} (
+        coid SERIAL NOT NULL,
+        ccid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        session_id VARCHAR NOT NULL,
+        guest_id INTEGER NOT NULL default '1',
+        away INTEGER default '0',
+        is_admin INTEGER default '0',
+        modified INTEGER NOT NULL default '0',
+        PRIMARY KEY  (coid)
+      );");
+      break;
+  }
+  $error = false;
+  if (!$ok) {
+    $error = t('A database operation failed when setting up Chat Room.');
+    db_query('DROP TABLE {chatroom}');
+    db_query('DROP TABLE {chatroom_chat}');
+    db_query('DROP TABLE {chatroom_msg}');
+    db_query('DROP TABLE {chatroom_msg_archive}');
+    db_query('DROP TABLE {chatroom_ban_list}');
+    db_query('DROP TABLE {chatroom_online_list}');
+    db_query('DROP TABLE {chatroom_chat_invites}');
+  }
+  if ($error) {
+    $error .= t('Please fix these errors and attempt to enable Chat Room again.');
+    drupal_set_message($error, 'error');
+    db_query("UPDATE {system} SET status = 0 WHERE name = 'chatroom'");
+  }
+  else {
+    global $user;
+    $themes = list_themes();
+    $theme = $user->theme && $themes[$user->theme]->status ? $user->theme : variable_get('theme_default', 'bluemarine');
+    db_query("INSERT INTO {blocks} (status, weight, region, throttle, module, delta, theme) VALUES (1, -10, 'left', 0, 'chatroom', '2', '%s')", $theme);
+    drupal_set_message(t('Chat Room is ready to go.'));
+  }
+}
+
+/**
+ * Implementation of hook_update_N().
+ *
+ * Updating permissions. "chatrooms" has been replaced with "chat rooms" in
+ * permission strings.
+ */
+function chatroom_update_1() {
+  $ret = array();
+  $result = db_query('SELECT rid, perm FROM {permission}');
+  while ($role = db_fetch_object($result)) {
+    $role_permissions[$role->rid] = $role->perm;
+  }
+  str_replace('access chatrooms', 'access chat rooms', $role_permissions);
+  str_replace('administer chatrooms', 'administer chat rooms', $role_permissions);
+  str_replace('create chatrooms', 'create chat rooms', $role_permissions);
+  str_replace('edit chatrooms', 'edit chat rooms', $role_permissions);
+  foreach ($role_permissions as $rid => $perm) {
+    $ret[] = update_sql('DELETE FROM {permission} WHERE rid = %d', $rid);
+    $ret[] = update_sql("INSERT INTO {permission} (rid, perm) VALUES (%d, '%s')", $rid, $perm);
+  }
+  return $ret;
+}
+
+/**
+ * Implementation of hook_update_N().
+ *
+ * Make sure each chat room has an entry in the chatroom table. Remove chats
+ * that are not in chat rooms. Drop the chatroom_chat_invites table.
+ */
+function chatroom_update_2() {
+  $nids = db_query("SELECT nid FROM {node} WHERE type = '%s'", 'chatroom');
+  $row = 0;
+  while ($nid = db_result($nids, $row++)) {
+    if (db_num_rows(db_query("SELECT * FROM {chatroom} WHERE nid = %d", $nid)) == 0) {
+      $ret[] = update_sql("INSERT INTO {chatroom} SET nid = %d", $nid);
+    }
+  }
+  $ret[] = update_sql("DELETE FROM {chatroom_chat} WHERE crid = %d", 0);
+  $ret[] = update_sql('DROP TABLE {chatroom_chat_invites}');
+  return $ret;
+}
+
