@@ -1,0 +1,558 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  chatroom.module,v 1.59.2.67 2007/10/05 19:37:34 darrenoh
+#  chatroom.install,v 1.23.2.16 2007/10/08 17:07:30 darrenoh
+#  chatroom.info,v 1.1.2.4 2007/06/28 12:09:20 darrenoh
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2007-10-09 22:14-0400\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: chatroom.module:104;541;1508;1529 chatroom.install:198;340
+msgid "guest-"
+msgstr ""
+
+#: chatroom.module:50;248;1047
+msgid "Chat room"
+msgstr ""
+
+#: chatroom.module:51
+msgid "Configure chat rooms."
+msgstr ""
+
+#: chatroom.module:58
+msgid "Chat rooms"
+msgstr ""
+
+#: chatroom.module:88
+msgid "Automatically archive old messages."
+msgstr ""
+
+#: chatroom.module:89
+msgid "If there are a lot of old messages, archiving will improve chat performance."
+msgstr ""
+
+#: chatroom.module:94
+msgid "Chat room block update interval"
+msgstr ""
+
+#: chatroom.module:96
+msgid "Determines how often blocks should update active chat rooms, active chats, and on-line users."
+msgstr ""
+
+#: chatroom.module:102
+msgid "Guest user prefix"
+msgstr ""
+
+#: chatroom.module:103
+msgid "Prefixed to guest ID to provide user name for anonymous users."
+msgstr ""
+
+#: chatroom.module:109
+msgid "Chat date format"
+msgstr ""
+
+#: chatroom.module:112
+msgid "Format for system time messages in chats. See the <a href=\"@url\">PHP manual</a> for available options. This format is currently set to display as <span>%date</span>."
+msgstr ""
+
+#: chatroom.module:117
+msgid "Smileys module support"
+msgstr ""
+
+#: chatroom.module:123
+msgid "Enable Smileys module support."
+msgstr ""
+
+#: chatroom.module:128
+msgid "Show smileys in text entry box."
+msgstr ""
+
+#: chatroom.module:135
+msgid "Chat alerts"
+msgstr ""
+
+#: chatroom.module:141
+msgid "Enable chat alerts."
+msgstr ""
+
+#: chatroom.module:142
+msgid "Checking this box will allow users to turn on alerts for chat events."
+msgstr ""
+
+#: chatroom.module:147
+msgid "Turn alerts on by default."
+msgstr ""
+
+#: chatroom.module:148
+msgid "Check this box if you want chats to open with alerts on."
+msgstr ""
+
+#: chatroom.module:154
+msgid "Use custom sounds for chat alerts."
+msgstr ""
+
+#: chatroom.module:155
+msgid "Check this box if you want to replace default chat alert sounds with your own MP3s."
+msgstr ""
+
+#: chatroom.module:169
+msgid "Custom new message sound"
+msgstr ""
+
+#: chatroom.module:170
+msgid "Replace the custom new message sound with a new MP3. !Listen to current file."
+msgstr ""
+
+#: chatroom.module:170;176
+msgid "Listen"
+msgstr ""
+
+#: chatroom.module:170
+msgid "Replace the default new message sound with your own MP3."
+msgstr ""
+
+#: chatroom.module:175
+msgid "Custom new user sound"
+msgstr ""
+
+#: chatroom.module:176
+msgid "Replace the custom new user sound with a new MP3. !Listen to current file."
+msgstr ""
+
+#: chatroom.module:176
+msgid "Replace the default new user sound with your own MP3."
+msgstr ""
+
+#: chatroom.module:199
+msgid "New user sound must be an MP3 file."
+msgstr ""
+
+#: chatroom.module:204
+msgid "New message sound must be an MP3 file."
+msgstr ""
+
+#: chatroom.module:225
+msgid "The block update interval cannot be zero."
+msgstr ""
+
+#: chatroom.module:228
+msgid "The block update interval cannot be negative."
+msgstr ""
+
+#: chatroom.module:232
+msgid "The block update interval must be a number."
+msgstr ""
+
+#: chatroom.module:250
+msgid "A chat room provides access to chats and chat archives."
+msgstr ""
+
+#: chatroom.module:262
+msgid "Name"
+msgstr ""
+
+#: chatroom.module:268
+msgid "Description"
+msgstr ""
+
+#: chatroom.module:271
+msgid "Describe your chat room so other people will know if they want to join."
+msgstr ""
+
+#: chatroom.module:276
+msgid "Chat room kicked out message"
+msgstr ""
+
+#: chatroom.module:279
+msgid "This text will appear on the page kicked out users are sent to. Defaults to, \"You have been kicked out of %chat for misbehaving.\""
+msgstr ""
+
+#: chatroom.module:279
+msgid "chat-name"
+msgstr ""
+
+#: chatroom.module:283
+msgid "Chat room banned message"
+msgstr ""
+
+#: chatroom.module:286
+msgid "This text will appear on the page banned users are sent to. Defaults to, \"You have been banned from %chatroom.\""
+msgstr ""
+
+#: chatroom.module:286
+msgid "chat-room"
+msgstr ""
+
+#: chatroom.module:291
+msgid "Manage banned users"
+msgstr ""
+
+#: chatroom.module:300
+msgid "Check the users you would like to unban"
+msgstr ""
+
+#: chatroom.module:305
+msgid "Chat settings"
+msgstr ""
+
+#: chatroom.module:310
+msgid "Update frequency"
+msgstr ""
+
+#: chatroom.module:313
+msgid "How many seconds between each request for updates from the server."
+msgstr ""
+
+#: chatroom.module:317
+msgid "Idle time"
+msgstr ""
+
+#: chatroom.module:320
+msgid "How many seconds between each message before a last message time is shown in the chat."
+msgstr ""
+
+#: chatroom.module:328
+msgid "Old messages"
+msgstr ""
+
+#: chatroom.module:329
+msgid "How many old messages to show when entering a chat."
+msgstr ""
+
+#: chatroom.module:345
+msgid "Manage open chats"
+msgstr ""
+
+#: chatroom.module:352
+msgid "Check the chats you would like to close"
+msgstr ""
+
+#: chatroom.module:358
+msgid "Manage archived chats"
+msgstr ""
+
+#: chatroom.module:365
+msgid "Check the chats you would like to delete"
+msgstr ""
+
+#: chatroom.module:501;1500
+msgid "Archived on !date."
+msgstr ""
+
+#: chatroom.module:509
+msgid "No messages"
+msgstr ""
+
+#: chatroom.module:540
+msgid "Posted by <strong>!user</strong> on !date"
+msgstr ""
+
+#: chatroom.module:581;1122
+msgid "You have been banned from %chatroom."
+msgstr ""
+
+#: chatroom.module:604
+msgid "Open chats in this room"
+msgstr ""
+
+#: chatroom.module:608;619;641
+msgid "Chat name"
+msgstr ""
+
+#: chatroom.module:608;619
+msgid "Message count"
+msgstr ""
+
+#: chatroom.module:608;1047
+msgid "Last message"
+msgstr ""
+
+#: chatroom.module:615
+msgid "Archived chats in this room"
+msgstr ""
+
+#: chatroom.module:619
+msgid "When archived"
+msgstr ""
+
+#: chatroom.module:635
+msgid "Create a new chat"
+msgstr ""
+
+#: chatroom.module:644
+msgid "Enter the name for the chat"
+msgstr ""
+
+#: chatroom.module:652
+msgid "Create chat"
+msgstr ""
+
+#: chatroom.module:665
+msgid "A chat called %name already exists."
+msgstr ""
+
+#: chatroom.module:679
+msgid "There was an error creating your chat"
+msgstr ""
+
+#: chatroom.module:713
+msgid "Chat Room: active chats"
+msgstr ""
+
+#: chatroom.module:714
+msgid "Chat Room: active chat rooms"
+msgstr ""
+
+#: chatroom.module:715
+msgid "Chat Room: chat on-line list"
+msgstr ""
+
+#: chatroom.module:716
+msgid "Chat Room: site-wide on-line list"
+msgstr ""
+
+#: chatroom.module:717
+msgid "Chat Room: chat commands"
+msgstr ""
+
+#: chatroom.module:730
+msgid "chats"
+msgstr ""
+
+#: chatroom.module:733
+msgid "chat rooms"
+msgstr ""
+
+#: chatroom.module:738
+msgid "Number of !items to display"
+msgstr ""
+
+#: chatroom.module:787;789;790
+msgid "username"
+msgstr ""
+
+#: chatroom.module:787;792
+msgid "message"
+msgstr ""
+
+#: chatroom.module:797
+msgid "Chat commands"
+msgstr ""
+
+#: chatroom.module:814
+msgid "in"
+msgstr ""
+
+#: chatroom.module:818;976
+msgid "There are no active chats."
+msgstr ""
+
+#: chatroom.module:823
+msgid "Active chats"
+msgstr ""
+
+#: chatroom.module:872;977
+msgid "There are no active chat rooms."
+msgstr ""
+
+#: chatroom.module:882
+msgid "Active chat rooms"
+msgstr ""
+
+#: chatroom.module:902
+msgid "Who is on line in %chat"
+msgstr ""
+
+#: chatroom.module:914
+msgid "Alert me if new users enter."
+msgstr ""
+
+#: chatroom.module:936;975
+msgid "There are no other users on line."
+msgstr ""
+
+#: chatroom.module:941
+msgid "On-line users"
+msgstr ""
+
+#: chatroom.module:1018
+msgid "Post a new chat room."
+msgstr ""
+
+#: chatroom.module:1024
+msgid "<a href=\"!login\">Login</a> to post a new chat room."
+msgstr ""
+
+#: chatroom.module:1031
+msgid "No chat rooms defined"
+msgstr ""
+
+#: chatroom.module:1047
+msgid "Chats"
+msgstr ""
+
+#: chatroom.module:1047
+msgid "Messages"
+msgstr ""
+
+#: chatroom.module:1112
+msgid "You have been kicked out of %chat for misbehaving."
+msgstr ""
+
+#: chatroom.module:1167
+msgid "View old messages"
+msgstr ""
+
+#: chatroom.module:1271
+msgid " has joined the chat"
+msgstr ""
+
+#: chatroom.module:1272
+msgid " has left the chat"
+msgstr ""
+
+#: chatroom.module:1273
+msgid " is away"
+msgstr ""
+
+#: chatroom.module:1274
+msgid " is back"
+msgstr ""
+
+#: chatroom.module:1341
+msgid "Type your message"
+msgstr ""
+
+#: chatroom.module:1343
+msgid "Send"
+msgstr ""
+
+#: chatroom.module:1347
+msgid "Show me as away."
+msgstr ""
+
+#: chatroom.module:1350
+msgid "Alert me if new messages are received."
+msgstr ""
+
+#: chatroom.module:1425
+msgid "Delete this chat"
+msgstr ""
+
+#: chatroom.module:1456
+msgid "Archive this chat"
+msgstr ""
+
+#: chatroom.module:1503
+msgid "Join !chat"
+msgstr ""
+
+#: chatroom.module:1545
+msgid "This chat contains no messages."
+msgstr ""
+
+#: chatroom.module:38
+msgid "access chat rooms"
+msgstr ""
+
+#: chatroom.module:38
+msgid "create chat rooms"
+msgstr ""
+
+#: chatroom.module:38
+msgid "edit own chat rooms"
+msgstr ""
+
+#: chatroom.module:38
+msgid "administer chats"
+msgstr ""
+
+#: chatroom.module:38
+msgid "administer chat rooms"
+msgstr ""
+
+#: chatroom.module:38
+msgid "create chats"
+msgstr ""
+
+#: chatroom.module:0
+msgid "chatroom"
+msgstr ""
+
+#: chatroom.install:12 chatroom.info:0
+msgid "Chat Room"
+msgstr ""
+
+#: chatroom.install:13
+msgid "Your MySQL version is too low. Chat Room requires MySQL 4.1 or higher."
+msgstr ""
+
+#: chatroom.install:179
+msgid "A database operation failed when setting up Chat Room."
+msgstr ""
+
+#: chatroom.install:188
+msgid "Please fix these errors and attempt to enable Chat Room again."
+msgstr ""
+
+#: chatroom.install:199
+msgid "Chat Room is ready to go."
+msgstr ""
+
+#: chatroom.install:243
+msgid "Chat room tables have been dropped from the database."
+msgstr ""
+
+#: chatroom.install:256
+msgid "Chat room settings have been deleted."
+msgstr ""
+
+#: chatroom.info:0
+msgid "Enables the creation of rooms that provide access to chats and chat archives."
+msgstr ""
+
+#: (duplicate) chatroom.install:12
+msgid "Chat Room"
+msgstr ""
+
+#: (duplicate) chatroom.install:13
+msgid "Your MySQL version is too low. Chat Room requires MySQL 4.1 or higher."
+msgstr ""
+
+#: (duplicate) chatroom.install:179
+msgid "A database operation failed when setting up Chat Room."
+msgstr ""
+
+#: (duplicate) chatroom.install:188
+msgid "Please fix these errors and attempt to enable Chat Room again."
+msgstr ""
+
+#: (duplicate) chatroom.install:198;340
+msgid "guest-"
+msgstr ""
+
+#: (duplicate) chatroom.install:199
+msgid "Chat Room is ready to go."
+msgstr ""
+
+#: (duplicate) chatroom.install:243
+msgid "Chat room tables have been dropped from the database."
+msgstr ""
+
+#: (duplicate) chatroom.install:256
+msgid "Chat room settings have been deleted."
+msgstr ""
+

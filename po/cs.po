@@ -1,0 +1,345 @@
+# Czech translation of Drupal (modules/chatroom/chatroom.module)
+msgid ""
+msgstr ""
+"Project-Id-Version: color-module\n"
+"POT-Creation-Date: 2007-07-27 23:37+0200\n"
+"PO-Revision-Date: 2007-08-07 12:41+0200\n"
+"Last-Translator: Martin <martin.d@seznam.cz>\n"
+"Language-Team: Czech <redakce@drupal.cz>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms:  nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: chatroom.module:40;111;859
+msgid "Chat room"
+msgstr "Chatovací místnost"
+
+#: chatroom.module:41
+msgid "Configure chat rooms."
+msgstr "Nastavení chatu."
+
+#: chatroom.module:48
+msgid "Chat rooms"
+msgstr "Místnosti chatu"
+
+#: chatroom.module:78
+msgid "Automatically archive old messages."
+msgstr "Automaticky ukládat staré zprávy."
+
+#: chatroom.module:79
+msgid "If there are a lot of old messages, archiving will improve chat performance."
+msgstr "Jestliže je zde hodně starých zpráv, archivace zvýší výkon chatu."
+
+#: chatroom.module:85
+msgid "Smileys module support"
+msgstr "Modul na podporu smajlíků"
+
+#: chatroom.module:89
+msgid "enable smileys module support"
+msgstr "povolit modul na podporu smajlíků"
+
+#: chatroom.module:94
+msgid "show smileys in entry boxes"
+msgstr "ukázat smajlíky ve formulářích"
+
+#: chatroom.module:113
+msgid "A chat room provides access to chats and chat archives."
+msgstr "Chatovací místnost umožňuje přístup k chatu a k archivu chatu."
+
+#: chatroom.module:129
+msgid "Name"
+msgstr "Jméno"
+
+#: chatroom.module:135
+msgid "Chat room idle time, in seconds"
+msgstr "Čas nečinnosti chatu v sekundách"
+
+#: chatroom.module:138
+msgid "How many seconds between each message before a last message time is written in the chat."
+msgstr "Počet sekund mezi každou zprávou před zapsáním času poslední zprávy v chatu."
+
+#: chatroom.module:142
+msgid "Chat room update frequency, in seconds"
+msgstr "Obnovovací frekvence chatu, v sekundách"
+
+#: chatroom.module:145
+msgid "How many seconds between each request for updates to the server."
+msgstr "Počet sekund mezi každým požadavkem na update serveru."
+
+#: chatroom.module:149
+msgid "Description"
+msgstr "Popis"
+
+#: chatroom.module:153
+msgid "Describe your chat room so other people will know if they want to join."
+msgstr "Popište svou místnost, aby ostatní věděli, jestli se mají připojit či nikoli."
+
+#: chatroom.module:157
+msgid "Number of old messages to show when entering a chat"
+msgstr "Počet starých zpráv, které se zobrazí, pokud vstoupíte do chatu"
+
+#: chatroom.module:163
+msgid "Chat room kicked out message"
+msgstr "Zpráva při vyhození uživatele z chatu"
+
+#: chatroom.module:166
+msgid "This text will appear on the page kicked out users are sent to."
+msgstr "Tento text se objeví uživateli, který byl z chatu vyhozen."
+
+#: chatroom.module:170
+msgid "Chat room banned message"
+msgstr "Zpráva při zákazu vstupu do chatu (ban)"
+
+#: chatroom.module:173
+msgid "This text will appear on the page banned users are sent to."
+msgstr "Tento text se objeví uživateli, který má zakázán vstup do chatu."
+
+#: chatroom.module:181
+msgid "Manage banned users"
+msgstr "Správa uživatelů se zákazem vstupu do chatu"
+
+#: chatroom.module:188
+msgid "Check the users you would like to unban"
+msgstr "Označte uživatele, kterým chcete povolit přístup do chatu"
+
+#: chatroom.module:199
+msgid "Manage open chats"
+msgstr "Správa aktivních chatů"
+
+#: chatroom.module:206
+msgid "Check the chats you would like to close"
+msgstr "Označte chaty, které chcete uzavřít"
+
+#: chatroom.module:337;1109
+msgid "This chat was archived on !date."
+msgstr "Tento chat byl archivován !date."
+
+#: chatroom.module:345
+msgid "No messages"
+msgstr "Žádné zprávy"
+
+#: chatroom.module:373
+msgid "Anonymous"
+msgstr "Anonymní uživatel"
+
+#: chatroom.module:374
+msgid "Posted by <b>!user</b>, !date"
+msgstr "Odesláno uživatelem <b>!user</b>, !date"
+
+#: chatroom.module:413;916;1099
+msgid "You have been banned from this chat room."
+msgstr "Byl jste vyhozen/a z této místnosti."
+
+#: chatroom.module:438
+msgid "Open chats in this room"
+msgstr "Otevřít chat v této místnosti"
+
+#: chatroom.module:442;453;473
+msgid "Chat name"
+msgstr "Jméno chatu"
+
+#: chatroom.module:442;453
+msgid "Message count"
+msgstr "Počet zpráv"
+
+#: chatroom.module:442;859
+msgid "Last message"
+msgstr "Poslední zpráva"
+
+#: chatroom.module:449
+msgid "Archived chats in this room"
+msgstr "Archivované chaty v této místnosti"
+
+#: chatroom.module:453
+msgid "When archived"
+msgstr "Kdy archivováno"
+
+#: chatroom.module:467
+msgid "Create a new chat"
+msgstr "Vytvořit nový chat"
+
+#: chatroom.module:476
+msgid "Enter the name for the chat"
+msgstr "Vložte název chatu"
+
+#: chatroom.module:484
+msgid "Create chat"
+msgstr "Vytvořit chat"
+
+#: chatroom.module:497
+msgid "A chat called %name already exists."
+msgstr "Chat pojmenovaný %name již existuje."
+
+#: chatroom.module:511
+msgid "There was an error creating your chat"
+msgstr "Při vytváření chatu došlo k chybě"
+
+#: chatroom.module:543
+msgid "Active chats"
+msgstr "Aktivní chaty"
+
+#: chatroom.module:544
+msgid "Active chat rooms"
+msgstr "Aktivní chatovací místnosti"
+
+#: chatroom.module:545
+msgid "Chat on-line list"
+msgstr "Seznam on-line chatů"
+
+#: chatroom.module:546
+msgid "Site-wide on-line list"
+msgstr "On-line list těch mimo"
+
+#: chatroom.module:547;621
+msgid "Chat commands"
+msgstr "Příkazy chatu"
+
+#: chatroom.module:560
+msgid "Number of !types to display"
+msgstr "Počet !types k zobrazení"
+
+#: chatroom.module:616;618;619
+msgid "username"
+msgstr "uživatelské jméno"
+
+#: chatroom.module:616
+msgid "message"
+msgstr "zpráva"
+
+#: chatroom.module:636
+msgid "in room"
+msgstr "v místnosti"
+
+#: chatroom.module:640;797
+msgid "There are no active chats."
+msgstr "Nejsou žádné aktivní chaty."
+
+#: chatroom.module:690;798
+msgid "There are no active chat rooms."
+msgstr "Nejsou žádné aktivní chatovací místnosti."
+
+#: chatroom.module:712
+msgid "Who is on line in %chat"
+msgstr "Kro je  on-line v %chat"
+
+#: chatroom.module:734
+msgid "On-line chat room users"
+msgstr "On-line uživatelé místnosti"
+
+#: chatroom.module:753;796
+msgid "There are no other users on line."
+msgstr "Nejsou zde žádní jiní uživatelé on.line."
+
+#: chatroom.module:830
+msgid "Post a new chat room."
+msgstr "Odeslat novou chatovací místnost."
+
+#: chatroom.module:836
+msgid "<a href=\"!login\">Login</a> to post a new chat room."
+msgstr "<a href=\"!login\">Přihlášení se</a> k vytvoření nové chatovací místnosti."
+
+#: chatroom.module:843
+msgid "No chat rooms defined"
+msgstr "Nebyla vybrána žádná chatovací místnost"
+
+#: chatroom.module:859
+msgid "Chats"
+msgstr "Chaty"
+
+#: chatroom.module:859
+msgid "Messages"
+msgstr "Zprávy"
+
+#: chatroom.module:903
+msgid "You have been kicked out of a chat for misbehaving."
+msgstr "Byl jste vyhozen/a z chatu za nevhodné chování."
+
+#: chatroom.module:1035
+msgid " has joined the chat"
+msgstr "vstoupil/a na chat"
+
+#: chatroom.module:1036
+msgid " has left the chat"
+msgstr "opustil/a chat"
+
+#: chatroom.module:1037
+msgid " is away"
+msgstr "je pryč"
+
+#: chatroom.module:1038
+msgid " is back"
+msgstr "je zpět"
+
+#: chatroom.module:1039
+msgid "* Sent at "
+msgstr "* Posláno v"
+
+#: chatroom.module:1060
+msgid "Type your message"
+msgstr "Vepište svou zprávu"
+
+#: chatroom.module:1062
+msgid "Send"
+msgstr "Poslat"
+
+#: chatroom.module:1064
+msgid "Set my status to \"away\"."
+msgstr "Nastavit mě jako \"pryč\"."
+
+#: chatroom.module:1120
+msgid "This chat contains no messages"
+msgstr "V tomto chatu není žádná zpráva"
+
+#: chatroom.module:28
+msgid "access chat rooms"
+msgstr "přístup k chatovacím místnostem"
+
+#: chatroom.module:28
+msgid "create chat rooms"
+msgstr "vytvořit chatovací místnost"
+
+#: chatroom.module:28
+msgid "edit own chat rooms"
+msgstr "editovat vlastní chatovací místnost"
+
+#: chatroom.module:28
+msgid "administer chats"
+msgstr "správa chatů"
+
+#: chatroom.module:28
+msgid "administer chat rooms"
+msgstr "správa chatovacích místností"
+
+#: chatroom.module:28
+msgid "create chats"
+msgstr "vytvořit chaty"
+
+#: chatroom.install:162
+msgid "A database operation failed when setting up Chat Room."
+msgstr "Chyba práce s databází při zakládání místnosti."
+
+#: chatroom.install:171
+msgid "Please fix these errors and attempt to enable Chat Room again."
+msgstr "Prosím opravte tyto chyby a umožněte vytvořit místnost znovu."
+
+#: chatroom.install:180
+msgid "Chat Room is ready to go."
+msgstr "Chatovací místnost je připravena."
+
+#: chatroom.install:198
+msgid "Chat room tables have been dropped from the database."
+msgstr "Tabulky chatovacích místností byly převzaty z databáze."
+
+#: chatroom.install:212
+msgid "Chat room settings have been deleted."
+msgstr "Nastavení chatovacích místností bylo smazáno."
+
+#: chatroom.info:0
+msgid "Chat Room"
+msgstr "Chatovací místnost"
+
+#: chatroom.info:0
+msgid "Enables the creation of rooms that provide access to chats and chat archives."
+msgstr "Umožňuje zakladatelům místností přístup k chatům a archivům chatu."
+

@@ -1,0 +1,5 @@
+; $Id$
+name = Chat Room
+description = Enables the creation of rooms that provide access to chats and chat archives.
+core = 6.x
+
