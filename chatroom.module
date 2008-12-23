@@ -692,6 +692,8 @@ function chatroom_chat_register_user($chat_id) {
  * Add settings to chat page.
  */
 function chatroom_add_js($chat) {
+  global $user;
+
   $module_path = drupal_get_path('module', 'chatroom');
   // Settings for chatroom.js. Variables which change during a chat session are
   // included in AHAH replies from chatroom_js(), and handled by code in
