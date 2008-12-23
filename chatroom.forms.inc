@@ -300,7 +300,7 @@ function chatroom_admin_settings_submit($form, &$form_state) {
     file_save_upload('chatroom_user_alert_upload', $validators, "$path/user.mp3", FILE_EXISTS_REPLACE);
     file_save_upload('chatroom_message_alert_upload', $validators, "$path/message.mp3", FILE_EXISTS_REPLACE);
   }
-  system_settings_form_submit($form, &$form_state);
+  system_settings_form_submit($form, $form_state);
 }
 
 /**
