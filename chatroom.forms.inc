@@ -425,10 +425,11 @@ function chatroom_create_chat_form_submit($form, &$form_state) {
 /**
  * Form to delete an archived chat.
  *
+ * @param array $form_state
  * @param integer $chat_id
  * @return array
  */
-function chatroom_delete_chat_form($ccid = NULL) {
+function chatroom_delete_chat_form($form_state, $ccid = NULL) {
   $form = array();
   $form['ccid'] = array(
     '#type' => 'value',
@@ -445,12 +446,12 @@ function chatroom_delete_chat_form($ccid = NULL) {
  * Delete an archived chat
  *
  * @param array $form_id
- * @param array $form_values
+ * @param array $form_state
  * @return string
  */
 function chatroom_delete_chat_form_submit($form, &$form_state) {
-  $chat = chatroom_chat_get_from_id($form_state['values']['chat_id']);
-  chatroom_chat_delete($form_state['values']['chat_id']);
+  $chat = chatroom_load_chat($form_state['values']['ccid']);
+  chatroom_chat_delete($form_state['values']['ccid']);
   $form_state['redirect'] = "node/$chat->nid";
 }
 
