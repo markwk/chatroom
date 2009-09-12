@@ -439,7 +439,8 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
 function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRUE) {
   global $user;
   $sql = "
-    SELECT cc.*, nr.title AS room_name, cr.nid FROM {chatroom_chat} cc
+    SELECT cc.*, nr.title AS room_name, cr.nid 
+    FROM {chatroom_chat} cc
     INNER JOIN {chatroom} cr ON cr.nid = cc.crid
     INNER JOIN {node_revisions} nr ON nr.nid = cr.nid
     INNER JOIN {node} n ON n.nid = nr.nid
@@ -463,7 +464,7 @@ function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRU
   while ($chat = db_fetch_object($result)) {
     $chats[] = $chat;
   }
-  if (!empty($rows)) {
+  if (!empty($chats)) {
     return $chats;
   }
   return FALSE;
