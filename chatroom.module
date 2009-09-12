@@ -344,7 +344,7 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
 function chatroom_archive_chat($chat_id) {
   db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE ccid = %d', time(), $chat_id);
   $result = db_query('
-    UPDATE FROM {chatroom_msg} SET archived = 1 WHERE ccid = %d
+    UPDATE {chatroom_msg} SET archived = 1 WHERE ccid = %d
   ', $chat_id);
   cache_clear_all(TRUE, 'cache_block');
   return $result;
