@@ -160,11 +160,6 @@ function chatroom_update($node) {
     foreach ($node->chat_list as $chat_id) {
       if ($chat_id > 0) {
         chatroom_archive_chat($chat_id);
-        file_delete(_chatroom_get_cache_file("chat.$chat_id"));
-        db_query("
-          INSERT INTO {chatroom_msg_archive} (cmid, ccid, uid, msg_type, msg, session_id, recipient, modified)
-          SELECT * FROM {chatroom_msg} WHERE ccid = %d
-        ", $chat_id);
       }
     }
     cache_clear_all(TRUE, 'cache_block');
@@ -195,7 +190,6 @@ function chatroom_delete(&$node) {
     $ccids = implode(',', array_keys($node->chats));
     db_query('DELETE FROM {chatroom_msg} WHERE ccid IN (%s)', $ccids);
     db_query('DELETE FROM {chatroom_online_list} WHERE ccid IN (%s)', $ccids);
-    db_query('DELETE FROM {chatroom_msg_archive} WHERE ccid IN (%s)', $ccids);
   }
   cache_clear_all(TRUE, 'cache_block');
   // Clear cache related to this chat.
@@ -350,16 +344,8 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
 function chatroom_archive_chat($chat_id) {
   db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE ccid = %d', time(), $chat_id);
   $result = db_query('
-    INSERT INTO {chatroom_msg_archive}
-    (cmid, ccid, uid, msg_type, msg, session_id, recipient, modified)
-    SELECT * FROM {chatroom_msg} WHERE ccid = %d
+    UPDATE FROM {chatroom_msg} SET archived = 1 WHERE ccid = %d
   ', $chat_id);
-  if ($result) {
-    db_query('DELETE FROM {chatroom_msg} WHERE ccid = %d', $chat_id);
-  }
-  else {
-    db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE ccid = %d', $chat_id);
-  }
   cache_clear_all(TRUE, 'cache_block');
   return $result;
 }
@@ -805,7 +791,6 @@ function chatroom_smileys_get_textentry() {
  */
 function chatroom_chat_delete($chat_id) {
   db_query('DELETE FROM {chatroom_chat} WHERE ccid = %d', $chat_id);
-  db_query('DELETE FROM {chatroom_msg_archive} WHERE ccid = %d', $chat_id);
   db_query('DELETE FROM {chatroom_online_list} WHERE ccid = %d', $chat_id);
 }
 
@@ -885,6 +870,7 @@ function chatroom_load_messages(&$chat, $last_cmid = 0, $archived = FALSE, $limi
     array_unshift($messages, $message);
   }
   // Assign any messages to the chat object and return.
+  $chat->messages = array();
   if ($result !== FALSE && !empty($messages)) {
     $chat->messages = $messages;
     return $max_cmid;

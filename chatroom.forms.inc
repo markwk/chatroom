@@ -445,7 +445,7 @@ function chatroom_delete_chat_form($form_state, $ccid = NULL) {
 /**
  * Delete an archived chat
  *
- * @param array $form_id
+ * @param array $form
  * @param array $form_state
  * @return string
  */
@@ -458,10 +458,11 @@ function chatroom_delete_chat_form_submit($form, &$form_state) {
 /**
  * form for archived chat view of open chat to archive that chat
  *
+ * @param array $form_state
  * @param integer $chat_id
  * @return array
  */
-function chatroom_archive_chat_form($chat_id) {
+function chatroom_archive_chat_form($form_state, $chat_id) {
   $form['chat_id'] = array(
     '#type' => 'value',
     '#value' => $chat_id,
@@ -480,13 +481,8 @@ function chatroom_archive_chat_form($chat_id) {
  * @param array $form_values
  * @return string
  */
-function chatroom_form_chat_archive_submit($form, &$form_state) {
+function chatroom_archive_chat_form_submit($form, &$form_state) {
   chatroom_archive_chat($form_state['values']['chat_id']);
-  file_delete(_chatroom_get_cache_file('chat.'. $form_state['values']['chat_id']));
-  db_query("
-    INSERT INTO {chatroom_msg_archive} (cmid, ccid, uid, msg_type, msg, session_id, recipient, modified)
-    SELECT * FROM {chatroom_msg} WHERE ccid = %d
-  ", $form_state['values']['chat_id']);
-  $chat = chatroom_chat_get_from_id($form_state['values']['chat_id']);
   cache_clear_all(TRUE, 'cache_block');
 }
+
