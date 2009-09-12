@@ -860,6 +860,10 @@ function chatroom_load_messages(&$chat, $last_cmid = 0, $archived = FALSE, $limi
     $query .= ' LIMIT %d';
     $query_args[] = $chat->old_msg_count;
   }
+
+  // Give third-party modules a chance to modify query.
+  $query = db_rewrite_sql($query, 'cm', 'cmid', array('chatroom_msg' => TRUE));
+
   // Query and process results
   $result = db_query($query, $query_args);
   $messages = array();
@@ -899,7 +903,7 @@ function chatroom_load_users(&$chat) {
       AND ccid = %d
     ", time(), $chat->ccid, $chat->ccid);
   // Load users
-  $result = db_query("
+  $sql = "
     SELECT
       s.uid,
       u.name,
@@ -909,7 +913,10 @@ function chatroom_load_users(&$chat) {
     LEFT JOIN {users} u ON u.uid = s.uid
     WHERE col.ccid = %d
     ORDER BY u.name ASC
-  ", $chat->ccid);
+  ";
+
+  $sql = db_rewrite_sql($sql, 'col', 'sid', array('chatroom_online_list' => TRUE));
+  $result = db_query($sql, $chat->ccid);
   $users = array();
   while ($u = db_fetch_object($result)) {
     if (empty($u->uid)) {
