@@ -63,7 +63,7 @@ function theme_chatroom_block_chats() {
   $chats = chatroom_get_active_chats(0, variable_get('chatroom_block_chats', 5));
   if ($chats) {
     foreach ($chats as $chat) {
-      $chat_link = l($chat->chatname, "chatrooms/chat/$chat->ccid");
+      $chat_link = l($chat->chatname, "chatroom/chat/$chat->ccid");
       $room_link = l($chat->room_name, "node/$chat->nid");
       $content .= '<li id="chat_'. $chat->ccid .'">'. $chat_link .'<br />';
       $content .= '<span class="chatroomLink">'. t('in') .' '. $room_link .'</span></li>';
@@ -287,10 +287,10 @@ function theme_chatroom_list($rooms) {
         foreach ($room->chatroom->chats as $id => $chat) {
           $description  = "<div>\n";
           if (isset($chat->when_archived)) {
-            $description .= ' <div class="name">'. l($chat->chatname, "chatrooms/archives/$chat->ccid") ."</div>\n";
+            $description .= ' <div class="name">'. l($chat->chatname, "chatroom/archives/$chat->ccid") ."</div>\n";
           }
           else {
-            $description .= ' <div class="name">'. l($chat->chatname, "chatrooms/chat/$chat->ccid") ."</div>\n";
+            $description .= ' <div class="name">'. l($chat->chatname, "chatroom/chat/$chat->ccid") ."</div>\n";
           }
           $description .= "</div>\n";
 
