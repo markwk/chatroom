@@ -470,34 +470,19 @@ function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRU
   return FALSE;
 }
 
-
 /**
  * Handle AHAH requests.
  */
 function chatroom_js() {
-  // Load the form from the Form API cache.
-  $cache = cache_get('form_'. $_POST['form_build_id'], 'cache_form');
-  if ($cache) {
-    $form = $cache->data;
-  }
-  $form_state = $_POST;
-  $chat = chatroom_load_chat($form_state['ccid']);
+
+  $chat = chatroom_load_chat($_POST['ccid']);
   $chat->messages = array();
 
-  $debug = TRUE;
-  if ($debug) {
-    watchdog('chatroom', 'Handled a chatroom "@type" AHAH request at @time',
-      array(
-        '@type' => $form_state['control'],
-        '@time' => time(),
-      ));
-  }
-
   // Act on commands
-  switch($form_state['control']) {
+  switch ($_POST['control']) {
     case 'message':
       // Save message.
-      chatroom_save_message($chat, $form_state['message']);
+      chatroom_save_message($chat, $_POST['message']);
       break;
     case 'status':
     case 'poll':
@@ -505,25 +490,19 @@ function chatroom_js() {
       // Do nothing.
       break;
   }
-//  watchdog('chatroom', 'chatroom_update_online_time');
-  if (isset($form_state['away'])) {
-    chatroom_update_online_time($chat, $form_state['away']);
+  if (isset($_POST['away'])) {
+    chatroom_update_online_time($chat, $_POST['away']);
   }
   else {
     chatroom_update_online_time($chat);
   }
 
-  // Retrieve any new messages.
-  watchdog('chatroom', 'chatroom_load_messages cmid is @cmid',
-    array('@cmid' => $form_state['last_cmid']));
-  if ($last_cmid = chatroom_load_messages($chat, $form_state['last_cmid'])) {
+  if ($last_cmid = chatroom_load_messages($chat, $_POST['last_cmid'])) {
     $response['last-cmid'] = $last_cmid;
-      watchdog('chatroom', 'chatroom_load_messages new cmid is @cmid',
-      array('@cmid' => $response['last-cmid']));
   }
   $response['messages'] = theme('chatroom_messages', $chat->messages);
+
   // TODO: logic to determine when to avoid this.
-//  watchdog('chatroom', 'chatroom_load_users');
 
   chatroom_load_users($chat);
   $response['users'] = theme('chatroom_user_list', $chat->users);
@@ -531,13 +510,11 @@ function chatroom_js() {
   // Clear the 'control' element in the form.
   $response['control'] = '';
 
-//    watchdog('chatroom', 'foreach response');
   $output = '';
   foreach($response as $key => $data) {
     $output .= '<div class="ahah-response" id="response-'. $key .'">'. $data .'</div>';
   }
 
-//     watchdog('chatroom', 'drupal_to_js');
   print drupal_to_js(array('status' => TRUE, 'data' => $output));
   exit;
 }
