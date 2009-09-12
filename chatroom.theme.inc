@@ -144,19 +144,16 @@ function theme_chatroom_block_chat_users() {
  */
 function theme_chatroom_block_site_users() {
   global $user;
-  $uid = $user->uid;
-  chatroom_site_update_online_time($uid);
-  $users = chatroom_get_site_online_list($uid);
-  $content = '<ul class="menu" id="chatroom-sitewide-online">';
-  if (!empty($users)) {
-    foreach ($users as $u) {
-      $content .= '<li id="user-li-'. $u->uid .'"><strong>'. check_plain($u->name) .'</strong></li>';
+  chatroom_site_update_online_time($user->uid);
+  if ($users = chatroom_get_site_online_list($user->uid)) {
+    foreach ($users as $chat_user) {
+      $items[] = theme('username', $chat_user);
     }
+    $content = str_replace('class="item-list"', 'class="item-list menu" id="chatroom-sitewide-online"', theme('item_list', $items));
   }
   else {
-    $content .= '<li id="no_users"><em>'. t('There are no other users on line.') .'</em></li>';
+    $content = '<ul class="item-list menu" id="chatroom-sitewide-online"><li id="no_users"><em>'. t('There are no other users on line.') .'</em></li></ul>';
   }
-  $content .= '</ul>';
   return array(
     'content' => $content,
     'subject' => t('On-line users'),
