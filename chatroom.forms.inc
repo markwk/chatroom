@@ -432,7 +432,7 @@ function chatroom_delete_chat_form($ccid = NULL) {
   $form = array();
   $form['ccid'] = array(
     '#type' => 'value',
-    '#value' => $chat_id,
+    '#value' => $ccid,
   );
   $form['delete'] = array(
     '#type' => 'submit',

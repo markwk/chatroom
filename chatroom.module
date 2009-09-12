@@ -490,10 +490,12 @@ function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRU
 function chatroom_js() {
   // Load the form from the Form API cache.
   $cache = cache_get('form_'. $_POST['form_build_id'], 'cache_form');
-
-  $form = $cache->data;
+  if ($cache) {
+    $form = $cache->data;
+  }
   $form_state = $_POST;
   $chat = chatroom_load_chat($form_state['ccid']);
+  $chat->messages = array();
 
   $debug = TRUE;
   if ($debug) {
@@ -517,7 +519,12 @@ function chatroom_js() {
       break;
   }
 //  watchdog('chatroom', 'chatroom_update_online_time');
-  chatroom_update_online_time($chat, $form_state['away']);
+  if (isset($form_state['away'])) {
+    chatroom_update_online_time($chat, $form_state['away']);
+  }
+  else {
+    chatroom_update_online_time($chat);
+  }
 
   // Retrieve any new messages.
   watchdog('chatroom', 'chatroom_load_messages cmid is @cmid',
@@ -538,6 +545,7 @@ function chatroom_js() {
   $response['control'] = '';
 
 //    watchdog('chatroom', 'foreach response');
+  $output = '';
   foreach($response as $key => $data) {
     $output .= '<div class="ahah-response" id="response-'. $key .'">'. $data .'</div>';
   }
@@ -591,9 +599,10 @@ function chatroom_view_chat($ccid = NULL, $archive = FALSE) {
     $bc[] = l($chat->chatroom_name, "node/$chat->nid");
     drupal_set_breadcrumb($bc);
     drupal_set_title(check_plain($chat->chatname));
+    $content = '';
     // Display a message if the user is banned.
     if (chatroom_is_banned_user($chat)) {
-      $content = theme('chatroom_chat_banned_user', $chat);
+      $content .= theme('chatroom_chat_banned_user', $chat);
     }
     elseif (!isset($chat->when_archived) && !$archive) {
       // Automatically archive old messages
@@ -614,7 +623,7 @@ function chatroom_view_chat($ccid = NULL, $archive = FALSE) {
     }
     else {
       // Display an archived chat.
-      $content = theme('chatroom_chat_archive', $chat);
+      $content .= theme('chatroom_chat_archive', $chat);
       // Form to delete the archive.
       if (user_access('administer chat rooms')) {
         $content .= drupal_get_form('chatroom_delete_chat_form', $ccid);
@@ -652,36 +661,36 @@ function chatroom_archive_old_msgs($chat_id) {
  * mysql 3.23 compatability patch form pacheco - thanks!
  * http://drupal.org/node/70949
  */
-function chatroom_chat_register_user($chat_id) {
+function chatroom_chat_register_user(StdClass $chat) {
   global $user;
   $count = db_result(db_query_range("
     SELECT COUNT(*) FROM {chatroom_online_list}
     WHERE ccid = %d AND sid = '%s'
-  ", $chat_id, session_id(), 0, 1));
+  ", $chat->ccid, session_id(), 0, 1));
   if ($count) {
-    chatroom_update_online_time($chat_id);
+    chatroom_update_online_time($chat);
   }
   else {
     $is_admin = user_access('administer chats');
     $count = db_result(db_query_range("
       SELECT COUNT(*) FROM {chatroom_online_list}
       WHERE ccid = %d AND sid = '%s'
-    ", $chat_id, session_id(), 0, 1));
+    ", $chat->ccid, session_id(), 0, 1));
     if ($count) {
       db_query("
         UPDATE {chatroom_online_list} SET is_admin = %d
         WHERE ccid = %d AND sid = '%s'
-      ", $is_admin, $chat_id, session_id());
+      ", $is_admin, $chat->ccid, session_id());
     }
     else {
       db_lock_table('chatroom_online_list');
-      $result = db_query("SELECT COALESCE(MAX(guest_id) + 1, 1) FROM {chatroom_online_list} WHERE ccid = %d", $chat_id);
+      $result = db_query("SELECT COALESCE(MAX(guest_id) + 1, 1) FROM {chatroom_online_list} WHERE ccid = %d", $chat->ccid);
       if ($result) {
         db_query("
           INSERT INTO {chatroom_online_list}
           (ccid, is_admin, sid, guest_id, modified)
           VALUES (%d, %d, '%s', %d, %d)
-        ", $chat_id, $is_admin, session_id(), db_result($result), time());
+        ", $chat->ccid, $is_admin, session_id(), db_result($result), time());
       }
       db_unlock_tables();
     }
