@@ -387,7 +387,7 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
       );
       return $blocks;
     case 'configure':
-      switch ($types[$delta][0]) {
+      switch ($types[$delta]) {
         case 'chats':
           $items = t('chats');
           break;
@@ -395,21 +395,21 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
           $items = t('chat rooms');
       }
       if (isset($items)) {
-        $form["chatroom_block_{$types[$delta][0]}"] = array(
+        $form["chatroom_block_{$types[$delta]}"] = array(
           '#type' => 'select',
           '#title' => t('Number of !items to display', array('!items' => $items)),
-          '#default_value' => variable_get("chatroom_block_{$types[$delta][0]}", 5),
+          '#default_value' => variable_get("chatroom_block_{$types[$delta]}", 5),
           '#options' => drupal_map_assoc(range(1, 15))
         );
         return $form;
       }
     case 'save':
-      variable_set("chatroom_block_{$types[$delta][0]}", $edit["chatroom_block_{$types[$delta][0]}"]);
+      variable_set("chatroom_block_{$types[$delta]}", $edit["chatroom_block_{$types[$delta]}"]);
       break;
     case 'view':
       if (user_access('access chat rooms')) {
-            return theme("chatroom_block_{$types[$delta][0]}");
-        switch ($types[$delta][0]) {
+            return theme("chatroom_block_{$types[$delta]}");
+        switch ($types[$delta]) {
           case 'command_list':
             return theme('chatroom_block_commands');
           case 'chats':
@@ -440,7 +440,7 @@ function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRU
   global $user;
   $sql = "
     SELECT cc.*, nr.title AS room_name, cr.nid FROM {chatroom_chat} cc
-    INNER JOIN {chatroom} cr ON cr.crid = cc.crid
+    INNER JOIN {chatroom} cr ON cr.nid = cc.crid
     INNER JOIN {node_revisions} nr ON nr.nid = cr.nid
     INNER JOIN {node} n ON n.nid = nr.nid
     WHERE cc.when_archived IS NULL

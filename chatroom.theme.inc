@@ -86,7 +86,7 @@ function theme_chatroom_block_chats() {
  */
 function theme_chatroom_block_rooms() {
   $content = '<ul class="menu" id="chatroom-sitewide-chatrooms">';
-  $rooms = chatroom_get_chatroom_list(FALSE, 0, variable_get('chatroom_block_chat_rooms', 5));
+  $rooms = chatroom_get_room_list(FALSE, 0, variable_get('chatroom_block_chat_rooms', 5));
   if (empty($rooms)) {
     $content .= '<li id="chatroom_empty"><em>'. t('There are no active chat rooms.') .'</em></li>';
   }
