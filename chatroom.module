@@ -1023,8 +1023,7 @@ function chatroom_load_chat($ccid) {
  */
 function chatroom_get_site_online_list($uid) {
   $users = array();
-  $time_period = 2 * variable_get('chatroom_block_update_interval', 5);
-  $result = db_query("SELECT uid, name FROM {users} WHERE access >= %d AND uid <> 0", time() - $time_period);
+  $result = db_query("SELECT uid, name FROM {users} WHERE access >= %d AND uid <> 0", time() - variable_get('session_write_interval', 180));
   while ($user = db_fetch_object($result)) {
     if ($uid != $user->uid) {
       $users[] = $user;
