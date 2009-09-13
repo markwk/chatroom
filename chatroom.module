@@ -358,7 +358,7 @@ function chatroom_archive_chat($chat_id) {
  * Implementation of hook_block().
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
-  $types = array('chats', 'rooms', 'chat_users', 'site_users', 'commands');
+  $types = array('chats', 'rooms', 'chat_users', 'site_users');
 
   switch ($op) {
     case 'list':
@@ -383,12 +383,6 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
       $blocks[3] = array(
         'info' => t('Chat room: site-wide user list'),
         'cache' => BLOCK_CACHE_GLOBAL,
-      );
-      $blocks[4] = array(
-        'info' => t('Chat room: chat commands'),
-        'cache' => BLOCK_CACHE_GLOBAL,
-        'visibility' => 1,
-        'pages' => 'chatroom/chat/*',
       );
       return $blocks;
 

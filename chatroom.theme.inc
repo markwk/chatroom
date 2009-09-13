@@ -11,7 +11,6 @@
  */
 function chatroom_theme() {
   // Blocks provided by the module.
-  $theme['chatroom_block_commands']   = array('arguments' => array());
   $theme['chatroom_block_chats']      = array('arguments' => array());
   $theme['chatroom_block_rooms']      = array('arguments' => array());
   $theme['chatroom_block_chat_users']  = array('arguments' => array('chat' => NULL));
@@ -33,24 +32,6 @@ function chatroom_theme() {
   $theme['chatroom_chat']             = array('arguments' => array('chat'));
   $theme['chatroom_chat_archive']     = array('arguments' => array('chat'));
   return $theme;
-}
-
-/**
- * Theme the chat commands block.
- *
- * @ingroup themeable
- */
-function theme_chatroom_block_commands() {
-  $content = '/msg <em>'. t('username') .'</em> '. t('message');
-  if (user_access('administer chats')) {
-    $content .= '<br />/kick <em>'. t('username') .'</em>';
-    $content .= '<br />/ban <em>'. t('username') .'</em>';
-  }
-  $content .= '<br />/me '. t('message');
-  $content .= '<br />/away';
-  $content .= '<br />/back';
-  $block = array('content' => $content, 'subject' => t('Chat commands'));
-  return $block;
 }
 
 /**
