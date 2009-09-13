@@ -149,7 +149,7 @@ function chatroom_update($node) {
       idle_freq = %d,
       old_msg_count = %d,
       kicked_out_message = '%s',
-      banned_message = '%s',
+      banned_message = '%s'
     WHERE nid = %d
   ", array(
     1000 * $node->poll_freq,
