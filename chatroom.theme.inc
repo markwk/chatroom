@@ -259,12 +259,7 @@ function theme_chatroom_list($rooms) {
       if (isset($room->chatroom->chats)) {
         foreach ($room->chatroom->chats as $id => $chat) {
           $description  = "<div>\n";
-          if (isset($chat->when_archived)) {
-            $description .= ' <div class="name">'. l($chat->chatname, "chatroom/archives/$chat->ccid") ."</div>\n";
-          }
-          else {
-            $description .= ' <div class="name">'. l($chat->chatname, "chatroom/chat/$chat->ccid") ."</div>\n";
-          }
+          $description .= ' <div class="name">'. l($chat->chatname, "chatroom/chat/$chat->ccid") ."</div>\n";
           $description .= "</div>\n";
 
           $row[] = array('data' => '&nbsp;');
@@ -306,7 +301,7 @@ function theme_chatroom_chat_banned_user($chat) {
  * @ingroup themeable
  */
 function theme_chatroom_chat($chat) {
-  $output = '<p>'. l(t('View old messages'), "chatroom/archive/{$chat->ccid}") .'</p>';
+  $output = '<p>'. l(t('View old messages'), "chatroom/chat/{$chat->ccid}") .'</p>';
   $output .= drupal_get_form('chatroom_chat_form', $chat);
   return $output;
 }
@@ -361,7 +356,6 @@ function theme_chatroom_chat_archive($chat) {
       }
     }
     $html .= '</tbody></table></div>';
-//  $limit = chatroom_chat_old_msg_limit($chat->ccid);
     $limit = 100;
     $html .= theme('pager', array(), $limit);
   }

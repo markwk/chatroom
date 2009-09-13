@@ -19,6 +19,9 @@ function chatroom_forms() {
   $forms['chatroom_archive_chat_form'] = array(
     'callback' => 'chatroom_archive_chat_form',
   );
+  $forms['chatroom_unarchive_chat_form'] = array(
+    'callback' => 'chatroom_unarchive_chat_form',
+  );
   $forms['chatroom_delete_chat_form'] = array(
     'callback' => 'chatroom_delete_chat_form',
   );
@@ -453,6 +456,37 @@ function chatroom_delete_chat_form_submit($form, &$form_state) {
   $chat = chatroom_load_chat($form_state['values']['ccid']);
   chatroom_chat_delete($form_state['values']['ccid']);
   $form_state['redirect'] = "node/$chat->nid";
+}
+
+/**
+ * Form to unarchived a chat.
+ *
+ * @param array $form_state
+ * @param integer $chat_id
+ * @return array
+ */
+function chatroom_unarchive_chat_form($form_state, $chat_id) {
+  $form['chat_id'] = array(
+    '#type' => 'value',
+    '#value' => $chat_id,
+  );
+  $form['unarchive'] = array(
+    '#type' => 'submit',
+    '#value' => t('Unarchive this chat'),
+  );
+  return $form;
+}
+
+/**
+ * Unarchive an open chat.
+ *
+ * @param array $form
+ * @param array $form_state
+ * @return string
+ */
+function chatroom_unarchive_chat_form_submit($form, &$form_state) {
+  chatroom_unarchive_chat($form_state['values']['chat_id']);
+  cache_clear_all(TRUE, 'cache_block');
 }
 
 /**
