@@ -73,12 +73,6 @@ function chatroom_menu() {
     'page arguments' => array(2),
     'access arguments' => array('access chat rooms'),
   );
-  $items['chatroom/archive/%'] = array(
-    'type' => MENU_CALLBACK,
-    'page callback' => 'chatroom_view_chat',
-    'page arguments' => array(2, TRUE),
-    'access arguments' => array('access chat rooms'),
-  );
   $items['chatroom/chat/%'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'chatroom_view_chat',
@@ -287,7 +281,7 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
   if ($page) {
     $bc = drupal_get_breadcrumb();
     if (!empty($bc)) {
-      $bc[] = l('Chat rooms', 'chatrooms');
+      $bc[] = l('Chat rooms', 'chatroom');
       drupal_set_breadcrumb($bc);
     }
   }
@@ -309,7 +303,7 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
         foreach ($node->chats as $chat) {
           $type = $chat->section == 'chat' ? 'open' : 'archived';
           $rows[$type][] = array(
-            array('data' => l($chat->chatname, "chatroom/$chat->section/$chat->ccid")),
+            array('data' => l($chat->chatname, "chatroom/chat/$chat->ccid")),
             array('data' => $chat->msg_count),
             array('data' => $chat->msg_info)
           );
@@ -343,7 +337,19 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
 }
 
 /**
- * Archive old chat.
+ * Unarchive old chat.
+ */
+function chatroom_unarchive_chat($chat_id) {
+  db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE ccid = %d', $chat_id);
+  $result = db_query('
+    UPDATE {chatroom_msg} SET archived = 0 WHERE ccid = %d
+  ', $chat_id);
+  cache_clear_all(TRUE, 'cache_block');
+  return $result;
+}
+
+/**
+ * Archive a chat.
  */
 function chatroom_archive_chat($chat_id) {
   db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE ccid = %d', time(), $chat_id);
@@ -580,6 +586,7 @@ function chatroom_view_chat($ccid = NULL, $archive = FALSE) {
       // Form to delete the archive.
       if (user_access('administer chat rooms')) {
         $content .= drupal_get_form('chatroom_delete_chat_form', $ccid);
+        $content .= drupal_get_form('chatroom_unarchive_chat_form', $ccid);
       }
     }
     return $content;
