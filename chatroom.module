@@ -359,6 +359,7 @@ function chatroom_archive_chat($chat_id) {
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
   $types = array('chats', 'rooms', 'chat_users', 'site_users', 'commands');
+
   switch ($op) {
     case 'list':
       $blocks[0] = array(
@@ -390,6 +391,7 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
         'pages' => 'chatroom/chat/*',
       );
       return $blocks;
+
     case 'configure':
       switch ($types[$delta]) {
         case 'chats':
@@ -407,33 +409,22 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
         );
         return $form;
       }
+      break;
+
     case 'save':
       variable_set("chatroom_block_{$types[$delta]}", $edit["chatroom_block_{$types[$delta]}"]);
       break;
+
     case 'view':
       if (user_access('access chat rooms')) {
-            return theme("chatroom_block_{$types[$delta]}");
         switch ($types[$delta]) {
-          case 'command_list':
-            return theme('chatroom_block_commands');
-          case 'chats':
-            return theme('chatroom_block_chats');
-          case 'chat_rooms':
-            $block = theme('chatroom_block_rooms');
-            break;
-          case 'online_chat_users':
-            $block = theme('chatroom_block_chat_online_list');
-            break;
-          case 'online_site_users':
-            global $user;
-            $block = theme('chatroom_block_site_online_list', $user->uid);
-            break;
-        }
-        if (!empty($block['content'])) {
-          chatroom_block_settings();
+          case 'chat_users':
+            return theme('chatroom_block_chat_users', chatroom_load_chat(arg(2)));
+
+          default:
+            return theme("chatroom_block_{$types[$delta]}");
         }
       }
-      return $block;
   }
 }
 

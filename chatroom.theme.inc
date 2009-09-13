@@ -14,8 +14,8 @@ function chatroom_theme() {
   $theme['chatroom_block_commands']   = array('arguments' => array());
   $theme['chatroom_block_chats']      = array('arguments' => array());
   $theme['chatroom_block_rooms']      = array('arguments' => array());
-  $theme['chatroom_block_chat_list']  = array('arguments' => array());
-  $theme['chatroom_block_site_list']  = array('arguments' => array());
+  $theme['chatroom_block_chat_users']  = array('arguments' => array('chat' => NULL));
+  $theme['chatroom_block_site_users']  = array('arguments' => array());
   // Message theming for display in an active chat.
   $theme['chatroom_messages']         = array('arguments' => array('messages'));
   $theme['chatroom_message']          = array('arguments' => array('message'));
@@ -107,21 +107,17 @@ function theme_chatroom_block_rooms() {
  *
  * @ingroup themeable
  */
-function theme_chatroom_block_chat_users() {
-  $chat_id = $matches[1];
-  $cache_file = _chatroom_get_cache_file("chat.$chat_id");
-  $cache_timestamp = @filemtime($cache_file);
-  $users = chatroom_chat_get_online_list($chat_id, $cache_timestamp, 0);
+function theme_chatroom_block_chat_users($chat) {
+  chatroom_load_users($chat);
   $title = '';
   $content = '';
-  if (!empty($users)) {
-    $chatname = db_result(db_query("SELECT chatname FROM {chatroom_chat} WHERE ccid = %d", $chat_id));
-    $title = t('Who is on line in %chat', array('%chat' => $chatname));
+  if (!empty($chat->users)) {
+    $title = t('Who is on line in %chat', array('%chat' => $chat->chatname));
     $content = '<ul class="menu" id="chatroom-online">';
-    foreach ($users as $user) {
-      $content .= '<li id="'. $user['guestId'] .'"';
-      $content .= $user['away'] ? ' class="chatroom-user-away">' : '>';
-      $content .= '<a href="javascript:Drupal.chatroom.chat.selectUser(\''. $user['user'] .'\')">'. $user['user'] .'</a></li>';
+    foreach ($chat->users as $chat_user) {
+      $content .= '<li id="'. $chat_user->guest_id .'"';
+      $content .= isset($chat_user->away) && $chat_user->away ? ' class="chatroom-user-away">' : '>';
+      $content .= $chat_user->name . '</li>';
     }
     $content .= '</ul>';
     if (variable_get('chatroom_alerts', FALSE)) {
@@ -144,7 +140,6 @@ function theme_chatroom_block_chat_users() {
  */
 function theme_chatroom_block_site_users() {
   global $user;
-  chatroom_site_update_online_time($user->uid);
   if ($users = chatroom_get_site_online_list($user->uid)) {
     foreach ($users as $chat_user) {
       $items[] = theme('username', $chat_user);
@@ -394,3 +389,4 @@ function theme_chatroom_chat_archive($chat) {
   }
   return $html;
 }
+
