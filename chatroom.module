@@ -28,6 +28,10 @@ function chatroom_help($path, $arg) {
  * Implementation of hook_access().
  */
 function chatroom_access($op, $node, $account) {
+  if (user_access('administer chat rooms', $account)) {
+    return TRUE;
+  }
+
   if ($op == 'create') {
     return user_access('create chat rooms', $account);
   }
