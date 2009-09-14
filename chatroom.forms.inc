@@ -178,6 +178,13 @@ function chatroom_admin_settings() {
     '#default_value' => variable_get('chatroom_max_message_size', 1000),
     '#size' => 20,
   );
+  $form['chatroom_chat_message_text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Chat message help text'),
+    '#description' => t('The text to be displayed next to the chat message form field.'),
+    '#default_value' => variable_get('chatroom_chat_message_text', t('Type your message and hit enter')),
+    '#size' => 20,
+  );
   $form['chatroom_chat_date_format'] = array(
     '#type' => 'textfield',
     '#title' => t('Chat date format'),
@@ -354,7 +361,7 @@ function chatroom_chat_form(&$form_state, $chat) {
   // Other form elements.
   $form['message'] = array(
     '#type' => 'textfield',
-    '#title' => t('Type your message'),
+    '#title' => variable_get('chatroom_chat_message_text', t('Type your message and hit enter')),
     '#size' => 50,
     '#maxlength' => variable_get('chatroom_max_message_length', 1000),
   );
