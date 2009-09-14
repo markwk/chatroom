@@ -497,13 +497,17 @@ function chatroom_js() {
   }
   $response['messages'] = theme('chatroom_messages', $chat->messages);
 
-  // TODO: logic to determine when to avoid this.
-
   chatroom_load_users($chat);
   $response['users'] = theme('chatroom_user_list', $chat->users);
 
   // Clear the 'control' element in the form.
   $response['control'] = '';
+
+  // Complete and utter hack to handle the case where a chat has been archived.
+  if ($chat->when_archived) {
+    drupal_set_message(t('This chat has been archived.'));
+    $response['control'] = '<script type="text/javascript">location.reload(true);</script>';
+  }
 
   $output = '';
   foreach($response as $key => $data) {
@@ -916,11 +920,13 @@ function chatroom_load_users(&$chat) {
  */
 function chatroom_save_message($chat, $message, $type = 'message', $recipient = '') {
   global $user;
-  db_query("
-    INSERT INTO {chatroom_msg}
-      (ccid, uid, msg_type, msg, sid, recipient, modified)
-    VALUES (%d, %d, '%s', '%s', '%s', '%s', %d)
-  ", $chat->ccid, $user->uid, $type, $message, session_id(), $recipient, time());
+  if ($chat->when_archived === NULL) {
+    db_query("
+      INSERT INTO {chatroom_msg}
+        (ccid, uid, msg_type, msg, sid, recipient, modified)
+      VALUES (%d, %d, '%s', '%s', '%s', '%s', %d)
+    ", $chat->ccid, $user->uid, $type, $message, session_id(), $recipient, time());
+  }
 }
 
 /**
