@@ -79,6 +79,12 @@ function chatroom_menu() {
     'page arguments' => array(2),
     'access arguments' => array('access chat rooms'),
   );
+  $items['chatroom/chat/%/delete'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('chatroom_delete_chat_confirm_form', 2),
+    'access arguments' => array('access chat rooms'),
+  );
   $items['chatroom/js'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'chatroom_js',

@@ -363,7 +363,7 @@ function chatroom_chat_form(&$form_state, $chat) {
     '#type' => 'textfield',
     '#title' => variable_get('chatroom_chat_message_text', t('Type your message and hit enter')),
     '#size' => 50,
-    '#maxlength' => variable_get('chatroom_max_message_length', 1000),
+    '#maxlength' => variable_get('chatroom_max_message_size', 1000),
   );
   $form['away'] = array(
      '#type' => 'checkbox',
@@ -468,6 +468,32 @@ function chatroom_delete_chat_form($form_state, $ccid = NULL) {
  * @return string
  */
 function chatroom_delete_chat_form_submit($form, &$form_state) {
+  drupal_goto('chatroom/chat/' . $form_state['values']['ccid'] . '/delete');
+}
+
+/**
+ * Show a confirm form if the user chooses to delete a chat.
+ */
+function chatroom_delete_chat_confirm_form($form_state, $chat_id) {
+  if ($chat = chatroom_load_chat($chat_id)) {
+    $form['ccid'] = array(
+      '#type' => 'value',
+      '#value' => $chat->ccid,
+    );
+    return confirm_form($form,
+      t('Are you sure you want to delete %title?', array('%title' => $chat->chatname)),
+      'chatroom/chat/'. $chat->ccid,
+      t('This action cannot be undone.'),
+      t('Delete'),
+      t('Cancel')
+    );
+  }
+}
+
+/**
+ * Actually delete the chat.
+ */
+function chatroom_delete_chat_confirm_form_submit($form, &$form_state) {
   $chat = chatroom_load_chat($form_state['values']['ccid']);
   chatroom_chat_delete($form_state['values']['ccid']);
   $form_state['redirect'] = "node/$chat->nid";
