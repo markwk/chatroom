@@ -363,7 +363,7 @@ function chatroom_chat_form(&$form_state, $chat) {
     '#type' => 'textfield',
     '#title' => variable_get('chatroom_chat_message_text', t('Type your message and hit enter')),
     '#size' => 50,
-    '#maxlength' => variable_get('chatroom_max_message_length', 1000),
+    '#maxlength' => variable_get('chatroom_max_message_size', 1000),
   );
   $form['away'] = array(
      '#type' => 'checkbox',
