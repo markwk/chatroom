@@ -1,0 +1,23 @@
+Chatroom module hacking notes
+-----------------------------
+
+1. Chats should be nodes.
+
+2. All simple read operations should hit chatroomread.php, and be as light as possible for cache misses.
+- a separate, very lightweight access check will be performed here
+
+3. All other operations should hit Drupal's standard menu system.
+- write a chat message
+- ban or kick a user
+- archive a chat
+- any '/command' requests
+
+4. Commands should be hookable, so that other modules can define commands and get control of the request
+   if the command they define is fired.
+
+5. The chat interface should work in a popup.
+
+6. The adhoc chats (1 - 1, or many people) should not require a chatroom.
+
+7. Adhoc chats and chats in chatrooms should be able to use an invite system.
+
