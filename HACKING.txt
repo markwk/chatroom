@@ -21,3 +21,9 @@ Chatroom module hacking notes
 
 7. Adhoc chats and chats in chatrooms should be able to use an invite system.
 
+8. Chatroom sounds should use a jquery plugin.
+
+9. Chatroom should come with full support for the smiley module.
+
+10. Chatroom modules should ship with views integration.
+
