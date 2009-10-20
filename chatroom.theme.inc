@@ -16,7 +16,6 @@ function chatroom_theme() {
   $theme['chatroom_block_chat_users']  = array('arguments' => array('chat' => NULL));
   $theme['chatroom_block_site_users']  = array('arguments' => array());
   // Message theming for display in an active chat.
-  $theme['chatroom_messages']         = array('arguments' => array('messages'));
   $theme['chatroom_message']          = array('arguments' => array('message'));
   // User list theming for display in an active chat.
   $theme['chatroom_user_list']        = array('arguments' => array('users'));
@@ -31,6 +30,7 @@ function chatroom_theme() {
   // Actual chats and archives.
   $theme['chatroom_chat']             = array('arguments' => array('chat'));
   $theme['chatroom_chat_archive']     = array('arguments' => array('chat'));
+  $theme['chatroom_buttons']      = array('arguments' => array('chat' => NULL));
   return $theme;
 }
 
@@ -141,12 +141,10 @@ function theme_chatroom_block_site_users() {
  *
  * @ingroup themeable
  */
-function theme_chatroom_messages($messages) {
+function theme_chatroom_messages(array $messages) {
   $output = '';
-  if (is_array($messages)) {
-    foreach($messages as $message) {
-      $output .= theme('chatroom_message', $message);
-    }
+  foreach($messages as $message) {
+    $output .= theme('chatroom_message', $message);
   }
   return $output;
 }
@@ -164,9 +162,15 @@ function theme_chatroom_last_message() {}
  * @ingroup themeable
  */
 function theme_chatroom_message($message) {
+  if (empty($message->name)) {
+    $message->user = variable_get('chatroom_guest_user_prefix', 'guest-');
+  }
+  else {
+    $message->user = l($message->name, 'user/'. $message->uid);
+  }
   $output = '<div class="chatroom-msg">';
-  $output .= '<strong>'. $message->content['user'] .':</strong> ';
-  $output .= $message->content['message'];
+  $output .= '<strong>' . $message->user . ':</strong> ';
+  $output .= check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
   $output .= '</div>';
   return $output;
 }
@@ -177,6 +181,7 @@ function theme_chatroom_message($message) {
  * @ingroup themeable
  */
 function theme_chatroom_user_list($users) {
+  $items = array();
   if (!empty($users)) {
     foreach ($users as $user) {
       $items[] = theme('username', $user);
@@ -300,10 +305,24 @@ function theme_chatroom_chat_banned_user($chat) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat($chat) {
-  $output = '<p>'. l(t('View old messages'), "chatroom/chat/{$chat->ccid}") .'</p>';
-  $output .= drupal_get_form('chatroom_chat_form', $chat);
+function theme_chatroom_chat($node) {
+  $output = theme('chatroom_user_list', $node->chat->users);
+  $output .= '<div id="chatroom-board">';
+  foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
+    $output .= theme('chatroom_message', $message); 
+  }
+  $output .= '</div>';
+  $output .= theme('chatroom_buttons', $node);
   return $output;
+}
+
+/**
+ * Theme chat buttons.
+ *
+ * @ingroup themeable
+ */
+function theme_chatroom_buttons($chat) {
+  return '<div id="chatroom-chat-buttons"><input id="chatroom-chat-message-submit" type="text" value="" /></div>';
 }
 
 /**

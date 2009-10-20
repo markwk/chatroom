@@ -27,3 +27,7 @@ Chatroom module hacking notes
 
 10. Chatroom modules should ship with views integration.
 
+11. Chatroom chats should use site-wide filters, configurable by the site admin.
+
+12. Chatroom should ship with apachesolr integration.
+

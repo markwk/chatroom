@@ -1,19 +1,14 @@
 <?php
 // $Id$
 
+require_once dirname(__FILE__) . '/chatroom.forms.inc';
+require_once dirname(__FILE__) . '/chatroom.theme.inc';
+
 /**
  * @file
  * Enable chat room support in Drupal.
  */
 
-/**
- * Implementation of hook_init().
- */
-function chatroom_init() {
-  module_load_include('inc', 'chatroom', 'chatroom.forms');
-  module_load_include('inc', 'chatroom', 'chatroom.theme');
-}
-  
 /**
  * Implementation of hook_help().
  */
@@ -28,19 +23,34 @@ function chatroom_help($path, $arg) {
  * Implementation of hook_access().
  */
 function chatroom_access($op, $node, $account) {
-  if (user_access('administer chat rooms', $account)) {
-    return TRUE;
-  }
-
-  if ($op == 'create') {
-    return user_access('create chat rooms', $account);
-  }
-
-  if ($op == 'update' || $op == 'delete') {
-    if (user_access('edit own chat rooms', $account) && ($account->uid == $node->uid)) {
+  $type = is_object($node) ? $node->type : $node;
+  if ($type == 'chatroom') {
+    if (user_access('administer chat rooms', $account)) {
       return TRUE;
     }
+    if ($op == 'create') {
+      return user_access('create chat rooms', $account);
+    }
+    if ($op == 'update' || $op == 'delete') {
+      if (user_access('edit own chat rooms', $account) && ($account->uid == $node->uid)) {
+        return TRUE;
+      }
+    }
   }
+  else if ($type == 'chat') {
+    if (user_access('administer chats', $account)) {
+      return TRUE;
+    }
+    if ($op == 'create') {
+      return user_access('create chats', $account);
+    }
+    if ($op == 'update' || $op == 'delete') {
+      if (user_access('edit own chats', $account) && ($account->uid == $node->uid)) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
 }
 
 /**
@@ -73,34 +83,19 @@ function chatroom_menu() {
     'page arguments' => array(2),
     'access arguments' => array('access chat rooms'),
   );
-  $items['chatroom/chat/%'] = array(
-    'type' => MENU_CALLBACK,
-    'page callback' => 'chatroom_view_chat',
-    'page arguments' => array(2),
+  $items['chatroom/chat/post/message/%node/%'] = array(
+    'page callback' => 'chatroom_chat_post_message',
+    'page arguments' => array(4, 5),
     'access arguments' => array('access chat rooms'),
+    'type' => MENU_CALLBACK,
   );
-  $items['chatroom/chat/%/delete'] = array(
-    'type' => MENU_CALLBACK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('chatroom_delete_chat_confirm_form', 2),
+  $items['chatroom/chat/get/latest/messages/%node/%'] = array(
+    'page callback' => 'chatroom_chat_get_latest_messages',
+    'page arguments' => array(5, 6),
     'access arguments' => array('access chat rooms'),
-  );
-  $items['chatroom/js'] = array(
     'type' => MENU_CALLBACK,
-    'page callback' => 'chatroom_js',
-    'access arguments' => array('access chat rooms'),
   );
   return $items;
-}
-
-/**
- * Implementation of hook_file_download().
- */
-function chatroom_file_download($file) {
-  // Ensure downloaded sounds have the correct MIME type.
-  if (strpos($file, 'chatroom/') === 0 && pathinfo($file, PATHINFO_EXTENSION) == 'mp3') {
-    return array('Content-type: audio/mpeg');
-  }
 }
 
 /**
@@ -112,6 +107,11 @@ function chatroom_node_info() {
       'name' => t('Chat room'),
       'module' => 'chatroom',
       'description' => t('A chat room provides access to chats and chat archives.'),
+    ),
+    'chat' => array(
+      'name' => t('Chat'),
+      'module' => 'chatroom_chat',
+      'description' => t('A chat provides the chat interface.'),
     ),
   );
 }
@@ -143,7 +143,7 @@ function chatroom_insert($node) {
  */
 function chatroom_update($node) {
   db_query("
-    UPDATE {chatroom}
+    UPDATE {chatroom_chat}
     SET
       poll_freq = %d,
       idle_freq = %d,
@@ -189,15 +189,12 @@ function chatroom_delete(&$node) {
   db_query('DELETE FROM {chatroom} WHERE nid = %d', $node->nid);
   db_query("DELETE FROM {chatroom_chat} WHERE crid = %d", $node->nid);
   db_query('DELETE FROM {chatroom_ban_list} WHERE crid = %d', $node->nid);
-  // 
   if (!empty($node->chats)) {
     $ccids = implode(',', array_keys($node->chats));
     db_query('DELETE FROM {chatroom_msg} WHERE ccid IN (%s)', $ccids);
     db_query('DELETE FROM {chatroom_online_list} WHERE ccid IN (%s)', $ccids);
   }
   cache_clear_all(TRUE, 'cache_block');
-  // Clear cache related to this chat.
-  // cache_clear_all(TRUE, 'cache_chat');
 }
 
 /**
@@ -261,25 +258,64 @@ function chatroom_load($node) {
 }
 
 /**
- * Gets a list of banned users for a given chat room.
+ * Chatroom chat node hook functions.
  */
-function chatroom_get_banned_users($room) {
-  $banned_users = array();
-  $result = db_query("
-    SELECT bl.uid, u.name FROM {chatroom_ban_list} bl
-    INNER JOIN {users} u ON u.uid = bl.uid
-    WHERE bl.nid = %d
-  ", $room->nid);
-  while ($user = db_fetch_object($result)) {
-    $banned_users[$user->uid] = $user;
+/**
+ * Implementation of hook_insert().
+ */
+function chatroom_chat_insert($node) {
+  $chat = array(
+    'nid' => $node->nid,
+    'crid' => isset($node->crid) ? $node->crid : 0,
+    'poll_freq' => $node->poll_freq,
+    'idle_freq' => $node->idle_freq,
+    'kicked_out_message' => $node->kicked_out_message,
+    'banned_message' => $node->banned_message,
+    'module' => isset($node->module) ? $node->module : 'chatroom',
+    'previous_messages_display_count' => $node->previous_messages_display_count,
+    'popout' => $node->popout,
+  );
+  drupal_write_record('chatroom_chat', $chat);
+}
+
+/**
+ * Implementation of hook_update().
+ */
+function chatroom_chat_update($node) {
+}
+
+/**
+ * Implementation of hook_delete().
+ */
+function chatroom_chat_delete(&$node) {
+  db_query('DELETE FROM {chatroom_chat} WHERE ccid = %d', $chat_id);
+  db_query('DELETE FROM {chatroom_online_list} WHERE ccid = %d', $chat_id);
+}
+
+/**
+ * Implementation of hook_load().
+ */
+function chatroom_chat_load($node) {
+  $chat = new StdClass();
+  if ($chat->chat = db_fetch_object(db_query("SELECT * FROM {chatroom_chat} WHERE nid = %d", $node->nid))) { 
+    $chat->chat->users = chatroom_load_users($node);
+    $chat->chat->chatroom = node_load($chat->chat->crid);
+    $chat->chat->latest_msg_id = chatroom_chat_get_latest_message_id($node->nid);
+    return $chat;
   }
-  return $banned_users;
+}
+
+/**
+ * Get the latest message id for a given chat.
+ * 
+ * @param mixed $chat_id 
+ */
+function chatroom_chat_get_latest_message_id($chat_id) {
+  return db_result(db_query("SELECT cmid FROM {chatroom_msg} WHERE ccid = %d ORDER BY cmid DESC LIMIT 1", $chat_id));
 }
 
 /**
  * Implementation of hook_view().
- *
- * List active and archived chats in a chatroom.
  */
 function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
   $node = node_prepare($node);
@@ -340,6 +376,63 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
     }
   }
   return $node;
+}
+
+/**
+ * Implementation of hook_view().
+ */
+function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
+  if (!$teaser && $page) {
+    // Common features for any chat: CSS, breadcrumb, page title
+    drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
+    $bc = drupal_get_breadcrumb();
+    $bc[] = l($node->title, "node/$node->nid");
+    drupal_set_breadcrumb($bc);
+    drupal_set_title(check_plain($node->title));
+
+    // Display a message if the user is banned.
+    if (chatroom_is_banned_user($node)) {
+      $content = theme('chatroom_chat_banned_user', $node);
+    }
+    elseif (!isset($chat->when_archived)) {
+      chatroom_chat_register_user($node);
+      chatroom_add_js($node);
+      $content = theme('chatroom_chat', $node);
+
+      if (user_access('administer chat rooms')) {
+        $content .= drupal_get_form('chatroom_archive_chat_form', $node->nid);
+        $content .= drupal_get_form('chatroom_delete_chat_form', $node->nid);
+      }
+    }
+    else {
+      $content = theme('chatroom_chat_archive', $chat);
+      if (user_access('administer chat rooms')) {
+        $content .= drupal_get_form('chatroom_delete_chat_form', $ccid);
+        $content .= drupal_get_form('chatroom_unarchive_chat_form', $ccid);
+      }
+    }
+  }
+  else {
+    $content = '<p>' . $node->body . '</p>';
+  }
+  $node->content['chatroom_chat_interface'] = array('#value' => $content);
+  return $node; 
+}
+
+/**
+ * Gets a list of banned users for a given chat room.
+ */
+function chatroom_get_banned_users($room) {
+  $banned_users = array();
+  $result = db_query("
+    SELECT bl.uid, u.name FROM {chatroom_ban_list} bl
+    INNER JOIN {users} u ON u.uid = bl.uid
+    WHERE bl.nid = %d
+  ", $room->nid);
+  while ($user = db_fetch_object($result)) {
+    $banned_users[$user->uid] = $user;
+  }
+  return $banned_users;
 }
 
 /**
@@ -472,59 +565,6 @@ function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRU
 }
 
 /**
- * Handle AHAH requests.
- */
-function chatroom_js() {
-
-  $chat = chatroom_load_chat($_POST['ccid']);
-  $chat->messages = array();
-
-  // Act on commands
-  switch ($_POST['control']) {
-    case 'message':
-      // Save message.
-      chatroom_save_message($chat, $_POST['message']);
-      break;
-    case 'status':
-    case 'poll':
-    default:
-      // Do nothing.
-      break;
-  }
-  if (isset($_POST['away'])) {
-    chatroom_update_online_time($chat, $_POST['away']);
-  }
-  else {
-    chatroom_update_online_time($chat);
-  }
-
-  if ($last_cmid = chatroom_load_messages($chat, $_POST['last_cmid'])) {
-    $response['last-cmid'] = $last_cmid;
-  }
-  $response['messages'] = theme('chatroom_messages', $chat->messages);
-
-  chatroom_load_users($chat);
-  $response['users'] = theme('chatroom_user_list', $chat->users);
-
-  // Clear the 'control' element in the form.
-  $response['control'] = '';
-
-  // Complete and utter hack to handle the case where a chat has been archived.
-  if ($chat->when_archived) {
-    drupal_set_message(t('This chat has been archived.'));
-    $response['control'] = '<script type="text/javascript">location.reload(true);</script>';
-  }
-
-  $output = '';
-  foreach($response as $key => $data) {
-    $output .= '<div class="ahah-response" id="response-'. $key .'">'. $data .'</div>';
-  }
-
-  print drupal_to_js(array('status' => TRUE, 'data' => $output));
-  exit;
-}
-
-/**
  * Menu callback; a page listing all chat rooms.
  */
 function chatroom_page() {
@@ -538,9 +578,9 @@ function chatroom_page() {
  * tells a kicked out user not to be a knob
  */
 function chatroom_chat_kicked_user($chat_id = FALSE) {
-  if ($chat = chatroom_load_chat($chat_id)) {
+  if ($chat = node_load($chat_id)) {
     if (isset($chat->when_archived)) {
-      drupal_goto("chatrooms/archives/$chat_id", NULL, NULL, 301);
+      drupal_goto("chatrooms/chat/$chat_id", NULL, NULL, 301);
     }
     else {
       if (chatroom_is_banned_user($chat)) {
@@ -558,128 +598,50 @@ function chatroom_chat_kicked_user($chat_id = FALSE) {
 }
 
 /**
- * Menu callback; display an active or archived chat.
- */
-function chatroom_view_chat($ccid = NULL, $archive = FALSE) {
-  if ($chat = chatroom_load_chat($ccid)) {
-    // Common features for any chat: CSS, breadcrumb, page title
-    drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
-    $bc = drupal_get_breadcrumb();
-    $bc[] = l($chat->chatroom_name, "node/$chat->nid");
-    drupal_set_breadcrumb($bc);
-    drupal_set_title(check_plain($chat->chatname));
-    $content = '';
-    // Display a message if the user is banned.
-    if (chatroom_is_banned_user($chat)) {
-      $content .= theme('chatroom_chat_banned_user', $chat);
-    }
-    elseif (!isset($chat->when_archived) && !$archive) {
-      // Automatically archive old messages
-      if (variable_get('chatroom_auto_archive', FALSE)) {
-        chatroom_archive_old_msgs($chat);
-      }
-      // Register the user.
-      chatroom_chat_register_user($chat);
-      // Add AJAX code.
-      chatroom_add_js($chat);
-      // chatroom_chat_settings($chat);
-      $content .= theme('chatroom_chat', $chat);
-      // Forms to archive or delete the chat.
-      if (user_access('administer chat rooms')) {
-        $content .= drupal_get_form('chatroom_archive_chat_form', $ccid);
-        $content .= drupal_get_form('chatroom_delete_chat_form', $ccid);
-      }
-    }
-    else {
-      // Display an archived chat.
-      $content .= theme('chatroom_chat_archive', $chat);
-      // Form to delete the archive.
-      if (user_access('administer chat rooms')) {
-        $content .= drupal_get_form('chatroom_delete_chat_form', $ccid);
-        $content .= drupal_get_form('chatroom_unarchive_chat_form', $ccid);
-      }
-    }
-    return $content;
-  }
-  else {
-    drupal_not_found();
-  }
-}
-
-/**
  * Move old messages to archive.
  */
 function chatroom_archive_old_msgs($chat_id) {
-  if ($chat_id != FALSE) {
-    global $user;
-    $msgs = chatroom_chat_get_latest_msgs($chat_id, $user->uid);
-    $result = db_query("
-      INSERT INTO {chatroom_msg_archive}
-      (cmid, ccid, uid, msg_type, msg, session_id, recipient, modified)
-      SELECT * FROM {chatroom_msg}
-      WHERE ccid = %d AND cmid < %d
-    ", $chat_id, $msgs[0]['id']);
-    if ($result) {
-      db_query("DELETE FROM {chatroom_msg} WHERE ccid = %d AND cmid < %d", $chat_id, $msgs[0]['id']);
-    }
-  }
+  db_query("UPDATE {chatroom_msg} set archived = 1 WHERE ccid = %d", $chat_id);
 }
 
 /**
  * Handles update or insert for user when loading a chat room.
- *
- * mysql 3.23 compatability patch form pacheco - thanks!
- * http://drupal.org/node/70949
  */
-function chatroom_chat_register_user(StdClass $chat) {
+function chatroom_chat_register_user($chat) {
   global $user;
-  $count = db_result(db_query_range("
-    SELECT COUNT(*) FROM {chatroom_online_list}
-    WHERE ccid = %d AND sid = '%s'
-  ", $chat->ccid, session_id(), 0, 1));
-  if ($count) {
-    chatroom_update_online_time($chat);
+  $session_id = session_id();
+  $exists = db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $chat->nid, $session_id));
+  if ($exists) {
+    db_query("
+      UPDATE {chatroom_chat_online_list} 
+      SET last_seen_time = %d
+      WHERE ccid = %d AND sid = '%s' 
+    ", time(), $chat->nid, $session_id);
   }
   else {
-    $is_admin = user_access('administer chats');
-    $count = db_result(db_query_range("
-      SELECT COUNT(*) FROM {chatroom_online_list}
-      WHERE ccid = %d AND sid = '%s'
-    ", $chat->ccid, session_id(), 0, 1));
-    if ($count) {
-      db_query("
-        UPDATE {chatroom_online_list} SET is_admin = %d
-        WHERE ccid = %d AND sid = '%s'
-      ", $is_admin, $chat->ccid, session_id());
-    }
-    else {
-      db_lock_table('chatroom_online_list');
-      $result = db_query("SELECT COALESCE(MAX(guest_id) + 1, 1) FROM {chatroom_online_list} WHERE ccid = %d", $chat->ccid);
-      if ($result) {
-        db_query("
-          INSERT INTO {chatroom_online_list}
-          (ccid, is_admin, sid, guest_id, modified)
-          VALUES (%d, %d, '%s', %d, %d)
-        ", $chat->ccid, $is_admin, session_id(), db_result($result), time());
-      }
-      db_unlock_tables();
-    }
+    db_query("
+      INSERT INTO {chatroom_chat_online_list}
+      (ccid, sid, last_seen_time)
+      VALUES (%d, '%s', %d)
+    ", $chat->nid, $session_id, time());
   }
 }
 
 /**
  * Add settings to chat page.
  */
-function chatroom_add_js($chat) {
+function chatroom_add_js($node) {
   global $user;
 
-  $module_path = drupal_get_path('module', 'chatroom');
   // Settings for chatroom.js. Variables which change during a chat session are
   // included in AHAH replies from chatroom_js(), and handled by code in
   // chatroom.js, so they are not duplicated here.
   $js = array(
-    'pollInterval' => (int) $chat->poll_freq,
-    'idleInterval' => (int) $chat->idle_freq,
+    'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
+    'idleInterval' => (int) $node->chat->idle_freq,
+    'chatId'       => (int) $node->nid,
+    'cacheDirectory' => variable_get('chatroom_cache_directory', '/tmp'), 
+    'postMessagePath' => 'chatroom/chat/post/message',
   );
   // Timezones setting.
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -688,107 +650,23 @@ function chatroom_add_js($chat) {
   else {
     $js['timezone'] = variable_get('date_default_timezone', 0);
   }
-  // Sound files for audio alerts.
-  $alerts = variable_get('chatroom_alerts', FALSE);
-  if ($alerts) {
-    $js['sm2URL'] = base_path() . $module_path;
-    $file_path = file_directory_path() .'/chatroom';
-    if (variable_get('chatroom_custom_sounds', FALSE)) {
-      $js['messageSound'] = file_exists("$file_path/message.mp3") ? file_create_url("$file_path/message.mp3") : "$module_path/sounds/message.mp3";
-      $js['userSound'] = file_exists("$file_path/user.mp3") ? file_create_url("$file_path/user.mp3") : "$module_path/sounds/user.mp3";
-    }
-    else {
-      $js['messageSound'] = base_path() ."$module_path/sounds/message.mp3";
-      $js['userSound'] = base_path() ."$module_path/sounds/user.mp3";
-    }
+  if (isset($node->chat, $node->chat->latest_msg_id)) {
+    $js['latestMsgId'] = $node->chat->latest_msg_id;
   }
-  // Smileys settings. TODO: make this work.
-  if (function_exists('_smileys_list') && variable_get('chatroom_smileys_enabled', FALSE)) {
-    $js['smileysBase'] = drupal_get_path('module', 'smileys');
-    $js['smileysMarker'] = '------';
-  }
-  // Avoid overwriting existing settings.
-  $drupal_js = drupal_add_js();
-  if (isset($drupal_js['setting']['chatroom']) && is_array($drupal_js['setting']['chatroom'])) {
-    foreach ($js as $key => $value) {
-      if (array_key_exists($key, $drupal_js['setting']['chatroom'])) {
-        unset($js[$key]);
-      }
-    }
-  }
+
   // Add scripts and settings.
-  drupal_add_js("$module_path/chatroom.js");
-  if ($alerts) {
-    drupal_add_js("$module_path/soundmanager2.js");
-  }
+  drupal_add_js(drupal_get_path('module', 'chatroom') . "/chatroom.js");
   drupal_add_js(array('chatroom' => $js), 'setting');
-}
-
-/**
- * Get an array of dark hex values for user colours.
- */
-function _chatroom_load_hex_colours() {
-  $colours = array();
-  $hex = array('00', '33', '66', '99', 'CC', 'FF');
-  foreach ($hex as $rkey => $rvalue) {
-    foreach ($hex as $gkey => $gvalue) {
-      foreach ($hex as $bkey => $bvalue) {
-        if ($rkey + $gkey + $bkey + 3 < 8) {
-          $colour->colour = '#'. $rvalue . $gvalue . $bvalue;
-          $colour->unUsed = TRUE;
-          $colours[] = $colour;
-        }
-      }
-    }
-  }
-  return $colours;
-}
-
-/**
- * smileys module support
- * return text entry smileys list
- */
-function chatroom_smileys_get_textentry() {
-  if (function_exists('_smileys_list') && variable_get('chatroom_smileys_enabled', FALSE)) {
-    $hidden = variable_get('chatroom_smileys_showtextentry', FALSE) ? '' : '-hidden';
-    $content = '<div class="chatroom-textentry-smileys'. $hidden .'">';
-    $list = _smileys_list();
-    foreach ($list as $smiley) {
-      $acronym = array_shift(explode(' ', $smiley->acronyms));
-      $content .= $hidden ? '' : '<a href="javascript:Drupal.chatroom.chat.smileyInsert(\''. $acronym .'\')">';
-      $content .= '<img id="_'. md5($acronym) .'" ';
-      $content .= 'src="'. check_url(base_path() . $smiley->image) .'" ';
-      $content .= 'title="'. check_plain($smiley->acronyms) .'" ';
-      $content .= 'alt="'. $acronym .'" />';
-      $content .= $hidden ? '' : '</a>';
-    }
-    $content .= '</div>';
-    return $content;
-  }
-}
-
-/**
- * delete a single chat from the database
- *
- * @param int $chat_id
- * @return mixed
- */
-function chatroom_chat_delete($chat_id) {
-  db_query('DELETE FROM {chatroom_chat} WHERE ccid = %d', $chat_id);
-  db_query('DELETE FROM {chatroom_online_list} WHERE ccid = %d', $chat_id);
 }
 
 /**
  * Get messages for a given chat.
  *
- * @param &$chat
- *   The chat object to load messages into.
+ * @param $chat_id
+ *   The chat id.
  * @param $last_cmid
  *   Only load messages with cmids greater than this value. If nonzero, then 
- *   $archived = FALSE and $limit = FALSE are assumed. Default: 0 (load all
- *   messages).
- * @param $archived
- *   Include archived messages. Default: FALSE.
+ *   $limit = FALSE is assumed. Default: 0 (load all messages).
  * @param $limit
  *   Limit the total number of messages to the old_msg_limit of the chatroom.
  *   Default: FALSE.
@@ -796,115 +674,60 @@ function chatroom_chat_delete($chat_id) {
  *   The highest cmid of if any messages were loaded; FALSE if no messages were
  *   loaded.
 */
-function chatroom_load_messages(&$chat, $last_cmid = 0, $archived = FALSE, $limit = FALSE) {
-  // Load the chatroom for relevant settings.
-  $chat->chatroom = node_load($chat->nid);
-  // Avoid multiple function calls.
-  $sid = session_id();
-  // Basic query.
+function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
+
   $query = '
     SELECT
       cm.*,
-      col.guest_id,
       u.name
     FROM {chatroom_msg} cm
-    LEFT JOIN {chatroom_online_list} col
+    LEFT JOIN {chatroom_chat_online_list} col
       ON col.sid LIKE cm.sid AND col.ccid = cm.ccid
     LEFT JOIN {users} u ON u.uid = cm.uid
     WHERE cm.ccid = %d
+    AND cm.cmid > %d
+    ORDER BY cmid ASC
   ';
-  $query_args = array($chat->ccid);
-  // TODO: document what this does. What is the logic behind the below?
-  // Select:
-  //  * Messages to everyone (no set recipient)
-  //  * Messages from the current session
-  //  * Messages to the current user?
-  //  * Messages from the current user
-//  $query .= "
-//    AND (
-//      cm.recipient LIKE ''
-//      OR cm.sid LIKE '%s'
-//      OR cm.recipient LIKE ANY (
-//        SELECT guest_id FROM {chatroom_online_list} col
-//        LEFT JOIN {sessions} s ON s.sid = col.sid
-//        WHERE col.sid LIKE '%s' OR (s.uid = %d AND s.uid > 0)
-//      )
-//      OR (cm.uid = %d AND cm.uid > 0)
-//    )
-//  ";
-//  array_push($query_args, $sid, $sid, $user->uid, $user->uid);
-  // Exclude archived messages.
-  if ($last_cmid != 0) {
-    $query .= ' AND cm.archived = 0 AND cm.cmid > %d';
-    $query_args[] = $last_cmid;
-  }
-  $query .= ' ORDER BY cmid DESC';
+  $query_args = array($chat_id, $last_cmid);
+
   // Limit number of messages, e.g. on initial display of a chatroom.
   if ($last_cmid == 0 && $limit) {
     $query .= ' LIMIT %d';
-    $query_args[] = $chat->old_msg_count;
+    $query_args[] = $limit;
   }
 
   // Give third-party modules a chance to modify query.
-  $query = db_rewrite_sql($query, 'cm', 'cmid', array('chatroom_msg' => TRUE));
+  $result = db_query(db_rewrite_sql($query, 'cm', 'cmid', array('chatroom_msg' => TRUE)), $query_args);
 
-  // Query and process results
-  $result = db_query($query, $query_args);
   $messages = array();
-  $max_cmid = 0;
   while ($message = db_fetch_object($result)) {
-    _chatroom_message_prepare($message);
-    $max_cmid = ($message->cmid > $max_cmid) ? $message->cmid : $max_cmid;
-    array_unshift($messages, $message);
+    file_put_contents('/home/justin/logs/chat.debug', "$last_cmid: " . print_r($message, TRUE), FILE_APPEND);
+    $messages[] = $message;
   }
-  // Assign any messages to the chat object and return.
-  $chat->messages = array();
-  if ($result !== FALSE && !empty($messages)) {
-    $chat->messages = $messages;
-    return $max_cmid;
-  }
-  else {
-    return FALSE;
-  }
+  return $messages;
 }
 
 /**
  * Load online users for the given chat.
  */
-function chatroom_load_users(&$chat) {
+function chatroom_load_users($chat) {
   global $user;
-  // Time out users
-  $result = db_query("
-    DELETE FROM {chatroom_online_list}
-    WHERE
-      modified < %d - ((
-        SELECT cr.poll_freq
-        FROM {chatroom_chat} cc
-        JOIN {chatroom} cr ON cr.nid = cc.crid
-        WHERE cc.ccid = %d
-      )/100)
-      AND away = 0
-      AND ccid = %d
-    ", time(), $chat->ccid, $chat->ccid);
-  // Load users
   $sql = "
     SELECT
       s.uid,
-      u.name,
-      col.guest_id
-    FROM {chatroom_online_list} col
-    JOIN {sessions} s ON s.sid = col.sid
+      u.name
+    FROM {chatroom_chat_online_list} col
+    INNER JOIN {sessions} s ON s.sid = col.sid
     LEFT JOIN {users} u ON u.uid = s.uid
     WHERE col.ccid = %d
     ORDER BY u.name ASC
   ";
-
-  $sql = db_rewrite_sql($sql, 'col', 'sid', array('chatroom_online_list' => TRUE));
-  $result = db_query($sql, $chat->ccid);
+  $sql = db_rewrite_sql($sql, 'col', 'sid', array('chatroom_chat_online_list' => TRUE));
+  $result = db_query($sql, $chat->nid);
   $users = array();
   while ($u = db_fetch_object($result)) {
     if (empty($u->uid)) {
-      $u->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $u->guest_id;
+      $u->name = variable_get('chatroom_guest_user_prefix', 'guest-');
     }
     if ($u->uid != $user->uid) {
       array_unshift($users, $u);
@@ -913,129 +736,15 @@ function chatroom_load_users(&$chat) {
       $users[] = $u;
     }
   }
-  if ($result !== FALSE) {
-    $chat->users = $users;
-  }
-  else {
-    return FALSE;
-  }
-}
-
-/**
- * Save a message to the database.
- */
-function chatroom_save_message($chat, $message, $type = 'message', $recipient = '') {
-  global $user;
-  if ($chat->when_archived === NULL) {
-    db_query("
-      INSERT INTO {chatroom_msg}
-        (ccid, uid, msg_type, msg, sid, recipient, modified)
-      VALUES (%d, %d, '%s', '%s', '%s', '%s', %d)
-    ", $chat->ccid, $user->uid, $type, $message, session_id(), $recipient, time());
-  }
-}
-
-/**
- * Prepare a message to be themed.
- *
- * This function is analogous to but NOT an implementation of hook_prepare().
- */
-function _chatroom_message_prepare(&$message) {
-  // Array for display content.
-  $message->content = array();
-  if (empty($message->name)) {
-    // Guest name.
-    $message->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $message->guest_id;
-    $message->content['user'] = $message->name;
-  }
-  else {
-    // Link to user profile.
-    $message->content['user'] = l($message->name, 'user/'. $message->uid);
-  }
-  // Date. TODO: use configurable date.
-  $message->content['timestamp'] = format_date($message->modified);
-  // Apply filters to message. TODO: determine if this includes smileys.
-  $message->content['message'] = check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
+  return $users;
 }
 
 /**
  * updates chat's cache file modified time
  */
-function chatroom_chat_update_cache($cache_file) {
-  if (@touch($cache_file)) {
-    return @filemtime($cache_file);
-  }
-  return FALSE;
+function chatroom_chat_update_cache($cache_file, $latest_msg_id) {
+  @file_put_contents($cache_file, "$latest_msg_id\n");
 }
-
-/**
- * Update the online timestamp value for the current user
- */
-function chatroom_update_online_time($chat, $away = FALSE) {
-  db_query("
-    UPDATE {chatroom_online_list}
-    SET modified = %d, away = %d
-    WHERE ccid = %d AND sid = '%s'
-  ", time(), $away, $chat->ccid, session_id());
-}
-
-/**
- * smileys module support - process smileys filtering
- * this is modified from smileys.module
- * - because we don't have full bootstrap
- * - because we don't want to send html, just data about image
- */
-function chatroom_smileys_filter_process($text) {
-  if (function_exists('_smileys_list') && variable_get('chatroom_smileys_enabled', FALSE)) {
-    $text = ' '. $text .' ';
-    $list = _smileys_list();
-    $marker = '------';
-    foreach ($list as $smiley) {
-      $acronyms = explode(" ", $smiley->acronyms);
-      $alt = str_replace('\\', '\\\\', check_plain($smiley->description));
-      foreach ($acronyms as $acronym) {
-        if ($smiley->standalone) {
-          $replace = "\\1{$marker}_". md5($acronyms[0]) ."$marker\\2";
-          $text = eregi_replace("([ ,\.\?!:\(\)\r\n\<\>])". preg_quote($acronym) ."([ ,\.\?!:\(\)\r\n\<\>])", $replace, $text);
-        }
-        else {
-          $replace = $marker .'_'. md5($acronyms[0]) . $marker;
-          $text = eregi_replace(preg_quote($acronym), $replace, $text);
-        }
-      }
-    }
-    $text = drupal_substr($text, 1, -1);
-  }
-  return $text;
-}
-
-/**
- * Returns a chat room object for $ccid.
- */
-function chatroom_load_chat($ccid) {
-  if (is_numeric($ccid)) {
-    $result = db_query_range("
-      SELECT
-        cc.*,
-        n.title AS chatroom_name,
-        n.nid,
-        cr.poll_freq,
-        cr.idle_freq,
-        cr.old_msg_count,
-        cr.kicked_out_message,
-        cr.banned_message
-      FROM {chatroom_chat} cc
-      INNER JOIN {chatroom} cr ON cr.nid = cc.crid
-      INNER JOIN {node} n ON n.nid = cr.nid
-      WHERE cc.ccid = %d
-    ", $ccid, 0, 1);
-    return db_fetch_object($result);
-  }
-  else {
-    return FALSE;
-  }
-}
-
 
 /**
  * gets a list of online users, not including the current user
@@ -1062,11 +771,7 @@ function chatroom_is_banned_user($room) {
     return in_array($user->uid, array_keys($room->banned_list));
   }
   else {
-    $result = db_query_range("
-      SELECT COUNT(nid) FROM {chatroom_ban_list}
-      WHERE nid = %d AND uid = %d
-    ", $room->nid, $user->uid, 0, 1);
-    return db_result($result);
+    return db_result(db_query("SELECT nid FROM {chatroom_ban_list} WHERE nid = %d AND uid = %d", $room->nid, $user->uid));
   }
 }
 
@@ -1110,38 +815,33 @@ function _chatroom_get_online_list($chat) {
   $users = array();
   // No users in an archived chat.
   if ($chat = chatroom_load_chat($ccid) && !isset($chat->when_archived)) {
-    // Update the 'modified' time of the chat to match the cache (???)
-/*
-    $cache_timestamp = empty($cache_timestamp) ? time() : $cache_timestamp;
-    if ($cache_timestamp < time() - 5) {
-      db_query("UPDATE {chatroom_chat} SET modified = %d WHERE ccid = %d", $cache_timestamp, $ccid);
-    }
-*/
     $result = db_query("
       SELECT
-        col.sid, col.guest_id, col.away,
+        col.sid, 
+        col.away,
         cc.chatname,
-        u.uid, u.name
+        u.uid, 
+        u.name
       FROM {chatroom_online_list} col
       INNER JOIN {chatroom_chat} cc ON cc.ccid = col.ccid
       INNER JOIN {sessions} s ON s.sid = col.sid
       LEFT JOIN {users} u ON u.uid = s.uid
       WHERE col.ccid = %d AND col.modified > cc.modified
     ", $chat->ccid);
-    while ($user = db_fetch_object($result)) {
+    while ($chat_user = db_fetch_object($result)) {
       // Format the user or guest name.
-      if (empty($user->name)) {
-        $user->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $row->guest_id;
+      if (empty($chat_user->name)) {
+        $chat_user->name = variable_get('chatroom_guest_user_prefix', 'guest-');
       }
       else {
-        $user->name = check_plain($user->name);
+        $chat_user->name = check_plain($user->name);
       }
       // Store the current user separately.
-      if ($user->sid == session_id()) {
-        $current_user = $user;
+      if ($chat_user->sid == session_id()) {
+        $current_user = $chat_user;
       }
       else {
-        $users[] = $user;
+        $users[] = $chat_user;
       }
     }
     // Add the current user at the head of the list.
@@ -1150,5 +850,124 @@ function _chatroom_get_online_list($chat) {
     }
   }
   return $users;
+}
+
+/**
+ * Get the latest messages for a chat, and send back to the client.
+ */
+function chatroom_chat_get_latest_messages($node, $last_msg_id) {
+  global $user;
+  
+  if ($node->chat->when_archived) {
+    $response['archived'] = $node->chat->when_archived;
+    drupal_set_message(t('This chat has been archived.'));
+  }
+  else {
+    $response['messages'] = array();
+    foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
+      $msg = new StdClass();
+      $msg->html = theme('chatroom_message', $message);
+      $msg->cmid = $message->cmid;
+      $response['messages'][] = $msg;
+    }
+    $response['usersHtml'] = theme('chatroom_user_list', $node->chat->users);
+  }
+  print drupal_to_js(array('data' => $response));
+}
+
+/**
+ * Posted messages are handled here.
+ * 
+ * @return void
+ */
+function chatroom_chat_post_message($node, $last_msg_id) {
+  global $user;
+
+  // Check we have a message posted.
+  if (!isset($_POST['message'])) {
+    exit;
+  }
+  
+  // Write the message to the chat.
+  $message = array(
+    'ccid' => $node->chat->nid, 
+    'uid' => $user->uid, 
+    'msg' => $_POST['message'],
+    'sid' => session_id(), 
+    'type' => chatroom_chat_get_message_type($_POST['message']),
+    'recipient_uid' => isset($_POST['recipient_uid']) ? $_POST['recipient_uid'] : 0, 
+  );
+  if ($msg_id = chatroom_chat_save_message($message, $node)) {
+    chatroom_chat_get_latest_messages($node, $msg_id - 1);
+  }
+}
+
+/**
+ * Write a message into a chat, and allow any interested modules to react.
+ *
+ * @param array $message 
+ * @param StdClass $node 
+ * @return boolean
+ */
+function chatroom_chat_save_message($message, $node) {
+  drupal_alter('chatroom_chat_msg', $message);
+  if (drupal_write_record('chatroom_msg', $message)) {
+    $node->chat->latest_msg_id = $message['cmid'];
+    if ($message['type'] == 'command') {
+      chatroom_chat_call_command($message, $node);
+    }
+    else {
+      module_invoke_all('chat_msg_saved', $message, $node);
+    }
+    return $message['cmid'];
+  }
+  return FALSE;
+}
+
+/**
+ * Try to invoke a command.
+ * 
+ * @param mixed $message 
+ * @param mixed $node 
+ */
+function chatroom_chat_call_command($message, $node) {
+  $commands = module_invoke_all('chat_commands');
+  list($command, $args) = chatroom_chat_parse_command($message['message']);
+  if (isset($commands[$command])) {
+    call_user_func_array($callback, array($command, $args, $node));
+  }
+  module_invoke_all('chat_command_' . $command, $args, $node);
+}
+
+/**
+ * Parse out the command name and any arguments from a chat message.
+ * 
+ * @param mixed $message 
+ * @return array
+ */
+function chatroom_chat_parse_command($message) {
+  $command = FALSE;
+  $args = array();
+  $command_regex = variable_get('chatroom_chat_command_prefix', '/') . '([^a-z_-0-9]+)(.*)';
+  if (preg_match("#^$command_regex$#", $message, $matches)) {
+    $command = $matches[1];
+    if (isset($matches[2])) {
+      $args = explode($matches[2]);
+    }
+  }
+  return array($command, $args);
+}
+
+/**
+ * Figure out what sort of message this is.
+ * 
+ * @param mixed $message 
+ * @return void
+ */
+function chatroom_chat_get_message_type($message) {
+  if (preg_match('#^' . variable_get('chatroom_chat_command_prefix', '/') . '#', $message)) {
+    return 'command';
+  }
+  return 'message';
 }
 

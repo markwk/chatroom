@@ -7,43 +7,6 @@
  */
 
 /**
- * Write a message into a chat.
- */
-function chatroom_chat_write_msg($chat_id, $last_msg_id, $update_count, $cache_file, $msg, $recipient = NULL, $type = NULL, $timezone = 0, $smileys = FALSE) {
-  global $user;
-  $guest_id = chatroom_chat_is_registered_user($chat_id);
-  if ($guest_id === FALSE) {
-    $js->chatUsers = array();
-  }
-  else {
-    if ($type == 'away' || $type == 'back') {
-      db_query("
-        UPDATE {chatroom_online_list} SET away = %d WHERE ccid = %d AND session_id = '%s'
-      ", $type == 'away', $chat_id, session_id());
-      chatroom_chat_update_online_time($chat_id);
-    }
-    else {
-      db_query("
-        UPDATE {chatroom_online_list} SET away = 0 WHERE ccid = %d AND session_id = '%s'
-      ", $chat_id, session_id());
-      db_query("
-        INSERT INTO {chatroom_msg}
-        (ccid, uid, msg_type, msg, session_id, recipient, modified)
-        VALUES (%d, %d, '%s', '%s', '%s', '%s', %d)
-      ", $chat_id, $user->uid, $type, $msg, session_id(), $recipient, time());
-    }
-    $js->msgs = chatroom_chat_get_latest_msgs($chat_id, $user->uid, $last_msg_id, $timezone, $smileys);
-    $cache_timestamp  = @filemtime($cache_file);
-    $js->chatUsers = chatroom_chat_get_online_list($chat_id, $cache_timestamp, $update_count);
-    $cache_timestamp = chatroom_chat_update_cache($cache_file);
-    if (!empty($cache_timestamp)) {
-      $js->cacheTimestamp = $cache_timestamp;
-    }
-  }
-  return chatroom_send_ajax_response(drupal_to_js($js));
-}
-
-/**
  * Kick a user out of a chat.
  */
 function chatroom_chat_kick_user($chat_id, $guest_id, $cache_file) {
@@ -177,25 +140,5 @@ function chatroom_send_ajax_response($response) {
   header("Cache-Control: post-check=0, pre-check=0", false);
   header("Pragma: no-cache");
   return $response;
-}
-
-/**
- * Set up smileys.
- */
-function chatroom_smileys($smileys_base) {
-  $smileys = FALSE;
-  // See if smileys directory is correct.
-  if (
-    is_dir($smileys_base) && // Is a directory
-    (
-      drupal_substr($smileys_base, 0, drupal_strlen('modules')) == 'modules' || // in the modules directory
-      drupal_substr($smileys_base, 0, drupal_strlen('sites')) == 'sites' // or in the sites directory.
-    ) &&
-    strpos($smileys_base, '..') === FALSE // and path does not contain "..".
-  ) {
-    include "./$smileys_base/smileys.module";
-    $smileys = TRUE;
-  }
-  return $smileys;
 }
 
