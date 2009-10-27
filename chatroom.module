@@ -574,10 +574,6 @@ function chatroom_view_chat($ccid = NULL, $archive = FALSE) {
       $content .= theme('chatroom_chat_banned_user', $chat);
     }
     elseif (!isset($chat->when_archived) && !$archive) {
-      // Automatically archive old messages
-      if (variable_get('chatroom_auto_archive', FALSE)) {
-        chatroom_archive_old_msgs($chat);
-      }
       // Register the user.
       chatroom_chat_register_user($chat);
       // Add AJAX code.
@@ -603,25 +599,6 @@ function chatroom_view_chat($ccid = NULL, $archive = FALSE) {
   }
   else {
     drupal_not_found();
-  }
-}
-
-/**
- * Move old messages to archive.
- */
-function chatroom_archive_old_msgs($chat_id) {
-  if ($chat_id != FALSE) {
-    global $user;
-    $msgs = chatroom_chat_get_latest_msgs($chat_id, $user->uid);
-    $result = db_query("
-      INSERT INTO {chatroom_msg_archive}
-      (cmid, ccid, uid, msg_type, msg, session_id, recipient, modified)
-      SELECT * FROM {chatroom_msg}
-      WHERE ccid = %d AND cmid < %d
-    ", $chat_id, $msgs[0]['id']);
-    if ($result) {
-      db_query("DELETE FROM {chatroom_msg} WHERE ccid = %d AND cmid < %d", $chat_id, $msgs[0]['id']);
-    }
   }
 }
 

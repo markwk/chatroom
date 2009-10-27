@@ -393,7 +393,20 @@ function chatroom_update_5() {
   return array();
 }
 
+function chatroom_update_6() {
+  $ret = array();
+  $spec = array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field($ret, 'chatroom_msg', 'archived', $spec);
+  db_drop_table($ret, 'chatroom_msg_archive');
+  return $ret;
+}
+
 function chatroom_update_6200() {
   // TODO: schema updates from #5
   return array();
 }
+
