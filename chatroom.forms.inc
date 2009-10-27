@@ -151,12 +151,6 @@ function chatroom_form(&$node, &$params) {
  * Menu callback; display site-wide chat room settings.
  */
 function chatroom_admin_settings() {
-  $form['chatroom_auto_archive'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Automatically archive old messages.'),
-    '#description' => t('If there are a lot of old messages, archiving will improve chat performance.'),
-    '#default_value' => variable_get('chatroom_auto_archive', FALSE),
-  );
   $form['chatroom_block_update_interval'] = array(
     '#type' => 'textfield',
     '#title' => t('Chat room block update interval'),
