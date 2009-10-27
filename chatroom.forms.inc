@@ -322,11 +322,10 @@ function chatroom_chat_form(&$node, $form_state) {
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
   $form['chat_settings']['popout'] = array(
-    '#type' => 'select',
+    '#type' => 'checkbox',
     '#title' => t('Load this chat in a popout?'),
-    '#default_value' => empty($node->poll_freq) ? 1 : $node->poll_freq / 1000,
-    '#options' => drupal_map_assoc(range(1, 10)),
-    '#description' => t('How many seconds between each request for updates from the server.'),
+    '#description' => t('Should this chat load in a popup window?'),
+    '#default_value' => $node->chat->popout,
   );
   $previous_msg_range = array();
   for ($i = 1; $i <= 25; $i++) {

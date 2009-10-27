@@ -9,29 +9,32 @@
 /**
  * Implementation of hook_theme().
  */
-function chatroom_theme() {
+function chatroom_theme($existing, $type, $theme, $path) {
+  // Add the path to our module folder so we can pick up popout template.
+  $chatroom_theme['page'] = $existing['page'];
+  $chatroom_theme['page']['theme paths'][] = drupal_get_path('module', 'chatroom');
   // Blocks provided by the module.
-  $theme['chatroom_block_chats']      = array('arguments' => array());
-  $theme['chatroom_block_rooms']      = array('arguments' => array());
-  $theme['chatroom_block_chat_users']  = array('arguments' => array('chat' => NULL));
-  $theme['chatroom_block_site_users']  = array('arguments' => array());
+  $chatroom_theme['chatroom_block_chats']      = array('arguments' => array());
+  $chatroom_theme['chatroom_block_rooms']      = array('arguments' => array());
+  $chatroom_theme['chatroom_block_chat_users']  = array('arguments' => array('chat' => NULL));
+  $chatroom_theme['chatroom_block_site_users']  = array('arguments' => array());
   // Message theming for display in an active chat.
-  $theme['chatroom_message']          = array('arguments' => array('message'));
+  $chatroom_theme['chatroom_message']          = array('arguments' => array('message'));
   // User list theming for display in an active chat.
-  $theme['chatroom_user_list']        = array('arguments' => array('users'));
+  $chatroom_theme['chatroom_user_list']        = array('arguments' => array('users'));
   // Information about the latest message, for use in a chat list.
-  $theme['chatroom_last_message']     = array('arguments' => array('message'));
-  $theme['chatroom_chat_kicked_user'] = array('arguments' => array('chat'));
-  $theme['chatroom_chat_banned_user'] = array('arguments' => array('chat'));
+  $chatroom_theme['chatroom_last_message']     = array('arguments' => array('message'));
+  $chatroom_theme['chatroom_chat_kicked_user'] = array('arguments' => array('chat'));
+  $chatroom_theme['chatroom_chat_banned_user'] = array('arguments' => array('chat'));
   // List of all chatrooms.
-  $theme['chatroom_display']          = array('arguments' => array('tree'));
+  $chatroom_theme['chatroom_display']          = array('arguments' => array('tree'));
   // List of chats in a chatroom.
-  $theme['chatroom_list']             = array('arguments' => array('tree'));
+  $chatroom_theme['chatroom_list']             = array('arguments' => array('tree'));
   // Actual chats and archives.
-  $theme['chatroom_chat']             = array('arguments' => array('chat'));
-  $theme['chatroom_chat_archive']     = array('arguments' => array('chat'));
-  $theme['chatroom_buttons']      = array('arguments' => array('chat' => NULL));
-  return $theme;
+  $chatroom_theme['chatroom_chat']             = array('arguments' => array('chat'));
+  $chatroom_theme['chatroom_chat_archive']     = array('arguments' => array('chat'));
+  $chatroom_theme['chatroom_buttons']      = array('arguments' => array('chat' => NULL));
+  return $chatroom_theme;
 }
 
 /**
@@ -313,6 +316,10 @@ function theme_chatroom_chat($node) {
   }
   $output .= '</div>';
   $output .= theme('chatroom_buttons', $node);
+  if (user_access('administer chat rooms')) {
+    $output .= drupal_get_form('chatroom_archive_chat_form', $node->nid);
+    $output .= drupal_get_form('chatroom_delete_chat_form', $node->nid);
+  }
   return $output;
 }
 
@@ -382,5 +389,13 @@ function theme_chatroom_chat_archive($chat) {
     $html .= '<p>'. t('This chat contains no messages.') .'</p>';
   }
   return $html;
+}
+
+function chatroom_preprocess_page(&$vars) {
+  if (isset($vars['node']) && arg(2) != 'edit' && $vars['node']->type == 'chat') {
+    if ($vars['node']->chat->popout && $vars['node']->chat->when_archived === NULL) {
+      $vars['template_files'] = array('page-chat-popout');
+    }
+  }
 }
 

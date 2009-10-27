@@ -22,7 +22,8 @@ NOTE - these are not necessarily in any order. Patches for any items on this lis
 
 5. The chat interface should work in a popup.
 
-6. The adhoc chats (1 - 1, or many people) should not require a chatroom.
+6. The chats should not require a chatroom.
+-- DONE
 
 7. Adhoc chats and chats in chatrooms should be able to use an invite system.
 
@@ -38,5 +39,8 @@ NOTE - these are not necessarily in any order. Patches for any items on this lis
 
 13. Chatroom should ship with Organic Groups integration.
 
-14. Chatroom should hook into Drupal core's filter system.
+14. Chatroom needs improved documentation, inline, on Drupal.org and via integration with 
+    advanced help module .
+
+15. Chatroom should integrate with the Appbar module.
 

@@ -282,6 +282,18 @@ function chatroom_chat_insert($node) {
  * Implementation of hook_update().
  */
 function chatroom_chat_update($node) {
+  $chat = array(
+    'nid' => $node->nid,
+    'crid' => isset($node->crid) ? $node->crid : 0,
+    'poll_freq' => $node->poll_freq,
+    'idle_freq' => $node->idle_freq,
+    'kicked_out_message' => $node->kicked_out_message,
+    'banned_message' => $node->banned_message,
+    'module' => isset($node->module) ? $node->module : 'chatroom',
+    'previous_messages_display_count' => $node->previous_messages_display_count,
+    'popout' => $node->popout,
+  );
+  drupal_write_record('chatroom_chat', $chat, 'nid');
 }
 
 /**
@@ -398,14 +410,9 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
       chatroom_chat_register_user($node);
       chatroom_add_js($node);
       $content = theme('chatroom_chat', $node);
-
-      if (user_access('administer chat rooms')) {
-        $content .= drupal_get_form('chatroom_archive_chat_form', $node->nid);
-        $content .= drupal_get_form('chatroom_delete_chat_form', $node->nid);
-      }
     }
     else {
-      $content = theme('chatroom_chat_archive', $chat);
+      $content = theme('chatroom_chat_archive', $node);
       if (user_access('administer chat rooms')) {
         $content .= drupal_get_form('chatroom_delete_chat_form', $ccid);
         $content .= drupal_get_form('chatroom_unarchive_chat_form', $ccid);
@@ -701,7 +708,6 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
 
   $messages = array();
   while ($message = db_fetch_object($result)) {
-    file_put_contents('/home/justin/logs/chat.debug', "$last_cmid: " . print_r($message, TRUE), FILE_APPEND);
     $messages[] = $message;
   }
   return $messages;
@@ -917,7 +923,10 @@ function chatroom_chat_save_message($message, $node) {
       chatroom_chat_call_command($message, $node);
     }
     else {
-      module_invoke_all('chat_msg_saved', $message, $node);
+      foreach (module_implements('chat_msg_saved') as $module) {
+        $function = $module . '_chat_msg_saved';
+        $function($message, $node);
+      }
     }
     return $message['cmid'];
   }
@@ -932,11 +941,14 @@ function chatroom_chat_save_message($message, $node) {
  */
 function chatroom_chat_call_command($message, $node) {
   $commands = module_invoke_all('chat_commands');
-  list($command, $args) = chatroom_chat_parse_command($message['message']);
-  if (isset($commands[$command])) {
-    call_user_func_array($callback, array($command, $args, $node));
+  $command = chatroom_chat_parse_command($message['message']);
+  if ($command && isset($commands[$command->name])) {
+    call_user_func_array($callback, array($command, $node));
   }
-  module_invoke_all('chat_command_' . $command, $args, $node);
+  foreach (module_implements('chat_command_api') as $module) {
+    $function = $module . '_chat_command_api';
+    $function($command, $node);
+  }
 }
 
 /**
@@ -946,16 +958,17 @@ function chatroom_chat_call_command($message, $node) {
  * @return array
  */
 function chatroom_chat_parse_command($message) {
-  $command = FALSE;
-  $args = array();
-  $command_regex = variable_get('chatroom_chat_command_prefix', '/') . '([^a-z_-0-9]+)(.*)';
+  $command = new StdClass();
+  $command->args = array();
+  $command->name = FALSE;
+  $command_regex = variable_get('chatroom_chat_command_prefix', '/') . '([^a-z_0-9]+)(.*)';
   if (preg_match("#^$command_regex$#", $message, $matches)) {
-    $command = $matches[1];
+    $command->name = $matches[1];
     if (isset($matches[2])) {
-      $args = explode($matches[2]);
+      $command->args = explode(' ', $matches[2]);
     }
   }
-  return array($command, $args);
+  return $command->name ? $command : FALSE;
 }
 
 /**
