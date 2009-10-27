@@ -188,16 +188,13 @@ function chatroom_update($node) {
 function chatroom_delete(&$node) {
   db_query('DELETE FROM {chatroom} WHERE nid = %d', $node->nid);
   db_query("DELETE FROM {chatroom_chat} WHERE crid = %d", $node->nid);
-  db_query('DELETE FROM {chatroom_ban_list} WHERE crid = %d', $node->nid);
-  // 
+  db_query('DELETE FROM {chatroom_ban_list} WHERE nid = %d', $node->nid);
   if (!empty($node->chats)) {
     $ccids = implode(',', array_keys($node->chats));
     db_query('DELETE FROM {chatroom_msg} WHERE ccid IN (%s)', $ccids);
     db_query('DELETE FROM {chatroom_online_list} WHERE ccid IN (%s)', $ccids);
   }
   cache_clear_all(TRUE, 'cache_block');
-  // Clear cache related to this chat.
-  // cache_clear_all(TRUE, 'cache_chat');
 }
 
 /**
