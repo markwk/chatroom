@@ -427,7 +427,7 @@ function chatroom_create_chat_form(&$form_state, $room) {
 function chatroom_create_chat_form_validate($form, &$form_state) {
   $nid = $form_state['values']['nid'];
   $name = $form_state['values']['chat_name'];
-  $sql = "SELECT COUNT(ccid) FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s' AND when_archived IS NULL";
+  $sql = "SELECT COUNT(nid) FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s' AND when_archived IS NULL";
   if (db_result(db_query_range($sql, $nid, $name, 0, 1))) {
     form_set_error('chatroom_chat_name', t('A chat called %name already exists.', array('%name' => $name)));
   }
@@ -439,9 +439,9 @@ function chatroom_create_chat_form_validate($form, &$form_state) {
 function chatroom_create_chat_form_submit($form, &$form_state) {
   global $user;
   $created = db_query("
-    INSERT INTO {chatroom_chat} (crid, uid, chatname, modified)
+    INSERT INTO {chatroom_chat} (crid, chatname, modified)
     VALUES (%d, %d, '%s', %d)
-  ", $form_state['values']['nid'], $user->uid, $form_state['values']['chat_name'], time());
+  ", $form_state['values']['nid'], $form_state['values']['chat_name'], time());
   if (!$created) {
     drupal_set_message(t("There was an error creating your chat"), 'error');
   }
