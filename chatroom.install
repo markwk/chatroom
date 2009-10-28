@@ -227,6 +227,11 @@ function chatroom_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'guest_id' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'sid' => array(
         'type' => 'varchar',
         'length' => '64',
@@ -246,6 +251,10 @@ function chatroom_schema() {
       ),
     ),
     'primary key' => array('ccid', 'sid'),
+    'indexes' => array(
+      'uid' => array('uid'),
+      'guest_id' => array('guest_id'),
+    ),
   );
   $schema['chatroom_chat_invite'] = array(
     'fields' => array(

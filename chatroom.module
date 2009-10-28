@@ -300,8 +300,8 @@ function chatroom_chat_update($node) {
  * Implementation of hook_delete().
  */
 function chatroom_chat_delete(&$node) {
-  db_query('DELETE FROM {chatroom_chat} WHERE ccid = %d', $chat_id);
-  db_query('DELETE FROM {chatroom_online_list} WHERE ccid = %d', $chat_id);
+  db_query('DELETE FROM {chatroom_chat} WHERE nid = %d', $node->nid);
+  db_query('DELETE FROM {chatroom_online_list} WHERE ccid = %d', $node->nid);
 }
 
 /**
@@ -607,23 +607,30 @@ function chatroom_archive_old_msgs($chat_id) {
 /**
  * Handles update or insert for user when loading a chat room.
  */
-function chatroom_chat_register_user($chat) {
+function chatroom_chat_register_user(&$node) {
   global $user;
   $session_id = session_id();
-  $exists = db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $chat->nid, $session_id));
+  $exists = db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $node->nid, $session_id));
   if ($exists) {
-    db_query("
-      UPDATE {chatroom_chat_online_list} 
-      SET last_seen_time = %d
-      WHERE ccid = %d AND sid = '%s' 
-    ", time(), $chat->nid, $session_id);
+    $sql = "UPDATE {chatroom_chat_online_list} 
+            SET last_seen_time = %d
+            WHERE ccid = %d AND sid = '%s'";
+    db_query($sql, time(), $node->nid, $session_id);
   }
   else {
-    db_query("
-      INSERT INTO {chatroom_chat_online_list}
-      (ccid, sid, last_seen_time)
-      VALUES (%d, '%s', %d)
-    ", $chat->nid, $session_id, time());
+    $params = array($node->nid, $user->uid, $session_id, time());
+    if ($user->uid) {
+      $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, last_seen_time) VALUES (%d, %d, '%s', %d)";
+    }
+    else {
+      $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, guest_id, last_seen_time) 
+                SELECT %d, %d, '%s', COALESCE(MAX(guest_id) + 1, 1), %d
+                FROM {chatroom_chat_online_list} WHERE ccid = %d";
+      $params[] = $node->nid;
+    }
+    db_query($sql, $params);
+    // Reload the list so the newly registered user shows up.
+    $node->chat->users = chatroom_load_users($node);
   }
 }
 
@@ -633,9 +640,6 @@ function chatroom_chat_register_user($chat) {
 function chatroom_add_js($node) {
   global $user;
 
-  // Settings for chatroom.js. Variables which change during a chat session are
-  // included in AHAH replies from chatroom_js(), and handled by code in
-  // chatroom.js, so they are not duplicated here.
   $js = array(
     'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
     'idleInterval' => (int) $node->chat->idle_freq,
@@ -643,8 +647,10 @@ function chatroom_add_js($node) {
     'cacheDirectory' => variable_get('chatroom_cache_directory', '/tmp'), 
     'postMessagePath' => 'chatroom/chat/post/message',
     'chatPath' => 'node/' . $node->nid,
+		'successiveCacheHits' => 0,
+    'skipCacheCheckCount' => 10,
   );
-  // Timezones setting.
+
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
     $js['timezone'] = $user->timezone;
   }
@@ -655,8 +661,10 @@ function chatroom_add_js($node) {
     $js['latestMsgId'] = $node->chat->latest_msg_id;
   }
 
-  // Add scripts and settings.
-  drupal_add_js(drupal_get_path('module', 'chatroom') . "/chatroom.js");
+  // Allow modules to alter the js settings sent down for a chat.
+  drupal_alter('chatroom_js_settings', $js);
+
+  drupal_add_js(drupal_get_path('module', 'chatroom') . '/chatroom.js');
   drupal_add_js(array('chatroom' => $js), 'setting');
 }
 
@@ -713,29 +721,20 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
  */
 function chatroom_load_users($chat) {
   global $user;
-  $sql = "
-    SELECT
-      s.uid,
-      u.name
-    FROM {chatroom_chat_online_list} col
-    INNER JOIN {sessions} s ON s.sid = col.sid
-    LEFT JOIN {users} u ON u.uid = s.uid
-    WHERE col.ccid = %d
-    ORDER BY u.name ASC
-  ";
+
+  $sql = "SELECT col.*, u.name
+          FROM {chatroom_chat_online_list} col
+          LEFT JOIN {users} u ON u.uid = col.uid
+          WHERE col.ccid = %d
+          ORDER BY u.name ASC";
   $sql = db_rewrite_sql($sql, 'col', 'sid', array('chatroom_chat_online_list' => TRUE));
   $result = db_query($sql, $chat->nid);
   $users = array();
   while ($u = db_fetch_object($result)) {
     if (empty($u->uid)) {
-      $u->name = variable_get('chatroom_guest_user_prefix', 'guest-');
+      $u->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $u->guest_id;
     }
-    if ($u->uid != $user->uid) {
-      array_unshift($users, $u);
-    }
-    else {
-      $users[] = $u;
-    }
+    $users[] = $u;
   }
   return $users;
 }
@@ -743,8 +742,9 @@ function chatroom_load_users($chat) {
 /**
  * updates chat's cache file modified time
  */
-function chatroom_chat_update_cache($cache_file, $latest_msg_id) {
-  @file_put_contents($cache_file, "$latest_msg_id\n");
+function chatroom_chat_update_cache($chat_id, $latest_msg_id) {
+  $cache_file = variable_get('chatroom_cache_directory', '/tmp') . '/chatroom.chat.' . $chat_id . '.cache';
+  file_put_contents($cache_file, "$latest_msg_id\n");
 }
 
 /**
@@ -865,13 +865,18 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id) {
   }
   else {
     $response['messages'] = array();
+    $latest_msg_id = FALSE;
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
       $msg = new StdClass();
       $msg->html = theme('chatroom_message', $message);
       $msg->cmid = $message->cmid;
       $response['messages'][] = $msg;
+      $latest_msg_id = $message->cmid;
     }
     $response['usersHtml'] = theme('chatroom_user_list', $node->chat->users);
+    if ($latest_msg_id) {
+      chatroom_chat_update_cache($node->nid, $latest_msg_id);
+    }
   }
   print drupal_to_js(array('data' => $response));
 }
