@@ -316,9 +316,8 @@ function theme_chatroom_chat($node) {
   }
   $output .= '</div>';
   $output .= theme('chatroom_buttons', $node);
-  if (user_access('administer chat rooms')) {
+  if (user_access('administer chats') || user_access('administer chat rooms')) {
     $output .= drupal_get_form('chatroom_archive_chat_form', $node->nid);
-    $output .= drupal_get_form('chatroom_delete_chat_form', $node->nid);
   }
   return $output;
 }
@@ -337,61 +336,49 @@ function theme_chatroom_buttons($chat) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_archive($chat) {
-  $html = '';
-  if (isset($chat->when_archived)) {
-    $html = '<p>'. t('Archived on !date.', array('!date' => format_date($chat->when_archived, 'medium'))) .'</p>';
-  }
-  else {
-    $html = '<p>'. l(t('Join !chat', array('!chat' => $chat->chatname)), "chatroom/chat/$chat->ccid") .'</p>';
-  }
-  $previous = '';
-  if ($last_cmid = chatroom_load_messages($chat, 0, TRUE)) {
-    $html .= '<div id="chatroom-container-archive"><table><tbody valign="top">';
-    foreach ($chat->messages as $msg) {
+function theme_chatroom_chat_archive($node) {
+  global $user;
+  
+  $is_admin = user_access('administer chats') || user_access('administer chat rooms');
+
+  $html = '<p>' . t('Archived on !date.', array('!date' => format_date($node->chat->when_archived, 'medium'))) . '</p>';
+  $html .= '<div id="chatroom-container-archive">';
+  if ($messages = chatroom_chat_load_messages($node->nid)) {
+    $table_rows = array();
+    foreach ($messages as $msg) {
       $name = $msg->name ? $msg->name : variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
-      $html .= '<tr><td><span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span></td>';
-      if ($msg->msg_type == 'me') {
-        $html .= '<td><p class="chatroom-old-me-msg">';
-        $html .= "* $name {$msg->msg}</p></td>";
+      if (empty($msg->recipient_uid)) {
+        $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
+        $row_html .= '<span class="chatroom-old-msg"><span class="header">' . "$name:</span>$msg->msg</span>";
       }
-      else {
-        $html .= '<td><p class="chatroom-old-msg">';
-        if (empty($msg->recipient)) {
-          if ($previous != $name) {
-            $html .= '<span class="header">'."$name:</span>";
-            $previous = $name;
-          }
+      else if ($is_admin || $user->uid == $msg->uid || $user->uid == $msg->recipient_uid) {
+        $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
+        $row_html .= '<span class="chatroom-old-msg">';
+        $row_html .= '<span class="header">' . "$name ";
+        if ($msg->uid == $user->uid && $recipient != $name) {
+          $row_html .= '<span class="chatroom-private">(privately to '. $recipient .')</span>:</span> ';
         }
         else {
-          $html .= '<span class="header">'."$name ";
-          $recipient = db_result(db_query("
-            SELECT u.name FROM {chatroom_online_list} col
-            LEFT JOIN {users} u ON u.uid = col.uid
-            WHERE col.ccid = %d AND col.guest_id = %d
-          ", $msg->ccid, $msg->guest_id));
-          $recipient = empty($recipient) ? variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->recipient : $recipient;
-          if ($msg->session_id == session_id() && $recipient != $name) {
-            $html .= '<span class="chatroom-private">(privately to '. $recipient .')</span>:</span> ';
-          }
-          else {
-            $html .= '<span class="chatroom-private">(privately)</span>:</span> ';
-          }
+          $row_html .= '<span class="chatroom-private">(privately)</span>:</span> ';
         }
-        $html .= "{$msg->msg}</p></td>";
+        $row_html .= $msg->msg . '</span>';
       }
+      $table_rows[] = array($row_html); 
     }
-    $html .= '</tbody></table></div>';
-    $limit = 100;
-    $html .= theme('pager', array(), $limit);
+    $html .= theme('table', array(), $table_rows);
   }
   else {
-    $html .= '<p>'. t('This chat contains no messages.') .'</p>';
+    $html .= '<p>' . t('This chat contains no messages.') . '</p>';
   }
+  $html .= '</div>';
   return $html;
 }
 
+/**
+ * Implementation of hook_preprocess_page().
+ */
 function chatroom_preprocess_page(&$vars) {
+  // Add a template hint for the popout page template.
   if (isset($vars['node']) && arg(2) != 'edit' && $vars['node']->type == 'chat') {
     if ($vars['node']->chat->popout && $vars['node']->chat->when_archived === NULL) {
       $vars['template_files'] = array('page-chat-popout');
