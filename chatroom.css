@@ -61,7 +61,8 @@
 .chatroom-textentry-options table,
 #chatroom-board p,
 #chatroom-container-archive p {
-  margin: 0;
+  margin:0;
+  width: 70em;
 }
 .chatroom-textentry-options table {
   border-collapse: separate;
@@ -73,6 +74,7 @@
 }
 .chatroom-archive-date {
   white-space: nowrap;
+  margin-right: 5px;
 }
 .chatroom-system-msg {
   color: #660000;
@@ -94,9 +96,8 @@
 }
 .chatroom-old-msg .header,
 .chatroom-msg .header {
-  font-weight: bold;
-  margin-left: -1.8em;
-  margin-right: .4em;
+  font-weight: bold;;
+  margin-right:5px;
   vertical-align: top;
 }
 .chatroomLink {
