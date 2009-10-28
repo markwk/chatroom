@@ -44,6 +44,7 @@ Drupal.chatroom.poll = function() {
       chat_cache_directory: Drupal.settings.chatroom.cacheDirectory, 
       chat_id: Drupal.settings.chatroom.chatId,
       skip_cache: skipCacheCheck,
+      successive_cache_hits: Drupal.settings.chatroom.successiveCacheHits,
     } 
   });
 };
@@ -59,7 +60,7 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   // successive cache hits gets high enough, we may want to signal to the
   // server that we should skip the cache check so that our online time
   // gets updated.
-  if (response.cacheHit) {
+  if (response.data.cacheHit) {
     Drupal.settings.chatroom.successiveCacheHits++;
   }
   else {
