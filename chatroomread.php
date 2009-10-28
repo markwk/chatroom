@@ -37,7 +37,15 @@ if (!isset($_POST['chat_cache_directory']) || !is_dir($_POST['chat_cache_directo
 }
 $chat_cache_file = $_POST['chat_cache_directory'] . '/chatroom.chat.' . $chat_id . '.cache';
 
-if (file_exists($chat_cache_file)) {
+if (!isset($_POST['skip_cache'])) {
+  exit;
+}
+$skip_cache = $_POST['skip_cache'] == 1 ? TRUE : FALSE;
+
+// We let the client signal that we should skip the cache. Right now we're 
+// using this to make sure user's last-seen time is updated, and there may 
+// be more uses for it down the track.
+if (!$skip_cache && file_exists($chat_cache_file)) {
 
   // Do a quick DoS check - we don't validate the path, so we have to make
   // sure we're not reading arbitrarily big files into memory. Our cache file 
@@ -50,7 +58,6 @@ if (file_exists($chat_cache_file)) {
 
   $server_latest_msg_id = trim(file_get_contents($chat_cache_file));
   if ($server_last_msg_id <= $client_latest_msg_id) {
-    // Cache hit, just exit.
     exit;
   }
 }
