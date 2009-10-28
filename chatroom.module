@@ -406,7 +406,7 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
     if (chatroom_is_banned_user($node)) {
       $content = theme('chatroom_chat_banned_user', $node);
     }
-    elseif (!isset($chat->when_archived)) {
+    elseif (!isset($node->chat->when_archived)) {
       chatroom_chat_register_user($node);
       chatroom_add_js($node);
       $content = theme('chatroom_chat', $node);
@@ -414,8 +414,7 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
     else {
       $content = theme('chatroom_chat_archive', $node);
       if (user_access('administer chat rooms')) {
-        $content .= drupal_get_form('chatroom_delete_chat_form', $ccid);
-        $content .= drupal_get_form('chatroom_unarchive_chat_form', $ccid);
+        $content .= drupal_get_form('chatroom_unarchive_chat_form', $node->nid);
       }
     }
   }
@@ -446,10 +445,7 @@ function chatroom_get_banned_users($room) {
  * Unarchive old chat.
  */
 function chatroom_unarchive_chat($chat_id) {
-  db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE ccid = %d', $chat_id);
-  $result = db_query('
-    UPDATE {chatroom_msg} SET archived = 0 WHERE ccid = %d
-  ', $chat_id);
+  $result = db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE nid = %d', $chat_id);
   cache_clear_all(TRUE, 'cache_block');
   return $result;
 }
@@ -458,10 +454,7 @@ function chatroom_unarchive_chat($chat_id) {
  * Archive a chat.
  */
 function chatroom_archive_chat($chat_id) {
-  db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE ccid = %d', time(), $chat_id);
-  $result = db_query('
-    UPDATE {chatroom_msg} SET archived = 1 WHERE ccid = %d
-  ', $chat_id);
+  $result = db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE nid = %d', time(), $chat_id);
   cache_clear_all(TRUE, 'cache_block');
   return $result;
 }
@@ -649,6 +642,7 @@ function chatroom_add_js($node) {
     'chatId'       => (int) $node->nid,
     'cacheDirectory' => variable_get('chatroom_cache_directory', '/tmp'), 
     'postMessagePath' => 'chatroom/chat/post/message',
+    'chatPath' => 'node/' . $node->nid,
   );
   // Timezones setting.
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -682,15 +676,16 @@ function chatroom_add_js($node) {
  *   loaded.
 */
 function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
+  global $user;
 
   $query = '
     SELECT
       cm.*,
-      u.name
+      u.name,
+      u2.name recipient_name
     FROM {chatroom_msg} cm
-    LEFT JOIN {chatroom_chat_online_list} col
-      ON col.sid LIKE cm.sid AND col.ccid = cm.ccid
     LEFT JOIN {users} u ON u.uid = cm.uid
+    LEFT JOIN {users} u2 ON u2.uid = cm.recipient_uid
     WHERE cm.ccid = %d
     AND cm.cmid > %d
     ORDER BY cmid ASC
@@ -703,7 +698,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
     $query_args[] = $limit;
   }
 
-  // Give third-party modules a chance to modify query.
+  // Give modules a chance to modify query.
   $result = db_query(db_rewrite_sql($query, 'cm', 'cmid', array('chatroom_msg' => TRUE)), $query_args);
 
   $messages = array();
