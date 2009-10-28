@@ -96,12 +96,18 @@ function chatroom_form(&$node, $form_state) {
   for ($i = 1; $i <= 25; $i++) {
     $old_msg_range[$i] = $i * 10;
   }
-  $form['chat_settings']['old_msg_count'] = array(
+  $form['chat_settings']['previous_messages_display_count'] = array(
     '#type' => 'select',
     '#title' => t('Old messages'),
     '#description' => t('How many old messages to show when entering a chat.'),
-    '#default_value' => empty($node->chatroom->old_msg_count) ? 20 : $node->chatroom->old_msg_count,
+    '#default_value' => empty($node->chatroom->previous_messages_display_count) ? 20 : $node->chatroom->previous_messages_display_count,
     '#options' => drupal_map_assoc($old_msg_range),
+  );
+  $form['chat_settings']['popout'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Load this rooms' chats in a popout?"),
+    '#description' => t('Should chats in this room default to loading in a popup window?'),
+    '#default_value' => isset($node->chatroom) ? $node->chatroom->popout : 0,
   );
   if (!empty($node->chatroom->chats)) {
     foreach ($node->chatroom->chats as $chat) {

@@ -45,6 +45,11 @@ function chatroom_schema() {
         'default' => 'chatroom',
         'description' => t('The module that owns this chatroom.'),
       ),
+      'previous_messages_display_count' => array(
+        'type' => 'int',
+        'default' => 20,
+        'description' => t('The number of previous messages to display to a user when they first enter a chat.'),
+      ),
       'popout' => array(
         'type' => 'int',
         'default' => 0,

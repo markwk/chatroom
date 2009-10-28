@@ -120,66 +120,34 @@ function chatroom_node_info() {
  * Implementation of hook_insert().
  */
 function chatroom_insert($node) {
-  $result = db_query("
-    INSERT INTO {chatroom}
-      (nid, poll_freq, idle_freq, old_msg_count, kicked_out_message,
-      banned_message)
-    VALUES (%d, %d, %d, %d, '%s', '%s')
-  ", array(
-    $node->nid,
-    1000 * $node->poll_freq,
-    1000 * $node->idle_freq,
-    $node->old_msg_count,
-    $node->kicked_out_message,
-    $node->banned_message,
-  ));
-  if ($result) {
-    cache_clear_all(TRUE, 'cache_block');
-  }
+  $chatroom = array(
+    'nid' => $node->nid,
+    'poll_freq' => $node->poll_freq * 1000,
+    'idle_freq' => $node->idle_freq * 1000,
+    'kicked_out_message' => $node->kicked_out_message,
+    'banned_message' => $node->banned_message,
+    'module' => isset($node->module) ? $node->module : 'chatroom',
+    'previous_messages_display_count' => $node->previous_messages_display_count,
+    'popout' => $node->popout,
+  );
+  drupal_write_record('chatroom', $chatroom);
 }
 
 /**
  * Implementation of hook_update().
  */
 function chatroom_update($node) {
-  db_query("
-    UPDATE {chatroom_chat}
-    SET
-      poll_freq = %d,
-      idle_freq = %d,
-      old_msg_count = %d,
-      kicked_out_message = '%s',
-      banned_message = '%s'
-    WHERE nid = %d
-  ", array(
-    1000 * $node->poll_freq,
-    1000 * $node->idle_freq,
-    $node->old_msg_count,
-    $node->kicked_out_message,
-    $node->banned_message,
-    $node->nid,
-  ));
-  // Archive all open chats when the node is updated?
-  if (isset($node->chat_list)) {
-    foreach ($node->chat_list as $chat_id) {
-      if ($chat_id > 0) {
-        chatroom_archive_chat($chat_id);
-      }
-    }
-    cache_clear_all(TRUE, 'cache_block');
-  }
-  // Delete all archived chats when the node is updated?
-  if (isset($node->closed_chat_list)) {
-    foreach ($node->closed_chat_list as $chat_id) {
-      if (!empty($chat_id)) {
-        chatroom_chat_delete($chat_id);
-      }
-    }
-  }
-  // Unban users?
-  if (isset($node->unban_list)) {
-    db_query('DELETE FROM {chatroom_ban_list} WHERE crid = %d AND uid IN (%s)', $node->chatroom->crid, implode(',', $node->unban_list));
-  }
+  $chatroom = array(
+    'nid' => $node->nid,
+    'poll_freq' => $node->poll_freq * 1000,
+    'idle_freq' => $node->idle_freq * 1000,
+    'kicked_out_message' => $node->kicked_out_message,
+    'banned_message' => $node->banned_message,
+    'module' => isset($node->module) ? $node->module : 'chatroom',
+    'previous_messages_display_count' => $node->previous_messages_display_count,
+    'popout' => $node->popout,
+  );
+  drupal_write_record('chatroom', $chatroom, 'nid');
 }
 
 /**
@@ -188,13 +156,12 @@ function chatroom_update($node) {
 function chatroom_delete(&$node) {
   db_query('DELETE FROM {chatroom} WHERE nid = %d', $node->nid);
   db_query("DELETE FROM {chatroom_chat} WHERE crid = %d", $node->nid);
-  db_query('DELETE FROM {chatroom_ban_list} WHERE crid = %d', $node->nid);
+  db_query('DELETE FROM {chatroom_ban_list} WHERE nid = %d', $node->nid);
   if (!empty($node->chats)) {
     $ccids = implode(',', array_keys($node->chats));
     db_query('DELETE FROM {chatroom_msg} WHERE ccid IN (%s)', $ccids);
     db_query('DELETE FROM {chatroom_online_list} WHERE ccid IN (%s)', $ccids);
   }
-  cache_clear_all(TRUE, 'cache_block');
 }
 
 /**
