@@ -22,9 +22,6 @@ function chatroom_forms() {
   $forms['chatroom_unarchive_chat_form'] = array(
     'callback' => 'chatroom_unarchive_chat_form',
   );
-  $forms['chatroom_delete_chat_form'] = array(
-    'callback' => 'chatroom_delete_chat_form',
-  );
   return $forms;
 }
 
@@ -325,7 +322,7 @@ function chatroom_chat_form(&$node, $form_state) {
     '#type' => 'checkbox',
     '#title' => t('Load this chat in a popout?'),
     '#description' => t('Should this chat load in a popup window?'),
-    '#default_value' => $node->chat->popout,
+    '#default_value' => isset($node->chat) ? $node->chat->popout : 0,
   );
   $previous_msg_range = array();
   for ($i = 1; $i <= 25; $i++) {
@@ -448,65 +445,6 @@ function chatroom_create_chat_form_submit($form, &$form_state) {
   else {
     cache_clear_all(TRUE, 'cache_block');
   }
-}
-
-/**
- * Form to delete an archived chat.
- *
- * @param array $form_state
- * @param integer $chat_id
- * @return array
- */
-function chatroom_delete_chat_form($form_state, $ccid = NULL) {
-  $form = array();
-  $form['ccid'] = array(
-    '#type' => 'value',
-    '#value' => $ccid,
-  );
-  $form['delete'] = array(
-    '#type' => 'submit',
-    '#value' => t('Delete this chat'),
-  );
-  return $form;
-}
-
-/**
- * Delete an archived chat
- *
- * @param array $form
- * @param array $form_state
- * @return string
- */
-function chatroom_delete_chat_form_submit($form, &$form_state) {
-  drupal_goto('chatroom/chat/' . $form_state['values']['ccid'] . '/delete');
-}
-
-/**
- * Show a confirm form if the user chooses to delete a chat.
- */
-function chatroom_delete_chat_confirm_form($form_state, $chat_id) {
-  if ($chat = chatroom_load_chat($chat_id)) {
-    $form['ccid'] = array(
-      '#type' => 'value',
-      '#value' => $chat->ccid,
-    );
-    return confirm_form($form,
-      t('Are you sure you want to delete %title?', array('%title' => $chat->chatname)),
-      'chatroom/chat/'. $chat->ccid,
-      t('This action cannot be undone.'),
-      t('Delete'),
-      t('Cancel')
-    );
-  }
-}
-
-/**
- * Actually delete the chat.
- */
-function chatroom_delete_chat_confirm_form_submit($form, &$form_state) {
-  $chat = chatroom_load_chat($form_state['values']['ccid']);
-  chatroom_chat_delete($form_state['values']['ccid']);
-  $form_state['redirect'] = "node/$chat->nid";
 }
 
 /**
