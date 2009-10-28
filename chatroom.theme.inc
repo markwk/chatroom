@@ -164,7 +164,7 @@ function theme_chatroom_messages(array $messages) {
  */
 function theme_chatroom_message($message) {
   if (empty($message->name)) {
-    $message->user = variable_get('chatroom_guest_user_prefix', 'guest-');
+    $message->user = variable_get('chatroom_guest_user_prefix', 'guest-') . $message->guest_id;
   }
   else {
     $message->user = l($message->name, 'user/'. $message->uid);

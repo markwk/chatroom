@@ -689,9 +689,11 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
   $query = '
     SELECT
       cm.*,
+      ccol.guest_id,
       u.name,
       u2.name recipient_name
     FROM {chatroom_msg} cm
+    INNER JOIN {chatroom_chat_online_list} ccol ON ccol.ccid = cm.ccid
     LEFT JOIN {users} u ON u.uid = cm.uid
     LEFT JOIN {users} u2 ON u2.uid = cm.recipient_uid
     WHERE cm.ccid = %d
