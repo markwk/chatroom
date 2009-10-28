@@ -44,3 +44,5 @@ NOTE - these are not necessarily in any order. Patches for any items on this lis
 
 15. Chatroom should integrate with the Appbar module.
 
+16. Chatroom should show user pictures and integrate with imagecache if its enabled.
+
