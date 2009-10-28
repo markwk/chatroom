@@ -23,7 +23,6 @@ function chatroom_theme($existing, $type, $theme, $path) {
   // User list theming for display in an active chat.
   $chatroom_theme['chatroom_user_list']        = array('arguments' => array('users'));
   // Information about the latest message, for use in a chat list.
-  $chatroom_theme['chatroom_last_message']     = array('arguments' => array('message'));
   $chatroom_theme['chatroom_chat_kicked_user'] = array('arguments' => array('chat'));
   $chatroom_theme['chatroom_chat_banned_user'] = array('arguments' => array('chat'));
   // List of all chatrooms.
@@ -155,7 +154,6 @@ function theme_chatroom_messages(array $messages) {
 /**
  * @ingroup themeable.
  */
-function theme_chatroom_last_message() {}
 
 /**
  * Format a single message for display.
@@ -186,8 +184,11 @@ function theme_chatroom_message($message) {
 function theme_chatroom_user_list($users) {
   $items = array();
   if (!empty($users)) {
+    $now = time();
     foreach ($users as $user) {
-      $items[] = theme('username', $user);
+      if ($user->last_seen_time > ($now - 10)) {
+        $items[] = theme('username', $user);
+      }
     }
   }
   $output = theme('item_list', $items);
