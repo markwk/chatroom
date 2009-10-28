@@ -27,7 +27,7 @@ if (!isset($_POST['latest_msg_id']) || !preg_match('/^\d+$/', $_POST['latest_msg
 }
 $client_latest_msg_id = $_POST['latest_msg_id'];
 
-if (!isset($_POST['chat_id']) && !preg_match('/^\d+$/', $_POST['chat_id'])) {
+if (!isset($_POST['chat_id']) || !preg_match('/^\d+$/', $_POST['chat_id'])) {
   exit;
 }
 $chat_id = $_POST['chat_id'];
@@ -42,7 +42,7 @@ if (file_exists($chat_cache_file)) {
   // Do a quick DoS check - we don't validate the path, so we have to make
   // sure we're not reading arbitrarily big files into memory. Our cache file 
   // should contain a single numeric id. So, if the file is bigger than 1000 
-  // bytes, something is up, and we just bail out via exit.
+  // bytes, something is fishy, and we should just bail out.
   $file_stats = stat($chat_cache_file);
   if ($file_stats['size'] > 1000) {
     exit;
