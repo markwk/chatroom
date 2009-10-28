@@ -42,6 +42,15 @@ Drupal.chatroom.poll = function() {
 };
  
 Drupal.chatroom.pollHandler = function(response, responseStatus) {
+
+  // If the chat was archived, reload the page.
+  if (response.data.archived) {
+    window.location = Drupal.settings.basePath + Drupal.settings.chatroom.chatPath;
+  }
+  
+  // Add any messages we haven't already seen to the board. Poll requests can 
+  // pass each other over the wire, so we can't rely on only getting a given
+  // message once only.
   for (var i = 0; i < response.data.messages.length; i++) {   
     if (response.data.messages[i].cmid > Drupal.settings.chatroom.latestMsgId) {
       $('#chatroom-board').append(response.data.messages[i].html);
