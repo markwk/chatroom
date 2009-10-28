@@ -28,6 +28,12 @@ Drupal.behaviors.chatroom = function(context) {
 };
 
 Drupal.chatroom.poll = function() {
+
+  var skipCacheCheck = 0;
+  if (Drupal.settings.chatroom.successiveCacheHits > Drupal.settings.chatroom.skipCacheCheckCount) {
+    skipCacheCheck = 1;
+  }
+  
   $.ajax({
     type: 'POST',
     url: Drupal.settings.basePath + 'chatroomread.php',
@@ -36,7 +42,8 @@ Drupal.chatroom.poll = function() {
     data: {
       latest_msg_id: Drupal.settings.chatroom.latestMsgId, 
       chat_cache_directory: Drupal.settings.chatroom.cacheDirectory, 
-      chat_id: Drupal.settings.chatroom.chatId
+      chat_id: Drupal.settings.chatroom.chatId,
+      skip_cache: skipCacheCheck,
     } 
   });
 };
@@ -47,7 +54,18 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   if (response.data.archived) {
     window.location = Drupal.settings.basePath + Drupal.settings.chatroom.chatPath;
   }
-  
+
+  // If we hit the cache, then keep track of that. If the number of cache 
+  // successive cache hits gets high enough, we may want to signal to the
+  // server that we should skip the cache check so that our online time
+  // gets updated.
+  if (response.cacheHit) {
+    Drupal.settings.chatroom.successiveCacheHits++;
+  }
+  else {
+    Drupal.settings.chatroom.successiveCacheHits = 0;
+  }
+ 
   // Add any messages we haven't already seen to the board. Poll requests can 
   // pass each other over the wire, so we can't rely on only getting a given
   // message once only.
@@ -68,4 +86,6 @@ Drupal.chatroom.postMessage = function(message) {
     data: { message: message } 
   })
 }
+
+// vi:ai:sw=2 ts=2 
 
