@@ -14,6 +14,9 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_block_chats' => array(
       'arguments' => array(),
     ),
+    'chatroom_latest_message' => array(
+      'arguments' => array('message'),
+    ),
     'chatroom_block_rooms' => array(
       'arguments' => array(),
     ),
@@ -224,26 +227,22 @@ function theme_chatroom_message($message) {
  * @ingroup themeable
  */
 function theme_chatroom_user_list($users) {
-  $items = array();
+  global $user;
+  $html = '<ul id="chatroom-user-list">';
   if (!empty($users)) {
-    $now = time();
-    foreach ($users as $user) {
-      if ($user->last_seen_time > ($now - 10)) {
-        $items[] = theme('username', $user);
-      }
+    foreach ($users as $chat_user) {
+      $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
+      $html .= '<li class="' . $class . '">' . theme('username', $chat_user) . '</li>';
     }
   }
-  $output = theme('item_list', $items);
-  return str_replace('class="item-list"', 'id="chatroom-user-list" class="item-list"', $output);
+  $html .= '</ul>';
+  return $html;
 }
 
 /**
  * Format a message for display in a summary table.
  */
-function theme_chatroom_latest($message) {
-  if (function_exists('_smileys_list') && variable_get('chatroom_smileys_enabled', FALSE)) {
-    $msg->msg = smileys_filter_process($message->msg);
-  }
+function theme_chatroom_latest_message($message) {
   $output = $message->msg .'<br />';
   $output .= t('Posted by <strong>!user</strong> on !date', array(
     '!user' => $message->uid ? l($message->name, "user/$message->uid") : variable_get('chatroom_guest_user_prefix', t('guest-')) . $message->guest_id,
