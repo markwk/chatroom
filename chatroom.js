@@ -21,6 +21,13 @@ Drupal.behaviors.chatroom = function(context) {
       }
     }
   });
+  if (Drupal.settings.chatroom.latestMsgId > 0) {
+    var boardOffset = $('#chatroom-board').offset().top;
+    var targetOffset = $('div.new-message:last').offset().top;
+    var scrollAmount = targetOffset - boardOffset;
+    $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
+    $('.new-message').removeClass('new-message');
+  }
 };
 
 Drupal.chatroom.poll = function() {
@@ -66,13 +73,15 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   // Add any messages we haven't already seen to the board. Poll requests can 
   // pass each other over the wire, so we can't rely on getting a given
   // message once only.
+  var newMessage = false;
   for (var i = 0; i < response.data.messages.length; i++) {   
     if (response.data.messages[i].cmid > Drupal.settings.chatroom.latestMsgId) {
+      newMessage = true;
       $('#chatroom-board').append(response.data.messages[i].html);
       Drupal.settings.chatroom.latestMsgId = response.data.messages[i].cmid;
     }
   }
-  if (response.data.messages.length) {
+  if (newMessage) {
     var boardOffset = $('#chatroom-board').offset().top;
     var targetOffset = $('div.new-message:last').offset().top;
     var scrollAmount = targetOffset - boardOffset;
