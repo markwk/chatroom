@@ -123,6 +123,7 @@ function chatroom_insert($node) {
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'popout' => $node->popout,
+    'profile_picture' => $node->profile_picture,
   );
   drupal_write_record('chatroom', $chatroom);
 }
@@ -140,6 +141,7 @@ function chatroom_update($node) {
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'popout' => $node->popout,
+    'profile_picture' => $node->profile_picture,
   );
   drupal_write_record('chatroom', $chatroom, 'nid');
 }
@@ -242,6 +244,7 @@ function chatroom_chat_insert($node) {
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'popout' => $node->popout,
+    'profile_picture' => $node->profile_picture,
   );
   drupal_write_record('chatroom_chat', $chat);
 }
@@ -260,6 +263,7 @@ function chatroom_chat_update($node) {
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'popout' => $node->popout,
+    'profile_picture' => $node->profile_picture,
   );
   drupal_write_record('chatroom_chat', $chat, 'nid');
 }
@@ -717,7 +721,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
 function chatroom_load_online_users($chat) {
   global $user;
 
-  $sql = "SELECT col.*, u.name
+  $sql = "SELECT col.*, u.name, u.picture
           FROM {chatroom_chat_online_list} col
           LEFT JOIN {users} u ON u.uid = col.uid
           WHERE col.ccid = %d
@@ -797,7 +801,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id) {
       chatroom_chat_update_cache($node->nid, $latest_msg_id);
     }
 
-    $response['usersHtml'] = theme('chatroom_user_list', chatroom_load_online_users($node));
+    $response['usersHtml'] = theme('chatroom_user_list', chatroom_load_online_users($node), $node);
   }
   print drupal_to_js(array('data' => $response));
 }

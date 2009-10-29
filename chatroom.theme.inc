@@ -36,6 +36,7 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_user_list' => array(
       'arguments' => array(
         'users',
+        'chat',
       ),
     ),
     'chatroom_chat_kicked_user' => array(
@@ -226,13 +227,26 @@ function theme_chatroom_message($message) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_user_list($users) {
+function theme_chatroom_user_list($users, $chat) {
   global $user;
   $html = '<ul id="chatroom-user-list">';
   if (!empty($users)) {
     foreach ($users as $chat_user) {
       $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
-      $html .= '<li class="' . $class . '">' . theme('username', $chat_user) . '</li>';
+      $html .= '<li class="' . $class . '">' . theme('username', $chat_user);
+      if ($chat->chat->profile_picture) {
+        $size = variable_get('chatroom_profile_picture_preset', 0);
+        if (module_exists('imagecache') && $size && $chat_user->uid) {
+          $preset = imagecache_preset($size);
+          $alt = t("@user's picture", array('@user' => $chat_user->name));
+          $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
+          $html .= $chat_user->picture . theme('username', $chat_user);
+        }
+        else { 
+          $html .= theme('user_picture', $chat_user);
+        }
+      }
+      $html.= '</li>';
     }
   }
   $html .= '</ul>';
@@ -351,7 +365,7 @@ function theme_chatroom_chat_banned_user($chat) {
  * @ingroup themeable
  */
 function theme_chatroom_chat($node) {
-  $output = theme('chatroom_user_list', $node->chat->users);
+  $output = theme('chatroom_user_list', $node->chat->users, $node);
   $output .= '<div id="chatroom-board">';
   foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
     $output .= theme('chatroom_message', $message); 

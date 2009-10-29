@@ -152,3 +152,14 @@ div.ahah-response,
   display: inline;
 }
 
+ul#chatroom-user-list li.chatroom-user {
+  position: relative;
+}
+
+ul#chatroom-user-list li.chatroom-user .picture {
+  float: none;
+  position: relative;
+  left: 200px;
+  bottom: 10px;
+}
+ 

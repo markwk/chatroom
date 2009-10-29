@@ -55,6 +55,11 @@ function chatroom_schema() {
         'default' => 0,
         'description' => t('Default for whether to load chats in this chatroom in a popout window.'),
       ),
+      'profile_picture' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Whether to display user profile pictures in online lists by default for chats in this room.'),
+      ),
     ),
     'primary key' => array('nid'),
   );
@@ -163,7 +168,12 @@ function chatroom_schema() {
       'popout' => array(
         'type' => 'int',
         'default' => 0,
-        'description' => t('Default for whether to load chats in this chatroom in a popout window.'),
+        'description' => t('Whether to load this chat in a popout window.'),
+      ),
+      'profile_picture' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Whether to display user profile pictures in online lists for this chat.'),
       ),
     ),
     'indexes' => array(
