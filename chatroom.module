@@ -278,7 +278,6 @@ function chatroom_chat_delete(&$node) {
 function chatroom_chat_load($node) {
   $chat = new StdClass();
   if ($chat->chat = db_fetch_object(db_query("SELECT * FROM {chatroom_chat} WHERE nid = %d", $node->nid))) { 
-    $chat->chat->users = chatroom_load_online_users($node);
     $chat->chat->chatroom = node_load($chat->chat->crid);
     $chat->chat->latest_msg = chatroom_chat_get_latest_message($node->nid);
     $chat->chat->msg_count = chatroom_chat_get_message_count($node->nid);
@@ -397,7 +396,10 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
       $content = theme('chatroom_chat_banned_user', $node);
     }
     elseif (!isset($node->chat->when_archived)) {
-      chatroom_chat_register_user($node);
+      if (!chatroom_chat_register_user($node)) {
+        chatroom_update_last_seen_time($node, session_id());
+      }
+      $node->chat->users = chatroom_load_online_users($node);
       chatroom_add_js($node);
       $content = theme('chatroom_chat', $node);
     }
@@ -583,16 +585,13 @@ function chatroom_archive_old_msgs($chat_id) {
 }
 
 /**
- * Handles update or insert for user when loading a chat room.
+ * Register a user in a chat.
  */
-function chatroom_chat_register_user(&$node) {
+function chatroom_chat_register_user($node) {
   global $user;
+
   $session_id = session_id();
-  $exists = db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $node->nid, $session_id));
-  if ($exists) {
-    chatroom_update_last_seen_time($node, $session_id);
-  }
-  else {
+  if (!db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $node->nid, $session_id))) {
     $params = array($node->nid, $user->uid, $session_id, time());
     if ($user->uid) {
       $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, last_seen_time) VALUES (%d, %d, '%s', %d)";
@@ -600,13 +599,13 @@ function chatroom_chat_register_user(&$node) {
     else {
       $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, guest_id, last_seen_time) 
                 SELECT %d, %d, '%s', COALESCE(MAX(guest_id) + 1, 1), %d
-                FROM {chatroom_chat_online_list} WHERE ccid = %d";
+                FROM {chatroom_chat_online_list} 
+                WHERE ccid = %d";
       $params[] = $node->nid;
     }
-    db_query($sql, $params);
-    // Reload the list so the newly registered user shows up.
-    $node->chat->users = chatroom_load_online_users($node);
+    return db_query($sql, $params);
   }
+  return FALSE;
 }
 
 /**
@@ -719,7 +718,7 @@ function chatroom_load_online_users($chat) {
     if ($u->uid == 0) {
       $u->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $u->guest_id;
     }
-    $users[] = $u;
+    $users[$u->sid] = $u;
   }
   return $users;
 }
@@ -786,7 +785,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id) {
       chatroom_chat_update_cache($node->nid, $latest_msg_id);
     }
 
-    $response['usersHtml'] = theme('chatroom_user_list', $node->chat->users);
+    $response['usersHtml'] = theme('chatroom_user_list', chatroom_load_online_users($node));
   }
   print drupal_to_js(array('data' => $response));
 }
