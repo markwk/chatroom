@@ -4,30 +4,24 @@ Chat Room allows users to talk together in real time. Users enter chat rooms
 which can have multiple chats. Permissions can be set to restrict who can
 access, edit, and create chats and chat rooms.
 
-You can:
+INSTALLATION
+============
 
-Create a chat room (at node/add/chatroom).
-View a list of chat rooms (at chatrooms).
-Add a title to the list of chat rooms (at admin/settings/chatroom).
-Archive chats on the chat room edit page.
+1. Download the module from Drupal.org/project/chatroom and save it to your
+   modules folder.
+2. Enable the module at admin/build/modules.
+3. Copy chatroomread.php from the chatroom folder to the webroot of your site.
+   chatroomread.php should sit next to your index.php file.
+4. Enable access to chatrooms and chat for some roles on your site.
 
-CHAT COMMANDS
--------------
-/me - Send an italicized message preceded by *.
+HACKING
+=======
 
-/msg username message - Send a private message to a specific user.
+Chatroom is currently under heavy development. The DRUPAL-6--2 branch is where
+the action is, while the DRUPAL-6--1 branch is strictly for bug fixes, and will
+be deprecated as soon as the DRUPAL-6--2 branch is stable enough.
 
-/away - Set your status to away.
+Check the HACKING.txt file and the issues queue for the latest.
 
-/back - Return from away.
-
-The following commands can be used by administrators while they are in a
-chat:
-
-/kick (username) - The user will be kicked from the chat and be redirected
-to a message page (message is configurable). The other users in the chat
-will just see that the user has left the chat. The kicked user can enter the
-chat again.
-
-/ban username - Permanently bans user from the chat. Works only for
-registered users. Edit the chat room to remove users from the banned list.
+Patches, testers, feature suggestions, bug reports etc all welcome!
+ 

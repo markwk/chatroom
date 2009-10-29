@@ -20,40 +20,45 @@ function chatroom_schema() {
       'poll_freq' => array(
         'type' => 'int',
         'not null' => TRUE,
-        'default' => 3000,
-        'description' => t('Polling interval, in milliseconds, of the chat.'),
+        'default' => 1000,
+        'description' => t('Default polling interval, in milliseconds, of all chats in this chatroom.'),
       ),
       'idle_freq' => array(
         'type' => 'int',
         'not null' => TRUE,
         'default' => 60000,
-        'description' => t('Idle interval, in milliseconds, of the chat.'),
+        'description' => t('Default idle interval, in milliseconds, of all chats in this chatroom.'),
       ),
       'kicked_out_message' => array(
         'type' => 'text',
         'size' => 'big',
-        'description' => t('Message sent to users kicked from the chat.'),
+        'description' => t('Default message sent to users kicked from any chat in this chatroom.'),
       ),
       'banned_message' => array(
         'type' => 'text',
         'size' => 'big',
-        'description' => t('Message sent to users banned from the chat.'),
+        'description' => t('Default message sent to users banned from any chat in this chatroom.'),
       ),
       'module' => array(
         'type' => 'varchar',
         'length' => '255',
         'default' => 'chatroom',
-        'description' => t('Unknown.'),
+        'description' => t('The module that owns this chatroom.'),
       ),
-      'auto_archive' => array(
-        'type' => 'int',
-        'default' => 0,
-        'description' => t('Unknown.'),
-      ),
-      'old_msg_count' => array(
+      'previous_messages_display_count' => array(
         'type' => 'int',
         'default' => 20,
-        'description' => t('Unknown. Number of old messages?'),
+        'description' => t('The number of previous messages to display to a user when they first enter a chat.'),
+      ),
+      'popout' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Default for whether to load chats in this chatroom in a popout window.'),
+      ),
+      'profile_picture' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Whether to display user profile pictures in online lists by default for chats in this room.'),
       ),
     ),
     'primary key' => array('nid'),
@@ -84,44 +89,97 @@ function chatroom_schema() {
     ),
     'primary key' => array('admin_uid', 'uid'),
   );
-  $schema['chatroom_chat'] = array(
+  $schema['chatroom_chat_ban_list'] = array(
     'fields' => array(
-      'ccid' => array(
-        'type' => 'serial',
-        'not null' => TRUE,
-        'description' => t('Primary key: ID of the chat.'),
-      ),
-      'crid' => array(
+      'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
-        'description' => t('ID of the chatroom the chat belongs to.'),
+        'description' => t('Chat ID.'),
       ),
       'uid' => array(
         'type' => 'int',
         'not null' => TRUE,
-        'description' => t('ID of the user who created the chat.'),
+        'description' => t('ID of the banned user.'),
       ),
-      'chatname' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'description' => t('Name of the chat.'),
+      'admin_uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('ID of the chatroom admin who imposed the ban.'),
       ),
       'modified' => array(
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
-        'description' => t('UNIX timestamp of when the chat was last modified.'),
+        'description' => t('UNIX timestamp of when the ban was imposed.'),
+      ),
+    ),
+    'primary key' => array('admin_uid', 'uid'),
+  );
+  $schema['chatroom_chat'] = array(
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('Primary key: node ID of the chat.'),
+      ),
+      'crid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => t('ID of the chatroom the chat belongs to. 0 signifies this chat does not belong to a room.'),
+      ),
+      'poll_freq' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1000,
+        'description' => t('Polling interval, in milliseconds, of the chat.'),
+      ),
+      'idle_freq' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 60000,
+        'description' => t('Idle interval, in milliseconds, of the chat.'),
+      ),
+      'kicked_out_message' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'description' => t('Message sent to users kicked from the chat.'),
+      ),
+      'banned_message' => array(
+        'type' => 'text',
+        'size' => 'big',
+        'description' => t('Message sent to users banned from the chat.'),
+      ),
+      'module' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'default' => 'chatroom',
+        'description' => t('The module that owns this chat.'),
+      ),
+      'previous_messages_display_count' => array(
+        'type' => 'int',
+        'default' => 20,
+        'description' => t('The number of previous messages to display to a user when they first enter a chat.'),
       ),
       'when_archived' => array(
         'type' => 'int',
         'description' => t('UNIX timestamp of when the chat was last archived.'),
       ),
+      'popout' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Whether to load this chat in a popout window.'),
+      ),
+      'profile_picture' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Whether to display user profile pictures in online lists for this chat.'),
+      ),
     ),
     'indexes' => array(
       'crid' => array('crid'),
-      'modified' => array('modified'),
     ),
-    'primary key' => array('ccid'),
+    'primary key' => array('nid'),
   );
   $schema['chatroom_msg'] = array(
     'fields' => array(
@@ -132,10 +190,12 @@ function chatroom_schema() {
       'ccid' => array(
         'type' => 'int',
         'not null' => TRUE,
+        'default' => 0,
       ),
       'uid' => array(
         'type' => 'int',
         'not null' => TRUE,
+        'default' => 0,
       ),
       'msg_type' => array(
         'type' => 'varchar',
@@ -151,12 +211,7 @@ function chatroom_schema() {
         'length' => '64',
         'not null' => TRUE,
       ),
-      'recipient' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => TRUE,
-      ),
-      'archived' => array(
+      'recipient_uid' => array(
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -170,17 +225,27 @@ function chatroom_schema() {
     'indexes' => array(
       'ccid' => array('ccid'),
       'modified' => array('modified'),
-      'recipient' => array('recipient'),
+      'recipient_uid' => array('recipient_uid'),
       'sid' => array('sid')
     ),
     'primary key' => array('cmid'),
   );
-  $schema['chatroom_online_list'] = array(
+  $schema['chatroom_chat_online_list'] = array(
     'fields' => array(
       'ccid' => array(
         'type' => 'int',
         'not null' => TRUE,
         'description' => t('Chat ID.'),
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'guest_id' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
       ),
       'sid' => array(
         'type' => 'varchar',
@@ -188,23 +253,12 @@ function chatroom_schema() {
         'not null' => TRUE,
         'description' => t('Session ID.'),
       ),
-      'guest_id' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 1,
-        'description' => t('Unknown.'),
-      ),
       'away' => array(
         'type' => 'int',
         'default' => 0,
         'description' => t('Boolean: whether the user is away.'),
       ),
-      'is_admin' => array(
-        'type' => 'int',
-        'default' => 0,
-        'description' => t('Boolean: whether the user is an admin.'),
-      ),
-      'modified' => array(
+      'last_seen_time' => array(
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -212,6 +266,29 @@ function chatroom_schema() {
       ),
     ),
     'primary key' => array('ccid', 'sid'),
+    'indexes' => array(
+      'uid' => array('uid'),
+      'guest_id' => array('guest_id'),
+    ),
+  );
+  $schema['chatroom_chat_invite'] = array(
+    'fields' => array(
+      'ccid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('Chat ID.'),
+      ),
+      'inviter_uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'invitee_uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
   );
   return $schema;
 }
@@ -219,7 +296,6 @@ function chatroom_schema() {
 /**
  * Implementation of hook_requirements().
  */
-/*
 function chatroom_requirements($phase) {
   $requirements = array();
   if ($GLOBALS['db_type'] == 'mysql' && version_compare(db_version(), '4.1') < 0) {
@@ -231,7 +307,7 @@ function chatroom_requirements($phase) {
     );
   }
   return $requirements;
-}*/
+}
 
 /**
  * Implementation of hook_install().
@@ -247,74 +323,39 @@ function chatroom_install() {
 }
 
 /**
- * Implementation of hook_disable().
- */
-function chatroom_disable() {
-
-  // Empty cache
-/*
-  $path = file_directory_temp();
-  if ($dir = @opendir($path .'/drupal.chatroom.'. session_name())) {
-    $path .= '/drupal.chatroom.'. session_name();
-    while (($file = readdir($dir)) !== FALSE) {
-      if ($file != '.' && $file != '..') {
-        unlink("$path/$file");
-      }
-    }
-    closedir($dir);
-    rmdir($path);
-  }
-  else if ($dir = @opendir($path)) {
-    while (($file = readdir($dir)) !== FALSE) {
-      if (strpos($file, 'drupal.chatroom.'. session_name() .'.') === 0) {
-        unlink("$path/$file");
-      }
-    }
-    closedir($dir);
-  }*/
-}
-
-/**
  * Implementation of hook_uninstall().
  */
 function chatroom_uninstall() {
   $t = get_t();
-  $rooms = db_query("SELECT nid FROM {node} WHERE type = 'chatroom'");
-  while ($room = db_fetch_object($rooms)) {
-    node_delete($room->nid);
+  $result = db_query("SELECT nid FROM {node} WHERE type = 'chatroom' OR type = 'chat'");
+  while ($chat_room_node = db_fetch_object($result)) {
+    node_delete($chat_room_node->nid);
   }
+  drupal_set_message($t('Chat room nodes have been deleted from the database.'));
 
-  // Schema api
   drupal_uninstall_schema('chatroom');
-
   drupal_set_message($t('Chat room tables have been dropped from the database.'));
+
   db_query("DELETE FROM {blocks} WHERE module = 'chatroom'");
   $settings = db_query("SELECT name FROM {variable} WHERE name LIKE 'chatroom\_%'");
   while ($variable = db_fetch_object($settings)) {
     variable_del($variable->name);
   }
-  variable_del('comment_chatroom');
-  $roles = db_query("SELECT * FROM {permission}");
-  while ($role = db_fetch_object($roles)) {
-    $perm = explode(', ', $role->perm);
-    $perm = array_filter($perm, '_chatroom_filter_perm');
-    db_query("UPDATE {permission} SET perm = '%s' WHERE rid = %d", implode(', ', $perm), $role->rid);
-  }
   drupal_set_message($t('Chat room settings have been deleted.'));
-  $path = file_directory_path() .'/chatroom';
-  if ($dir = @opendir($path)) {
-    while (($file = readdir($dir)) !== FALSE) {
-      if ($file != '.' && $file != '..') {
-        unlink("$path/$file");
+
+  $roles = db_query("SELECT * FROM {permission}");
+  require_once dirname(__FILE__) . '/chatroom.module';
+  $chatroom_perms = chatroom_perms();
+  while ($role = db_fetch_object($roles)) {
+    $new_perms = array();
+    foreach (explode(', ', $role->perm) as $perm) {
+      if (!in_array($perm, $chatroom_perms)) {
+        $new_perms[] = $perm;
       }
     }
-    closedir($dir);
-    rmdir($path);
+    db_query("UPDATE {permission} SET perm = '%s' WHERE rid = %d", implode(', ', $new_perms), $role->rid);
   }
-}
-
-function _chatroom_filter_perm($perm) {
-  return strpos($perm, 'chat rooms') === FALSE && strpos($perm, 'administer chats') === FALSE && strpos($perm, 'create chats') === FALSE;
+  drupal_set_message($t('Chat room permissions have been removed from all roles.'));
 }
 
 /**

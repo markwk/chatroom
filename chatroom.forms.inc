@@ -11,7 +11,7 @@
  */
 function chatroom_forms() {
   $forms['chatroom_chat_form'] = array(
-    'callback' => 'chatroom_chat_form',
+    'callback' => 'chatroom_chat_interface',
   );
   $forms['chatroom_create_chat_form'] = array(
     'callback' => 'chatroom_create_chat_form',
@@ -22,18 +22,13 @@ function chatroom_forms() {
   $forms['chatroom_unarchive_chat_form'] = array(
     'callback' => 'chatroom_unarchive_chat_form',
   );
-  $forms['chatroom_delete_chat_form'] = array(
-    'callback' => 'chatroom_delete_chat_form',
-  );
   return $forms;
 }
 
 /**
  * Implementation of hook_form().
- *
- * This is the node editing form for chatroom nodes.
  */
-function chatroom_form(&$node, &$params) {
+function chatroom_form(&$node, $form_state) {
   global $user;
   $form['title'] = array(
     '#type' => 'textfield',
@@ -101,13 +96,45 @@ function chatroom_form(&$node, &$params) {
   for ($i = 1; $i <= 25; $i++) {
     $old_msg_range[$i] = $i * 10;
   }
-  $form['chat_settings']['old_msg_count'] = array(
+  $form['chat_settings']['previous_messages_display_count'] = array(
     '#type' => 'select',
     '#title' => t('Old messages'),
     '#description' => t('How many old messages to show when entering a chat.'),
-    '#default_value' => empty($node->chatroom->old_msg_count) ? 20 : $node->chatroom->old_msg_count,
+    '#default_value' => empty($node->chatroom->previous_messages_display_count) ? 20 : $node->chatroom->previous_messages_display_count,
     '#options' => drupal_map_assoc($old_msg_range),
   );
+  $form['chat_settings']['popout'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Load this rooms' chats in a popout?"),
+    '#description' => t('Should chats in this room default to loading in a popup window?'),
+    '#default_value' => isset($node->chatroom) ? $node->chatroom->popout : 0,
+  );
+  $form['chatroom_profile_picture_support'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('User profile picture support'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['chatroom_profile_picture_support']['profile_picture'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('User profile picture.'),
+    '#description' => t('Enable User profile picture for chatroom.'),
+    '#default_value' => $node->chat->profile_picture,
+    '#disabled' => !variable_get('user_pictures', FALSE),
+  );
+  if (module_exists('imagecache')) {
+    $presets = array('');
+    foreach (imagecache_presets() as $key => $preset) {
+      $presets[$key] = check_plain($preset['presetname']);
+    }
+    $form['chatroom_profile_picture_support']['profile_picture_preset'] = array(
+      '#type' => 'select',
+      '#title' => t('Profile picture preset'),
+      '#default_value' => variable_get('chatroom_profile_picture_preset', ''),
+      '#options' => $presets,
+      '#description' => t("This will set the picture size."),
+    );
+  }
   if (!empty($node->chatroom->chats)) {
     foreach ($node->chatroom->chats as $chat) {
       if ($chat->section != 'archives') {
@@ -171,13 +198,6 @@ function chatroom_admin_settings() {
     '#default_value' => variable_get('chatroom_guest_user_prefix', t('guest-')),
     '#size' => 20,
   );
-  $form['chatroom_max_message_size'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Maximum message size'),
-    '#description' => t('Maximum message size for a chat message.'),
-    '#default_value' => variable_get('chatroom_max_message_size', 1000),
-    '#size' => 20,
-  );
   $form['chatroom_chat_message_text'] = array(
     '#type' => 'textfield',
     '#title' => t('Chat message help text'),
@@ -237,36 +257,6 @@ function chatroom_admin_settings() {
     '#default_value' => variable_get('chatroom_alerts', FALSE) && variable_get('chatroom_custom_sounds', FALSE),
     '#disabled' => !variable_get('chatroom_alerts', FALSE),
   );
-  $path = file_directory_path() .'/chatroom';
-  $js = array();
-  if (file_exists("$path/message.mp3")) {
-    $js['messageSound'] = file_create_url("$path/message.mp3");
-  }
-  if (file_exists("$path/user.mp3")) {
-    $js['userSound'] = file_create_url("$path/user.mp3");
-  }
-  $form['chatroom_alerts']['chatroom_message_alert_upload'] = array(
-    '#type' => 'file',
-    '#title' => t('Custom new message sound'),
-    '#description' => isset($js['messageSound']) ? t('Replace the custom new message sound with a new MP3. !Listen to current file.', array('!Listen' => l(t('Listen'), $js['messageSound'], array('attributes' => array('id' => 'sound_message'))))) : t('Replace the default new message sound with your own MP3.'),
-    '#size' => 30,
-  );
-  $form['chatroom_alerts']['chatroom_user_alert_upload'] = array(
-    '#type' => 'file',
-    '#title' => t('Custom new user sound'),
-    '#description' => isset($js['userSound']) ? t('Replace the custom new user sound with a new MP3. !Listen to current file.', array('!Listen' => l(t('Listen'), $js['userSound'], array('attributes' => array('id' => 'sound_user'))))) : t('Replace the default new user sound with your own MP3.'),
-    '#size' => 30,
-  );
-  if (!empty($js)) {
-    global $base_path;
-    $js['basePath'] = $base_path;
-    $js['chatroomBase'] = drupal_get_path('module', 'chatroom');
-    drupal_add_js(array('chatroom' => $js), 'setting');
-    drupal_add_js(drupal_get_path('module', 'chatroom') .'/soundmanager2.js');
-    drupal_add_js('$("#sound_message").attr("href", "javascript:Drupal.chatroom.soundManager.play(\'message\')")', 'inline', 'footer');
-    drupal_add_js('$("#sound_user").attr("href", "javascript:Drupal.chatroom.soundManager.play(\'user\')")', 'inline', 'footer');
-  }
-  $form['#attributes'] = array('enctype' => 'multipart/form-data');
   return system_settings_form($form);
 }
 
@@ -290,48 +280,130 @@ function chatroom_admin_settings_validate($form, &$form_state) {
 }
 
 /**
- * Validate that a file is MP3 audio
+ * Implementation of hook_form().
  *
- * Cribbed largely from file_validate_extensions().
+ * TODO: make the default values cascade.
  */
-function file_validate_mimetype($file, $types) {
-  $errors = array();
-  $regex = '/^('. ereg_replace(' +', '|', preg_quote($types)) .')$/i';
-  if (!preg_match($regex, $file->filemime)) {
-    $errors[] = t('Only files with the following MIME types are allowed: %types-allowed.', array('%types-allowed' => $types));
-  }
-  return $errors;
-}
+function chatroom_chat_form(&$node, $form_state) {
 
-/**
- * Save files from site-wide chatroom settings form.
- */
-function chatroom_admin_settings_submit($form, &$form_state) {
-  // Check uploaded files are MP3s.
-  $path = file_directory_path() .'/chatroom';
-  if (file_check_directory(file_directory_path(), FILE_CREATE_DIRECTORY)
-    && file_check_directory($path, FILE_CREATE_DIRECTORY)) {
-    $validators = array(
-      'file_validate_mimetype' => array('audio/mpeg'),
+  global $user;
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#default_value' => check_plain($node->title),
+    '#description' => t('The name for your chat.'),
+    '#required' => TRUE,
+  );
+  $form['body_filter']['body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Description'),
+    '#default_value' => $node->body,
+    '#rows' => 3,
+    '#description' => t('Describe your chat so other people will know if they want to join.'),
+  );
+  $form['body_filter']['format'] = filter_form($node->format);
+  $form['kicked_out_message'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Chat kicked out message'),
+    '#default_value' => '',
+    '#rows' => 3,
+    '#description' => t('This text will appear on the page kicked out users are sent to. Defaults to, "You have been kicked out of %chat for misbehaving."', array('%chat' => t('chat-name'))),
+  );
+  $form['banned_message'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Chat room banned message'),
+    '#default_value' => '',
+    '#rows' => 3,
+    '#description' => t('This text will appear on the page banned users are sent to. Defaults to, "You have been banned from %chatroom."', array('%chatroom' => t('chat-room'))),
+  );
+  if (!empty($node->banned_users)) {
+    $form['chatroom_banned_users'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Manage banned users'),
+      '#collapsible' => TRUE,
     );
-    file_save_upload('chatroom_user_alert_upload', $validators, "$path/user.mp3", FILE_EXISTS_REPLACE);
-    file_save_upload('chatroom_message_alert_upload', $validators, "$path/message.mp3", FILE_EXISTS_REPLACE);
+    foreach ($node->banned_users as $banned_user) {
+      $banned_users[$banned_user->uid] = check_plain($banned_user->name);
+    }
+    $form['chatroom_banned_users']['unban_list'] = array(
+      '#type' => 'checkboxes',
+      '#options' => $banned_users,
+      '#description' => t('Check the users you would like to unban'),
+    );
   }
-  system_settings_form_submit($form, $form_state);
+  $form['chat_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Chat settings'),
+    '#collapsible' => TRUE,
+  );
+  $form['chat_settings']['poll_freq'] = array(
+    '#type' => 'select',
+    '#title' => t('Update frequency'),
+    '#default_value' => empty($node->poll_freq) ? 1 : $node->poll_freq / 1000,
+    '#options' => drupal_map_assoc(range(1, 10)),
+    '#description' => t('How many seconds between each request for updates from the server.'),
+  );
+  $form['chat_settings']['idle_freq'] = array(
+    '#type' => 'select',
+    '#title' => t('Idle time'),
+    '#default_value' => empty($node->idle_freq) ? 60 : $node->idle_freq / 1000,
+    '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
+    '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
+  );
+  $form['chat_settings']['popout'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Load this chat in a popout?'),
+    '#description' => t('Should this chat load in a popup window?'),
+    '#default_value' => isset($node->chat) ? $node->chat->popout : 0,
+  );
+  $previous_msg_range = array();
+  for ($i = 1; $i <= 25; $i++) {
+    $previous_msg_range[$i] = $i * 10;
+  }
+  $form['chat_settings']['previous_messages_display_count'] = array(
+    '#type' => 'select',
+    '#title' => t('Old messages'),
+    '#description' => t('How many old messages to show when entering a chat.'),
+    '#default_value' => empty($node->previous_messages_display_count) ? 20 : $node->previous_messages_display_count,
+    '#options' => drupal_map_assoc($previous_msg_range),
+  );
+  $form['chatroom_profile_picture_support'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('User profile picture support'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['chatroom_profile_picture_support']['profile_picture'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('User profile picture.'),
+    '#description' => t('Enable User profile picture for chatroom.'),
+    '#default_value' => $node->chat->profile_picture,
+    '#disabled' => !variable_get('user_pictures', FALSE),
+  );
+  if (module_exists('imagecache')) {
+    $presets = array('');
+    foreach (imagecache_presets() as $key => $preset) {
+      $presets[$key] = check_plain($preset['presetname']);
+    }
+    $form['chatroom_profile_picture_support']['profile_picture_preset'] = array(
+      '#type' => 'select',
+      '#title' => t('Profile picture preset'),
+      '#default_value' => variable_get('chatroom_profile_picture_preset', ''),
+      '#options' => $presets,
+      '#description' => t("This will set the picture size."),
+    );
+  }
+  return $form;
 }
 
-/**
- * Return the chat interface.
- */
-function chatroom_chat_form(&$form_state, $chat) {
+function chatroom_chat_interface(&$form_state, $node) {
   // The message board itself.
-  chatroom_load_users($chat);
-  $form['board']['#value'] = theme('chatroom_user_list', $chat->users);
+  $form['board']['#value'] = theme('chatroom_user_list', $node->chat->users);
   $form['board']['#value'] .= '<div id="chatroom-board">';
   // Messages for initial display.
   if (!$form_state['submitted']) {
-    $chat->last_cmid = chatroom_load_messages($chat, 0, TRUE, TRUE);
-    $form['board']['#value'] .= theme('chatroom_messages', $chat->messages);
+    $messages = chatroom_chat_load_messages($chat->nid, 0, 20);
+    $form['board']['#value'] .= theme('chatroom_messages', $messages);
   }
   $form['board']['#value'] .= '</div>';
   // Control data for the form
@@ -339,14 +411,7 @@ function chatroom_chat_form(&$form_state, $chat) {
     '#type' => 'fieldset',
     '#attributes' => array('id' => 'edit-control-fieldset'),
   );
-  $data = array('nid', 'ccid', 'last_cmid');
-  foreach ($data as $key) {
-    $form['control'][$key] = array(
-      '#type' => 'hidden',
-      '#value' => $chat->{$key},
-    );
-  }
-  $form['control']['control'] = array('#type' => 'hidden');
+  $data = array('nid');
   // The actual submit button. Not displayed so the user isn't troubled with a
   // whole bunch of throbbers.
   $form['control']['submit'] = array(
@@ -412,91 +477,24 @@ function chatroom_create_chat_form(&$form_state, $room) {
 }
 
 /**
- * Validate attempt to create chat - check if name is already in use.
- */
-function chatroom_create_chat_form_validate($form, &$form_state) {
-  $nid = $form_state['values']['nid'];
-  $name = $form_state['values']['chat_name'];
-  $sql = "SELECT COUNT(ccid) FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s' AND when_archived IS NULL";
-  if (db_result(db_query_range($sql, $nid, $name, 0, 1))) {
-    form_set_error('chatroom_chat_name', t('A chat called %name already exists.', array('%name' => $name)));
-  }
-}
-
-/**
  * Create a chat.
  */
 function chatroom_create_chat_form_submit($form, &$form_state) {
   global $user;
-  $created = db_query("
-    INSERT INTO {chatroom_chat} (crid, uid, chatname, modified)
-    VALUES (%d, %d, '%s', %d)
-  ", $form_state['values']['nid'], $user->uid, $form_state['values']['chat_name'], time());
-  if (!$created) {
-    drupal_set_message(t("There was an error creating your chat"), 'error');
-  }
-  else {
-    cache_clear_all(TRUE, 'cache_block');
-  }
-}
-
-/**
- * Form to delete an archived chat.
- *
- * @param array $form_state
- * @param integer $chat_id
- * @return array
- */
-function chatroom_delete_chat_form($form_state, $ccid = NULL) {
-  $form = array();
-  $form['ccid'] = array(
-    '#type' => 'value',
-    '#value' => $ccid,
-  );
-  $form['delete'] = array(
-    '#type' => 'submit',
-    '#value' => t('Delete this chat'),
-  );
-  return $form;
-}
-
-/**
- * Delete an archived chat
- *
- * @param array $form
- * @param array $form_state
- * @return string
- */
-function chatroom_delete_chat_form_submit($form, &$form_state) {
-  drupal_goto('chatroom/chat/' . $form_state['values']['ccid'] . '/delete');
-}
-
-/**
- * Show a confirm form if the user chooses to delete a chat.
- */
-function chatroom_delete_chat_confirm_form($form_state, $chat_id) {
-  if ($chat = chatroom_load_chat($chat_id)) {
-    $form['ccid'] = array(
-      '#type' => 'value',
-      '#value' => $chat->ccid,
-    );
-    return confirm_form($form,
-      t('Are you sure you want to delete %title?', array('%title' => $chat->chatname)),
-      'chatroom/chat/'. $chat->ccid,
-      t('This action cannot be undone.'),
-      t('Delete'),
-      t('Cancel')
-    );
-  }
-}
-
-/**
- * Actually delete the chat.
- */
-function chatroom_delete_chat_confirm_form_submit($form, &$form_state) {
-  $chat = chatroom_load_chat($form_state['values']['ccid']);
-  chatroom_chat_delete($form_state['values']['ccid']);
-  $form_state['redirect'] = "node/$chat->nid";
+  $values = (object) $form_state['values'];
+  $chat = new StdClass();
+  $chat->type = 'chat';
+  $chat->title = $values->chat_name;
+  $chat->uid = $user->uid;
+  $chat->created = time();
+  $chat->crid = $values->nid;
+  $chat->idle_freq = 20000;
+  $chat->poll_freq = 1000;
+  $chat->kicked_out_message = '';
+  $chat->banned_message = ''; 
+  $chat->previous_messages_display_count = 20;
+  $chat->popout = 0;
+  node_save($chat);
 }
 
 /**
