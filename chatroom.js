@@ -56,7 +56,7 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
     window.location = Drupal.settings.basePath + Drupal.settings.chatroom.chatPath;
   }
 
-  // If we hit the cache, then keep track of that. If the number of cache 
+  // If we hit the cache, then keep track of that. If the number of
   // successive cache hits gets high enough, we may want to signal to the
   // server that we should skip the cache check so that our online time
   // gets updated.
@@ -66,15 +66,19 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   else {
     Drupal.settings.chatroom.successiveCacheHits = 0;
   }
- 
+  
   // Add any messages we haven't already seen to the board. Poll requests can 
-  // pass each other over the wire, so we can't rely on only getting a given
+  // pass each other over the wire, so we can't rely on getting a given
   // message once only.
   for (var i = 0; i < response.data.messages.length; i++) {   
     if (response.data.messages[i].cmid > Drupal.settings.chatroom.latestMsgId) {
       $('#chatroom-board').append(response.data.messages[i].html);
       Drupal.settings.chatroom.latestMsgId = response.data.messages[i].cmid;
     }
+  }
+
+  if (response.data.usersHtml) {
+    $('#chatroom-user-list').html(response.data.usersHtml);
   }
 };
 
@@ -88,5 +92,5 @@ Drupal.chatroom.postMessage = function(message) {
   })
 }
 
-// vi:ai:sw=2 ts=2 
+// vi:ai:expandtab:sw=2 ts=2 
 
