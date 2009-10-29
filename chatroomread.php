@@ -57,7 +57,7 @@ if (!$skip_cache && file_exists($chat_cache_file)) {
   }
 
   $server_latest_msg_id = trim(file_get_contents($chat_cache_file));
-  if ($server_last_msg_id <= $client_latest_msg_id) {
+  if ($server_latest_msg_id == $client_latest_msg_id) {
     print json_encode(array('data' => array('cacheHit' => 1, 'messages' => array())));
     exit;
   }

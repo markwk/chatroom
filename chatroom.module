@@ -663,7 +663,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
           FROM {chatroom_msg} cm
           INNER JOIN {chatroom_chat_online_list} col ON col.sid = cm.sid
           WHERE cm.ccid = %d 
-          AND cm.cmid > %d 
+          AND cm.cmid >= %d 
           ORDER BY cm.cmid ASC";
   $args = array($chat_id, $last_cmid);
 
