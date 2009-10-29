@@ -280,7 +280,8 @@ function chatroom_chat_load($node) {
   if ($chat->chat = db_fetch_object(db_query("SELECT * FROM {chatroom_chat} WHERE nid = %d", $node->nid))) { 
     $chat->chat->users = chatroom_load_users($node);
     $chat->chat->chatroom = node_load($chat->chat->crid);
-    $chat->chat->latest_msg_id = chatroom_chat_get_latest_message_id($node->nid);
+    $chat->chat->latest_msg = chatroom_chat_get_latest_message($node->nid);
+    $chat->chat->msg_count = chatroom_chat_get_message_count($node->nid);
     return $chat;
   }
 }
@@ -290,8 +291,22 @@ function chatroom_chat_load($node) {
  * 
  * @param mixed $chat_id 
  */
-function chatroom_chat_get_latest_message_id($chat_id) {
-  return db_result(db_query("SELECT cmid FROM {chatroom_msg} WHERE ccid = %d ORDER BY cmid DESC LIMIT 1", $chat_id));
+function chatroom_chat_get_latest_message($chat_id) {
+  $sql = "SELECT cm.*, u.name 
+          FROM {chatroom_msg} cm
+          INNER JOIN {users} u ON u.uid = cm.uid
+          WHERE ccid = %d 
+          ORDER BY cmid 
+          DESC LIMIT 1";
+  return db_fetch_object(db_query($sql, $chat_id));
+}
+
+/**
+ * Get the message count for a chat.
+ */
+function chatroom_chat_get_message_count($chat_id) {
+  $sql = "SELECT COUNT(*) FROM {chatroom_msg} WHERE ccid = %d";
+  return db_result(db_query($sql, $chat_id));
 }
 
 /**
@@ -299,7 +314,7 @@ function chatroom_chat_get_latest_message_id($chat_id) {
  */
 function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
   $node = node_prepare($node);
-  if (!$teaser) {
+  if (!$teaser && $page) {
     // if the user is banned, just tell them why
     if (chatroom_is_banned_user($node)) {
       $node->content['body']['#value'] = !empty($node->banned_message) ? $node->banned_message : t('You have been banned from %chatroom.', array('%chatroom' => $node->title));
@@ -327,7 +342,7 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
             $rows['open'][] = array(
               array('data' => l($chat->title, "node/$chat->nid")),
               array('data' => isset($chat->msg_count) ? $chat->msg_count : 0),
-              array('data' => $chat->last_msg ? $chat->last_msg->msg : ('No messages.')),
+              array('data' => $chat->last_msg ? check_plain($chat->last_msg->msg) : ('No messages.')),
             );
           }
         }
@@ -356,6 +371,9 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
       }
     }
   }
+  else {
+    $node->content['teaser'] = array('#value' => theme('chatroom_teaser', $node));
+  }
   return $node;
 }
 
@@ -363,13 +381,16 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
  * Implementation of hook_view().
  */
 function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
+  $node = node_prepare($node);
   if (!$teaser && $page) {
-    // Common features for any chat: CSS, breadcrumb, page title
     drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
+    
     $bc = drupal_get_breadcrumb();
+    if ($node->chat->chatroom) {
+      $bc[] = l($node->chat->chatroom->title, "node/{$node->chat->chatroom->nid}");
+    }
     $bc[] = l($node->title, "node/$node->nid");
     drupal_set_breadcrumb($bc);
-    drupal_set_title(check_plain($node->title));
 
     // Display a message if the user is banned.
     if (chatroom_is_banned_user($node)) {
@@ -386,11 +407,11 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
         $content .= drupal_get_form('chatroom_unarchive_chat_form', $node->nid);
       }
     }
+    $node->content['chatroom_chat_interface'] = array('#value' => $content);
   }
   else {
-    $content = '<p>' . $node->body . '</p>';
+    $node->content['teaser'] = array('#value' => theme('chatroom_chat_teaser', $node));
   }
-  $node->content['chatroom_chat_interface'] = array('#value' => $content);
   return $node; 
 }
 
