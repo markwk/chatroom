@@ -21,10 +21,6 @@ Drupal.behaviors.chatroom = function(context) {
       }
     }
   });
-
-  if (Drupal.settings.chatroom.latestMsgId == undefined) {
-    Drupal.settings.chatroom.latestMsgId = 0;
-  }
 };
 
 Drupal.chatroom.poll = function() {

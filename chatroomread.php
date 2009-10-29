@@ -42,8 +42,6 @@ if (!isset($_POST['skip_cache'])) {
 }
 $skip_cache = $_POST['skip_cache'] == 1 ? TRUE : FALSE;
 
-$now = time();
-
 // We let the client signal that we should skip the cache. Right now we're 
 // using this to make sure user's last-seen time is updated, and there may 
 // be more uses for it down the track.

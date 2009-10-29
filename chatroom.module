@@ -624,6 +624,7 @@ function chatroom_add_js($node) {
     'chatPath' => 'node/' . $node->nid,
 		'successiveCacheHits' => 0,
     'skipCacheCheckCount' => 5,
+    'latestMsgId' => $node->chat->latest_msg->cmid,
   );
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -663,7 +664,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
           FROM {chatroom_msg} cm
           INNER JOIN {chatroom_chat_online_list} col ON col.sid = cm.sid
           WHERE cm.ccid = %d 
-          AND cm.cmid >= %d 
+          AND cm.cmid > %d 
           ORDER BY cm.cmid ASC";
   $args = array($chat_id, $last_cmid);
 
@@ -680,7 +681,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
   $uids = array();
   while ($message = db_fetch_object($result)) {
     $messages[$message->cmid] = $message;
-    if ($message->uid > 0 && !in_array($uids, $message->uid)) {
+    if ($message->uid > 0 && !in_array($message->uid, $uids)) {
       $uids[] = $message->uid;
     }
   }
@@ -766,14 +767,14 @@ function chatroom_is_banned_user($room) {
 function chatroom_chat_get_latest_messages($node, $last_msg_id) {
   global $user;
 
+  $response['messages'] = array();
   if ($node->chat->when_archived) {
     $response['archived'] = $node->chat->when_archived;
     drupal_set_message(t('This chat has been archived.'));
   }
   else {
     chatroom_update_last_seen_time($node, session_id()); 
-    $response['messages'] = array();
-    $latest_msg_id = FALSE;
+
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
       $msg = new StdClass();
       $msg->html = theme('chatroom_message', $message);
@@ -781,10 +782,11 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id) {
       $response['messages'][] = $msg;
       $latest_msg_id = $message->cmid;
     }
-    $response['usersHtml'] = theme('chatroom_user_list', $node->chat->users);
-    if ($latest_msg_id) {
+    if (isset($latest_msg_id)) {
       chatroom_chat_update_cache($node->nid, $latest_msg_id);
     }
+
+    $response['usersHtml'] = theme('chatroom_user_list', $node->chat->users);
   }
   print drupal_to_js(array('data' => $response));
 }
