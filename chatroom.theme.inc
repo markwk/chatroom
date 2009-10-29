@@ -209,14 +209,14 @@ function theme_chatroom_messages(array $messages) {
  * @ingroup themeable
  */
 function theme_chatroom_message($message) {
-  if (empty($message->name)) {
-    $message->user = variable_get('chatroom_guest_user_prefix', 'guest-') . $message->guest_id;
+  if ($message->uid) {
+    $username = l($message->name, 'user/'. $message->uid);
   }
   else {
-    $message->user = l($message->name, 'user/'. $message->uid);
+    $username = $message->name;
   }
   $output = '<div class="chatroom-msg new-message">';
-  $output .= '<strong>' . $message->user . ':</strong> ';
+  $output .= '<strong>' . $username . ':</strong> ';
   $output .= check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
   $output .= '</div>';
   return $output;

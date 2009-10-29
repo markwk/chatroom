@@ -708,6 +708,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
       foreach ($messages as $message) {
         if ($message->sid == $guest->sid) {
           $messages[$message->cmid]->guest_id = $guest->guest_id;
+          $messages[$message->cmid]->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $guest->guest_id;
         }
       }
     }
@@ -793,6 +794,8 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id) {
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
       $msg = new StdClass();
       $msg->html = theme('chatroom_message', $message);
+      $msg->text = strip_tags($message->msg);
+      $msg->name = $message->name;
       $msg->cmid = $message->cmid;
       $response['messages'][] = $msg;
       $latest_msg_id = $message->cmid;

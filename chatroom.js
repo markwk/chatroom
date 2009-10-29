@@ -28,6 +28,21 @@ Drupal.behaviors.chatroom = function(context) {
     $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
     $('.new-message').removeClass('new-message');
   }
+
+  Drupal.settings.chatroom.pageTitle = document.title;
+  Drupal.settings.chatroom.hasFocus = true;
+  $(self).focus(
+    function() {
+      clearInterval(Drupal.settings.chatroom.warnInterval);
+      Drupal.settings.chatroom.hasFocus = true;
+      document.title = Drupal.settings.chatroom.pageTitle;
+    }
+  );
+  $(self).blur(
+    function() {
+      Drupal.settings.chatroom.hasFocus = false;
+    }
+  );
 };
 
 Drupal.chatroom.poll = function() {
@@ -76,9 +91,9 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   var newMessage = false;
   for (var i = 0; i < response.data.messages.length; i++) {   
     if (response.data.messages[i].cmid > Drupal.settings.chatroom.latestMsgId) {
-      newMessage = true;
       $('#chatroom-board').append(response.data.messages[i].html);
       Drupal.settings.chatroom.latestMsgId = response.data.messages[i].cmid;
+      newMessage = response.data.messages[i];
     }
   }
   if (newMessage) {
@@ -87,6 +102,11 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
     var scrollAmount = targetOffset - boardOffset;
     $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
     $('.new-message').removeClass('new-message');
+    if (Drupal.settings.chatroom.hasFocus == false) {
+      Drupal.settings.chatroom.newMsg = newMessage;
+      clearInterval(Drupal.settings.chatroom.warnInterval);
+      Drupal.settings.chatroom.warnInterval = setInterval("Drupal.chatroom.warnNewMsgLoop()", 1500);
+    }
   }
 
   if (response.data.usersHtml) {
@@ -102,6 +122,27 @@ Drupal.chatroom.postMessage = function(message) {
     success: Drupal.chatroom.pollHandler,
     data: { message: message } 
   })
+}
+
+/**
+ * Toggle message alert status.
+ */
+Drupal.chatroom.setMsgAlerts = function(obj) {
+  if ($(obj).attr('checked')) {
+    Drupal.settings.chatroom.msgAlerts = true;
+  }
+  else {
+    Drupal.settings.chatroom.msgAlerts = false;
+  }
+}
+
+Drupal.chatroom.warnNewMsgLoop = function() {
+  if (document.title == Drupal.settings.chatroom.pageTitle) {
+    document.title = Drupal.settings.chatroom.newMsg.name + ' says: ' + Drupal.settings.chatroom.newMsg.text;
+  }
+  else {
+    document.title = Drupal.settings.chatroom.pageTitle;
+  }
 }
 
 // vi:ai:expandtab:sw=2 ts=2 
