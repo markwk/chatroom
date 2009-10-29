@@ -214,7 +214,7 @@ function theme_chatroom_message($message) {
   else {
     $message->user = l($message->name, 'user/'. $message->uid);
   }
-  $output = '<div class="chatroom-msg">';
+  $output = '<div class="chatroom-msg new-message">';
   $output .= '<strong>' . $message->user . ':</strong> ';
   $output .= check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
   $output .= '</div>';

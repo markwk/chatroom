@@ -72,6 +72,13 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
       Drupal.settings.chatroom.latestMsgId = response.data.messages[i].cmid;
     }
   }
+  if (response.data.messages.length) {
+    var boardOffset = $('#chatroom-board').offset().top;
+    var targetOffset = $('div.new-message:last').offset().top;
+    var scrollAmount = targetOffset - boardOffset;
+    $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
+    $('.new-message').removeClass('new-message');
+  }
 
   if (response.data.usersHtml) {
     $('#chatroom-user-list').html(response.data.usersHtml);
