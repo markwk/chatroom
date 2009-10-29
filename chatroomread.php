@@ -42,6 +42,8 @@ if (!isset($_POST['skip_cache'])) {
 }
 $skip_cache = $_POST['skip_cache'] == 1 ? TRUE : FALSE;
 
+$now = time();
+
 // We let the client signal that we should skip the cache. Right now we're 
 // using this to make sure user's last-seen time is updated, and there may 
 // be more uses for it down the track.
@@ -49,10 +51,10 @@ if (!$skip_cache && file_exists($chat_cache_file)) {
 
   // Do a quick DoS check - we don't validate the path, so we have to make
   // sure we're not reading arbitrarily big files into memory. Our cache file 
-  // should contain a single numeric id. So, if the file is bigger than 1000 
+  // should contain a single numeric id. So, if the file is bigger than 25 
   // bytes, something is fishy, and we should just bail out.
   $file_stats = stat($chat_cache_file);
-  if ($file_stats['size'] > 1000) {
+  if ($file_stats['size'] > 25) {
     exit;
   }
 
