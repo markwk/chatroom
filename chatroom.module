@@ -168,60 +168,67 @@ function chatroom_delete(&$node) {
  * Implementation of hook_load().
  */
 function chatroom_load($node) {
-  // Load room information.
-  $result = db_query('SELECT * FROM {chatroom} WHERE nid = %d', $node->nid);
-  $chatroom = db_fetch_object($result);
-  if (!empty($chatroom)) {
-    unset($chatroom->nid);
-    $chatroom->banned_users = chatroom_get_banned_users($node);
+  $room = new StdClass();
+  if ($room->chatroom = db_fetch_object(db_query('SELECT * FROM {chatroom} WHERE nid = %d', $node->nid))) {
+    $room->chatroom->banned_users = chatroom_get_banned_users($node);
     // If the user is banned, don't load chats.
     if (chatroom_is_banned_user($node)) {
       return $chatroom;
     }
-    // Load chats for current chatroom.
-    $chatroom->chats = array();
-    $cmids = array();
-    $result = db_query("
-      SELECT (SELECT COUNT(*) FROM {chatroom_msg} WHERE ccid = cc.ccid AND
-        recipient = '') AS msg_count, MAX(cm.cmid) AS last_cmid, cc.ccid,
-        cc.chatname, cc.when_archived
-      FROM {chatroom} cr
-      INNER JOIN {chatroom_chat} cc ON cc.crid = cr.nid
-      LEFT JOIN {chatroom_msg} cm ON cm.ccid = cc.ccid AND cm.recipient = ''
-      WHERE cr.nid = %d
-      GROUP BY cc.ccid, cc.chatname, cc.when_archived
-    ", $node->nid);
-    while ($chat = db_fetch_object($result)) {
-      if (isset($chat->when_archived)) {
-        $chat->section = 'archives';
-        $chat->msg_info = t('Archived on !date.', array('!date' => format_date($chat->when_archived, 'medium')));
-      }
-      else {
-        $chat->section = 'chat';
-        if ($chat->last_cmid) {
-          $cmids[] = $chat->last_cmid;
-        }
-        else {
-          $chat->msg_info = t('No messages');
-        }
-      }
-      $chatroom->chats[$chat->ccid] = $chat;
-    }
-    // Load information about the last message in each chatroom.
-    if (!empty($cmids)) {
-      $result = db_query("
-        SELECT cm.*, col.guest_id, u.name FROM {chatroom_msg} cm
-        LEFT JOIN {chatroom_online_list} col ON col.sid = cm.sid
-        LEFT JOIN {sessions} s ON s.sid = col.sid
-        LEFT JOIN {users} u ON u.uid = s.uid
-        WHERE cm.cmid IN (%s)
-      ", implode(',', $cmids));
-      while ($message = db_fetch_object($result)) {
-        $chatroom->chats[$message->ccid]->msg_info = theme('chatroom_last_message', $message);
-      }
+    $room->chatroom->chats = chatroom_load_chats($node->nid);
+  }
+  return $room;
+}
+
+/**
+ * Load chats for a given chatroom.
+ * 
+ * @param mixed $nid 
+ * @return array - a list of chats.
+ */
+function chatroom_load_chats($nid) {
+  $chats = array();
+  $cmids = array();
+
+  $sql = "SELECT cc.*, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
+          FROM {chatroom_chat} cc
+          INNER JOIN {node} n ON n.nid = cc.nid
+          WHERE cc.crid = %d";
+  $result = db_query($sql, $nid);
+  while ($chat = db_fetch_object($result)) {
+    $chats[$chat->nid] = $chat;
+  }
+  
+  // Load the message count info.
+  if (!empty($chats)) {
+    $ccids = array_keys($chats);
+    $sql = "SELECT ccid, COUNT(*) msg_count, MAX(cmid) last_cmid
+            FROM {chatroom_msg} 
+            WHERE ccid IN (" . db_placeholders($ccids) . ")
+            GROUP BY ccid";
+    $result = db_query($sql, $ccids);
+    while ($count = db_fetch_object($result)) {
+      $chats[$count->ccid]->msg_count = $count->msg_count;
+      $chats[$count->ccid]->last_cmid = $count->last_cmid;
+      $cmids[] = $count->last_cmid;
     }
   }
-  return $chatroom;
+
+  // Fetch the last message if there is one.
+  if (!empty($cmids)) {
+    // Note we join on the session not the uid, because anon users all have
+    // the same uid.
+    $sql = "SELECT cm.*, u.name, col.guest_id 
+            FROM {chatroom_msg} cm 
+            INNER JOIN {chatroom_chat_online_list} col ON col.sid = cm.sid 
+            INNER JOIN {users} u ON u.uid = col.uid
+            WHERE cm.cmid IN (" . db_placeholders($cmids) . ")";
+    $result = db_query($sql, $cmids);
+    while ($message = db_fetch_object($result)) {
+      $chats[$message->ccid]->last_msg = $message;
+    }
+  }
+  return $chats;
 }
 
 /**
@@ -298,7 +305,6 @@ function chatroom_chat_get_latest_message_id($chat_id) {
  */
 function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
   $node = node_prepare($node);
-
   if ($page) {
     $bc = drupal_get_breadcrumb();
     if (!empty($bc)) {
@@ -319,15 +325,24 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
           '#weight' => 1,
         );
       }
+
       // if there are some chats, build some tables to display them
-      if (!empty($node->chats) && is_array($node->chats)) {
-        foreach ($node->chats as $chat) {
-          $type = $chat->section == 'chat' ? 'open' : 'archived';
-          $rows[$type][] = array(
-            array('data' => l($chat->chatname, "chatroom/chat/$chat->ccid")),
-            array('data' => $chat->msg_count),
-            array('data' => $chat->msg_info)
-          );
+      if (!empty($node->chatroom->chats)) {
+        foreach ($node->chatroom->chats as $chat) {
+          if ($chat->when_archived) {
+            $rows['archived'][] = array(
+              array('data' => l($chat->title, "node/$chat->nid")),
+              array('data' => isset($chat->msg_count) ? $chat->msg_count : 0),
+              array('data' => t('Archived on !date.', array('!date' => format_date($chat->when_archived, 'medium')))),
+            );
+          }
+          else {
+            $rows['open'][] = array(
+              array('data' => l($chat->title, "node/$chat->nid")),
+              array('data' => isset($chat->msg_count) ? $chat->msg_count : 0),
+              array('data' => $chat->last_msg ? $chat->last_msg->msg : ('No messages.')),
+            );
+          }
         }
         if (!empty($rows['open'])) {
           $node->content['open_chats']['#weight'] = 2;

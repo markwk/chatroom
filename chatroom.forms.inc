@@ -425,32 +425,24 @@ function chatroom_create_chat_form(&$form_state, $room) {
 }
 
 /**
- * Validate attempt to create chat - check if name is already in use.
- */
-function chatroom_create_chat_form_validate($form, &$form_state) {
-  $nid = $form_state['values']['nid'];
-  $name = $form_state['values']['chat_name'];
-  $sql = "SELECT COUNT(nid) FROM {chatroom_chat} WHERE crid = %d AND chatname = '%s' AND when_archived IS NULL";
-  if (db_result(db_query_range($sql, $nid, $name, 0, 1))) {
-    form_set_error('chatroom_chat_name', t('A chat called %name already exists.', array('%name' => $name)));
-  }
-}
-
-/**
  * Create a chat.
  */
 function chatroom_create_chat_form_submit($form, &$form_state) {
   global $user;
-  $created = db_query("
-    INSERT INTO {chatroom_chat} (crid, chatname, modified)
-    VALUES (%d, %d, '%s', %d)
-  ", $form_state['values']['nid'], $form_state['values']['chat_name'], time());
-  if (!$created) {
-    drupal_set_message(t("There was an error creating your chat"), 'error');
-  }
-  else {
-    cache_clear_all(TRUE, 'cache_block');
-  }
+  $values = (object) $form_state['values'];
+  $chat = new StdClass();
+  $chat->type = 'chat';
+  $chat->title = $values->chat_name;
+  $chat->uid = $user->uid;
+  $chat->created = time();
+  $chat->crid = $values->nid;
+  $chat->idle_freq = 20000;
+  $chat->poll_freq = 1000;
+  $chat->kicked_out_message = '';
+  $chat->banned_message = ''; 
+  $chat->previous_messages_display_count = 20;
+  $chat->popout = 0;
+  node_save($chat);
 }
 
 /**
