@@ -71,12 +71,6 @@ function chatroom_menu() {
     'page arguments' => array('chatroom_admin_settings'),
     'access arguments' => array('administer chat rooms'),
   );
-  $items['chatroom'] = array(
-    'type' => MENU_SUGGESTED_ITEM,
-    'title' => 'Chat rooms',
-    'page callback' => 'chatroom_page',
-    'access arguments' => array('access chat rooms'),
-  );
   $items['chatroom/kicked'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'chatroom_chat_kicked_user',
@@ -305,13 +299,6 @@ function chatroom_chat_get_latest_message_id($chat_id) {
  */
 function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
   $node = node_prepare($node);
-  if ($page) {
-    $bc = drupal_get_breadcrumb();
-    if (!empty($bc)) {
-      $bc[] = l('Chat rooms', 'chatroom');
-      drupal_set_breadcrumb($bc);
-    }
-  }
   if (!$teaser) {
     // if the user is banned, just tell them why
     if (chatroom_is_banned_user($node)) {
@@ -547,16 +534,6 @@ function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRU
 }
 
 /**
- * Menu callback; a page listing all chat rooms.
- */
-function chatroom_page() {
-  foreach (chatroom_get_room_list(TRUE) as $room) {
-    $tree[$room->nid] = node_load($room->nid);
-  }
-  return theme('chatroom_display', $tree);
-}
-
-/**
  * tells a kicked out user not to be a knob
  */
 function chatroom_chat_kicked_user($chat_id = FALSE) {
@@ -758,35 +735,6 @@ function chatroom_is_banned_user($room) {
   else {
     return db_result(db_query("SELECT nid FROM {chatroom_ban_list} WHERE nid = %d AND uid = %d", $room->nid, $user->uid));
   }
-}
-
-/**
- * returns the list of available chat rooms
- */
-function chatroom_get_room_list($archived = FALSE, $start = NULL, $end = NULL) {
-  $sql = '
-    SELECT
-      cr.nid,
-      n.title,
-      COUNT(cc.ccid) AS chat_count
-    FROM {chatroom} cr
-    INNER JOIN {node} n ON n.nid = cr.nid
-    INNER JOIN {node_revisions} nr ON nr.nid = n.nid
-    LEFT JOIN {chatroom_chat} cc ON cc.crid = cr.nid
-  ';
-  $sql .= $archived ? '' : ' WHERE cc.when_archived IS NULL';
-  $sql .= ' GROUP BY cr.nid, n.title, n.sticky, nr.timestamp ORDER BY n.sticky DESC, nr.timestamp DESC';
-  if (isset($start) && !empty($end)) {
-    $result = db_query_range($sql, $start, $end);
-  }
-  else {
-    $result = db_query($sql);
-  }
-  $rooms = array();
-  while ($room = db_fetch_object($result)) {
-    $rooms[] = $room;
-  }
-  return $rooms;
 }
 
 /**
