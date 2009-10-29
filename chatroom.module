@@ -613,7 +613,6 @@ function chatroom_chat_register_user($node) {
  */
 function chatroom_add_js($node) {
   global $user;
-
   $js = array(
     'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
     'idleInterval' => (int) $node->chat->idle_freq,
@@ -623,7 +622,7 @@ function chatroom_add_js($node) {
     'chatPath' => 'node/' . $node->nid,
 		'successiveCacheHits' => 0,
     'skipCacheCheckCount' => 5,
-    'latestMsgId' => $node->chat->latest_msg->cmid,
+    'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
   );
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -649,26 +648,22 @@ function chatroom_add_js($node) {
  * @param $chat_id
  *   The chat id.
  * @param $last_cmid
- *   Only load messages with cmids greater than this value. If nonzero, then 
- *   $limit = FALSE is assumed. Default: 0 (load all messages).
+ *   Only load messages with cmids greater than this value.
  * @param $limit
- *   Limit the total number of messages to the old_msg_limit of the chatroom.
  *   Default: FALSE.
  * @return array $messages
 */
 function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
   global $user;
 
-  $sql = "SELECT cm.*, col.guest_id 
+  $sql = "SELECT cm.*
           FROM {chatroom_msg} cm
-          INNER JOIN {chatroom_chat_online_list} col ON col.sid = cm.sid
           WHERE cm.ccid = %d 
-          AND cm.cmid >= %d 
+          AND cm.cmid > %d 
           ORDER BY cm.cmid ASC";
   $args = array($chat_id, $last_cmid);
 
-  // Limit number of messages, e.g. on initial display of a chatroom.
-  if ($last_cmid == 0 && $limit) {
+  if ($limit) {
     $sql .= ' LIMIT %d';
     $args[] = $limit;
   }
@@ -678,10 +673,16 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
 
   $messages = array();
   $uids = array();
+  $guest_sids = array();
   while ($message = db_fetch_object($result)) {
+    $message->guest_id = 0;
+    $message->name = '';
     $messages[$message->cmid] = $message;
     if ($message->uid > 0 && !in_array($message->uid, $uids)) {
       $uids[] = $message->uid;
+    }
+    if ($message->uid == 0 && !in_array($message->sid, $guest_sids)) {
+      $guest_sids[] = $message->sid;
     }
   }
 
@@ -692,6 +693,17 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
       foreach ($messages as $message) {
         if ($message->uid == $chat_user->uid) {
           $messages[$message->cmid]->name = $chat_user->name;
+        }
+      }
+    }
+  }
+  if (!empty($guest_sids)) {
+    $sql = "SELECT sid, guest_id FROM {chatroom_chat_online_list} WHERE sid IN (" . db_placeholders($guest_sids, 'varchar') . ")";
+    $result = db_query($sql, $guest_sids);
+    while ($guest = db_fetch_object($result)) {
+      foreach ($messages as $message) {
+        if ($message->sid == $guest->sid) {
+          $messages[$message->cmid]->guest_id = $guest->guest_id;
         }
       }
     }
@@ -813,7 +825,7 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     'recipient_uid' => isset($_POST['recipient_uid']) ? $_POST['recipient_uid'] : 0, 
   );
   if ($msg_id = chatroom_chat_save_message($message, $node)) {
-    chatroom_chat_get_latest_messages($node, $msg_id);
+    chatroom_chat_get_latest_messages($node, $msg_id - 1);
   }
 }
 
