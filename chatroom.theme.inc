@@ -10,30 +10,72 @@
  * Implementation of hook_theme().
  */
 function chatroom_theme($existing, $type, $theme, $path) {
-  // Add the path to our module folder so we can pick up popout template.
-  $chatroom_theme['page'] = $existing['page'];
-  $chatroom_theme['page']['theme paths'][] = drupal_get_path('module', 'chatroom');
-  // Blocks provided by the module.
-  $chatroom_theme['chatroom_block_chats']      = array('arguments' => array());
-  $chatroom_theme['chatroom_block_rooms']      = array('arguments' => array());
-  $chatroom_theme['chatroom_block_chat_users']  = array('arguments' => array('chat' => NULL));
-  $chatroom_theme['chatroom_block_site_users']  = array('arguments' => array());
-  // Message theming for display in an active chat.
-  $chatroom_theme['chatroom_message']          = array('arguments' => array('message'));
-  // User list theming for display in an active chat.
-  $chatroom_theme['chatroom_user_list']        = array('arguments' => array('users'));
-  // Information about the latest message, for use in a chat list.
-  $chatroom_theme['chatroom_chat_kicked_user'] = array('arguments' => array('chat'));
-  $chatroom_theme['chatroom_chat_banned_user'] = array('arguments' => array('chat'));
-  // List of all chatrooms.
-  $chatroom_theme['chatroom_display']          = array('arguments' => array('tree'));
-  // List of chats in a chatroom.
-  $chatroom_theme['chatroom_list']             = array('arguments' => array('tree'));
-  // Actual chats and archives.
-  $chatroom_theme['chatroom_chat']             = array('arguments' => array('chat'));
-  $chatroom_theme['chatroom_chat_archive']     = array('arguments' => array('chat'));
-  $chatroom_theme['chatroom_buttons']      = array('arguments' => array('chat' => NULL));
-  return $chatroom_theme;
+  return array( 
+    'chatroom_block_chats' => array(
+      'arguments' => array(),
+    ),
+    'chatroom_block_rooms' => array(
+      'arguments' => array(),
+    ),
+    'chatroom_block_chat_users' => array(
+      'arguments' => array(
+        'chat' => NULL,
+      ),
+     ),
+    'chatroom_block_site_users' => array(
+      'arguments' => array(),
+    ),
+    'chatroom_message' => array(
+      'arguments' => array(
+        'message',
+      ),
+    ),
+    'chatroom_user_list' => array(
+      'arguments' => array(
+        'users',
+      ),
+    ),
+    'chatroom_chat_kicked_user' => array(
+      'arguments' => array(
+        'chat', 
+      ),
+    ),
+    'chatroom_chat_banned_user' => array(
+      'arguments' => array(
+        'chat',
+      ),
+    ),
+    'chatroom_list' => array(
+      'arguments' => array(
+        'tree',
+      ),
+    ),
+    'chatroom_chat' => array(
+      'arguments' => array(
+        'chat',
+      ),
+    ),
+    'chatroom_chat_archive' => array(
+      'arguments' => array(
+        'chat',
+      ),
+    ),
+    'chatroom_buttons' => array(
+      'arguments' => array(
+        'chat' => NULL,
+      ),
+    ),
+    'chatroom_chat_teaser' => array(
+      'arguments' => array(
+        'node',
+      ),
+    ),
+    'chatroom_teaser' => array(
+      'arguments' => array(
+        'node',
+      ),
+    ),
+  );
 }
 
 /**
@@ -385,5 +427,37 @@ function chatroom_preprocess_page(&$vars) {
       $vars['template_files'] = array('page-chat-popout');
     }
   }
+}
+
+/**
+ * Theme the teaser for a chat node.
+ */
+function theme_chatroom_chat_teaser($node) {
+  if ($node->chat->when_archived) {
+    $params = array(
+      '!date' => format_date($node->chat->when_archived, 'medium'),
+      '%message_count', $node->chat->msg_count,
+    );
+    return t('Archived on !date, contains %message_count messages.', $params);
+  }
+  else {
+    $params = array(
+      '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
+      '%message' => $node->chat->latest_msg->msg,
+      '%user' => theme('username', user_load($node->chat->latest_msg->uid)),
+      '%message_count' => $node->chat->msg_count,
+    );
+    return t('Last message at !date: %message by %user. Total messages: %message_count.', $params);
+  }
+}
+
+/**
+ * Theme the teaser for a chatroom node.
+ */
+function theme_chatroom_teaser($node) {
+  $params = array(
+    '%open_chats' => count($node->chatroom->chats),
+  );
+  return t('There are %open_chats chats in this chatroom.', $params);
 }
 
