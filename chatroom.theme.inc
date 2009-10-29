@@ -388,7 +388,7 @@ function theme_chatroom_chat_archive($node) {
   if ($messages = chatroom_chat_load_messages($node->nid)) {
     $table_rows = array();
     foreach ($messages as $msg) {
-      $name = $msg->name ? $msg->name : variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
+      $name = isset($msg->name) ? $msg->name : variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
       if (empty($msg->recipient_uid)) {
         $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
         $row_html .= '<span class="chatroom-old-msg"><span class="header">' . "$name:</span>$msg->msg</span>";
