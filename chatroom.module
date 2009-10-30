@@ -79,10 +79,10 @@ function chatroom_menu() {
     'page arguments' => array('chatroom_admin_settings'),
     'access arguments' => array('administer chat rooms'),
   );
-  $items['chatroom/kicked'] = array(
+  $items['chatroom/access-denied/%node/%'] = array(
     'type' => MENU_CALLBACK,
-    'page callback' => 'chatroom_chat_kicked_user',
-    'page arguments' => array(2),
+    'page callback' => 'chatroom_access_denied',
+    'page arguments' => array(2, 3),
     'access arguments' => array('access chat rooms'),
   );
   $items['chatroom/chat/post/message/%node/%'] = array(
@@ -567,26 +567,19 @@ function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRU
 }
 
 /**
- * tells a kicked out user not to be a knob
+ * Display a page for a user kicked out or banned from a chat.
+ * 
+ * @param mixed $node 
+ * @param mixed $type 
  */
-function chatroom_chat_kicked_user($chat_id = FALSE) {
-  if ($chat = node_load($chat_id)) {
-    if (isset($chat->when_archived)) {
-      drupal_goto("chatrooms/chat/$chat_id", NULL, NULL, 301);
-    }
-    else {
-      if (chatroom_is_banned_user($chat)) {
-        $content = theme('chatroom_chat_banned_user', $chat);
-      }
-      else {
-        $content = theme('chatroom_chat_kicked_user', $chat);
-      }
-      return $content;
-    }
+function chatroom_access_denied($node, $type) {
+  if ($type == 'banned') {
+    $content = theme('chatroom_chat_banned_user', $node);
   }
   else {
-    drupal_not_found();
+    $content = theme('chatroom_chat_kicked_user', $node);
   }
+  return $content;
 }
 
 /**
@@ -635,6 +628,7 @@ function chatroom_add_js($node) {
 		'successiveCacheHits' => 0,
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
+    'accessDeniedPath' => 'chatroom/access-denied',
   );
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -791,6 +785,16 @@ function chatroom_is_banned_user($room) {
 function chatroom_chat_get_latest_messages($node, $last_msg_id) {
   global $user;
 
+  if (chatroom_chat_is_banned_user($user, $node)) {
+    print drupal_to_js(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
+    return;
+  }
+
+  if (chatroom_chat_is_kicked_user($user, $node)) {
+    print drupal_to_js(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    return;
+  }
+
   $response['messages'] = array();
   if ($node->chat->when_archived) {
     $response['archived'] = $node->chat->when_archived;
@@ -829,7 +833,17 @@ function chatroom_chat_post_message($node, $last_msg_id) {
   if (!isset($_POST['message'])) {
     exit;
   }
-  
+
+ if (chatroom_chat_is_banned_user($user, $node)) {
+    print drupal_to_js(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
+    return;
+  }
+
+  if (chatroom_chat_is_kicked_user($user, $node)) {
+    print drupal_to_js(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    return;
+  }
+
   // Write the message to the chat.
   $message = array(
     'ccid' => $node->chat->nid, 
@@ -922,8 +936,9 @@ function chatroom_command_ban_user($command, $node) {
  * @return boolean
  */
 function chatroom_command_kick_user($command, $node) {
-  if ($chat_user = chatroom_get_user_from_command_arg($command->args[0])) {
-    return chatroom_kick_user($node, $chat_user);
+  global $user;
+  if ($user_to_kick = chatroom_get_user_from_command_arg($command->args[0])) {
+    return chatroom_kick_user($node, $user_to_kick, $user);
   }
   return FALSE;
 }
@@ -947,22 +962,62 @@ function chatroom_command_msg_user($command, $node) {
  * Ban a user from a chat.
  * 
  * @param mixed $node 
- * @param mixed $chat_user
+ * @param mixed $user_to_ban
+ * @param mixed $chat_admin_user 
  * @return boolean
  */
-function chatroom_ban_user($node, $chat_user) {
-  watchdog('chatroom', 'User !username banned from chat !chat.', array('!username' => $chat_user->name, '!chat' => $node->title));
+function chatroom_ban_user($node, $user_to_ban, $chat_admin_user) {
+  if ($user_to_ban->uid == $chat_admin_user->uid) {
+    return FALSE;
+  }
+  if (user_access('administer chats', $chat_admin_user) || $node->uid == $chat_admin_user->uid) {
+    $ban_data = array(
+      'nid' => $node->nid,
+      'uid' => $user_to_ban->uid,
+      'admin_uid' => $chat_admin_user->uid,
+      'modified' => time(),
+    );
+    drupal_write_record('chatroom_chat_ban_list', $ban_data);
+    $params = array(
+      '!banned_username' => $user_to_ban->name, 
+      '!chat' => $node->title,
+      '!chat_admin_username' => $chat_admin_user->name, 
+    );
+    watchdog('chatroom', 'User !banned_username banned from chat !chat by !chat_admin_username.', $params);
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
  * Kick a user out of a chat.
  * 
  * @param mixed $node 
- * @param mixed $chat_user
+ * @param mixed $user_to_kick 
+ * @param mixed $chat_admin_user 
  * @return boolean
  */
-function chatroom_kick_user($node, $chat_user) {
-  watchdog('chatroom', 'User !username kicked out of chat !chat.', array('!username' => $chat_user->name, '!chat' => $node->title));
+function chatroom_kick_user($node, $user_to_kick, $chat_admin_user) {
+  if ($user_to_kick->uid == $chat_admin_user->uid) {
+    return FALSE;
+  }
+  if (user_access('administer chats', $chat_admin_user) || $node->uid == $chat_admin_user->uid) {
+    $kick_data = array(
+      'nid' => $node->nid,
+      'uid' => $user_to_kick->uid,
+      'admin_uid' => $chat_admin_user->uid,
+      'modified' => time(),
+    );
+    drupal_write_record('chatroom_chat_kicked_list', $kick_data);
+    $params = array(
+      '!kicked_username' => $user_to_kick->name, 
+      '!chat' => $node->title,
+      '!chat_admin_username' => $chat_admin_user->name, 
+    );
+    watchdog('chatroom', 'User !kicked_username kicked out of chat !chat by !chat_admin_username.', $params);
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -1064,5 +1119,30 @@ function chatroom_update_last_seen_time($node, $session_id) {
           SET last_seen_time = %d
           WHERE ccid = %d AND sid = '%s'";
   db_query($sql, time(), $node->nid, $session_id);
+}
+
+/**
+ * Check to see if the user has been kicked from a chat.
+ * 
+ * @param mixed $chat_user 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_chat_is_kicked_user($chat_user, $node) {
+  $sql = "SELECT cckid FROM {chatroom_chat_kicked_list} WHERE nid = %d AND uid = %d AND modified > %d";
+  $params = array($node->nid, $chat_user->uid, time() - variable_get('chatroom_kicked_period', 60 * 15));
+  return db_result(db_query($sql, $params));
+}
+
+/**
+ * Check to see if the user has been banned from a chat.
+ * 
+ * @param mixed $chat_user 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_chat_is_banned_user($chat_user, $node) {
+  $sql = "SELECT ccbid FROM {chatroom_chat_ban_list} WHERE nid = %d AND uid = %d";
+  return db_result(db_query($sql, array($node->nid, $chat_user->uid)));
 }
 

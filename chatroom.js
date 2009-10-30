@@ -69,6 +69,11 @@ Drupal.chatroom.poll = function() {
  
 Drupal.chatroom.pollHandler = function(response, responseStatus) {
 
+  // If the user was kicked or banned, get the out of here.
+  if (response.data.accessDenied) {
+    window.location = Drupal.settings.basePath + Drupal.settings.chatroom.accessDeniedPath + '/' + Drupal.settings.chatroom.chatId + '/' + response.data.accessDenied;
+  }
+
   // If the chat was archived, reload the page.
   if (response.data.archived) {
     window.location = Drupal.settings.basePath + Drupal.settings.chatroom.chatPath;

@@ -41,12 +41,12 @@ function chatroom_theme($existing, $type, $theme, $path) {
     ),
     'chatroom_chat_kicked_user' => array(
       'arguments' => array(
-        'chat', 
+        'node', 
       ),
     ),
     'chatroom_chat_banned_user' => array(
       'arguments' => array(
-        'chat',
+        'node',
       ),
     ),
     'chatroom_list' => array(
@@ -344,8 +344,8 @@ function theme_chatroom_list($rooms) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_kicked_user($chat) {
-  $msg = $chat->kicked_out_message ? $chat->kicked_out_message : t('You have been kicked out of %chat for misbehaving.', array('%chat' => $chat->chatname));
+function theme_chatroom_chat_kicked_user($node) {
+  $msg = $node->chat->kicked_out_message ? $node->chat->kicked_out_message : t('You have been kicked out of %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-kicked-msg">'. $msg .'</div>';
 }
 
@@ -355,7 +355,7 @@ function theme_chatroom_chat_kicked_user($chat) {
  * @ingroup themeable
  */
 function theme_chatroom_chat_banned_user($chat) {
-  $msg = $chat->banned_message ? $chat->banned_message : t('You have been banned from %chatroom.', array('%chatroom' => $chat->chatroom_name));
+  $msg = $node->chat->banned_message ? $node->chat->banned_message : t('You have been banned from %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-banned-msg">'. $msg .'</div>';
 }
 
