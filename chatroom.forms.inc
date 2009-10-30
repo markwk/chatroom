@@ -377,7 +377,7 @@ function chatroom_chat_form(&$node, $form_state) {
     '#type' => 'checkbox',
     '#title' => t('User profile picture.'),
     '#description' => t('Enable User profile picture for chatroom.'),
-    '#default_value' => $node->chat->profile_picture,
+    '#default_value' => isset($node->chat) ? $node->chat->profile_picture : '',
     '#disabled' => !variable_get('user_pictures', FALSE),
   );
   if (module_exists('imagecache')) {
