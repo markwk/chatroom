@@ -22,32 +22,40 @@ function chatroom_help($path, $arg) {
 /**
  * Implementation of hook_access().
  */
-function chatroom_access($op, $node, $account) {
-  $type = is_object($node) ? $node->type : $node;
-  if ($type == 'chatroom') {
-    if (user_access('administer chat rooms', $account)) {
+function chatroom_chat_access($op, $node, $account) {
+  if (user_access('administer chats', $account)) {
+    return TRUE;
+  }
+  if ($op == 'view') {
+    return user_access('access chats', $account);
+  }
+  if ($op == 'create') {
+    return user_access('create chats', $account);
+  }
+  if ($op == 'update' || $op == 'delete') {
+    if (user_access('edit own chats', $account) && ($account->uid == $node->uid)) {
       return TRUE;
-    }
-    if ($op == 'create') {
-      return user_access('create chat rooms', $account);
-    }
-    if ($op == 'update' || $op == 'delete') {
-      if (user_access('edit own chat rooms', $account) && ($account->uid == $node->uid)) {
-        return TRUE;
-      }
     }
   }
-  else if ($type == 'chat') {
-    if (user_access('administer chats', $account)) {
+  return FALSE;
+}  
+
+/**
+ * Implementation of hook_access().
+ */
+function chatroom_access($op, $node, $account) {
+  if (user_access('administer chat rooms', $account)) {
+    return TRUE;
+  }
+  if ($op == 'view') {
+    return user_access('access chat rooms', $account);
+  }
+  if ($op == 'create') {
+    return user_access('create chat rooms', $account);
+  }
+  if ($op == 'update' || $op == 'delete') {
+    if (user_access('edit own chat rooms', $account) && ($account->uid == $node->uid)) {
       return TRUE;
-    }
-    if ($op == 'create') {
-      return user_access('create chats', $account);
-    }
-    if ($op == 'update' || $op == 'delete') {
-      if (user_access('edit own chats', $account) && ($account->uid == $node->uid)) {
-        return TRUE;
-      }
     }
   }
   return FALSE;
@@ -57,7 +65,7 @@ function chatroom_access($op, $node, $account) {
  * Implementation of hook_perm().
  */
 function chatroom_perm() {
-  return array('access chat rooms', 'create chat rooms', 'edit own chat rooms', 'administer chats', 'administer chat rooms', 'create chats');
+  return array('access chats', 'access chat rooms', 'create chat rooms', 'edit own chats', 'edit own chat rooms', 'administer chats', 'administer chat rooms', 'create chats');
 }
 
 /**
