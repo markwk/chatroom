@@ -454,13 +454,18 @@ function theme_chatroom_chat_teaser($node) {
     return t('Archived on !date, contains %message_count messages.', $params);
   }
   else {
-    $params = array(
-      '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
-      '%message' => $node->chat->latest_msg->msg,
-      '%user' => theme('username', user_load($node->chat->latest_msg->uid)),
-      '%message_count' => $node->chat->msg_count,
-    );
-    return t('Last message at !date: %message by %user. Total messages: %message_count.', $params);
+    if ($node->chat->latest_msg) {
+      $params = array(
+        '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
+        '%message' => $node->chat->latest_msg->msg,
+        '%user' => theme('username', user_load($node->chat->latest_msg->uid)),
+        '%message_count' => $node->chat->msg_count,
+      );
+      return t('Last message at !date: %message by %user. Total messages: %message_count.', $params);
+    }
+    else {
+      return t('There are no messages in this chat.');
+    }
   }
 }
 
