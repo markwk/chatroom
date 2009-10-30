@@ -862,6 +862,135 @@ function chatroom_chat_save_message($message, $node) {
 }
 
 /**
+ * Implementation of hook_chat_command_api().
+ */
+function chatroom_chat_commands() {
+  return array(
+    'kick' => array(
+      'callback' => 'chatroom_command_kick_user',
+    ),
+    'ban' => array(
+      'callback' => 'chatroom_command_ban_user',
+    ),
+    'msg' => array(
+      'callback' => 'chatroom_command_msg_user',
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_chat_command_api().
+ *
+ * This hook allows other modules to react to commands defined by other
+ * modules. This hook is only fired after the module that defines the
+ * command has run its callback code for the given command.
+ *
+ * The return value from a modules' callback are stored in the command
+ * object in $command->callback_result.
+ */
+function chatroom_chat_command_api($command, $node) {
+  watchdog('chatroom', __FUNCTION__ . ' invoked with command %command for chat %chat.', array('%command' => $command->name, '%chat' => $node->title));
+}
+
+/**
+ * Ban a user from a chat.
+ * 
+ * @param mixed $command 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_command_ban_user($command, $node) {
+  if ($user_to_kick = chatroom_get_user_from_command_arg($command->args[0])) {
+    return chatroom_ban_user($node, $user_to_kick);
+  }
+  return FALSE;
+}
+
+/**
+ * Respond to a command to kick a user out of a chat.
+ * 
+ * @param mixed $command 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_command_kick_user($command, $node) {
+  if ($chat_user = chatroom_get_user_from_command_arg($command->args[0])) {
+    return chatroom_kick_user($node, $chat_user);
+  }
+  return FALSE;
+}
+
+/**
+ * Respond to a command to send a message to a specific user in a chat.
+ * 
+ * @param mixed $command 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_command_msg_user($command, $node) {
+  global $user;
+  if ($to_user = chatroom_get_user_from_command_arg(array_shift($command->args))) {
+    return chatroom_msg_user($node, $to_user, $user, implode(' ', $command->args));
+  }
+  return FALSE;
+}
+
+/**
+ * Ban a user from a chat.
+ * 
+ * @param mixed $node 
+ * @param mixed $chat_user
+ * @return boolean
+ */
+function chatroom_ban_user($node, $chat_user) {
+  watchdog('chatroom', 'User !username banned from chat !chat.', array('!username' => $chat_user->name, '!chat' => $node->title));
+}
+
+/**
+ * Kick a user out of a chat.
+ * 
+ * @param mixed $node 
+ * @param mixed $chat_user
+ * @return boolean
+ */
+function chatroom_kick_user($node, $chat_user) {
+  watchdog('chatroom', 'User !username kicked out of chat !chat.', array('!username' => $chat_user->name, '!chat' => $node->title));
+}
+
+/**
+ * Send a message to a specific user in a chat.
+ * 
+ * @param mixed $node 
+ * @param mixed $chat_user
+ * @param mixed $message
+ * @return boolean
+ */
+function chatroom_msg_user($node, $to_user, $from_user, $message) {
+  $params = array(
+    '!from_user' => $from_user->name,
+    '!to_user' => $to_user->name,
+    '!message' => $message,
+    '!chat' => $node->title,
+  );
+  watchdog('chatroom', 'User !from_user sent a private message "!message" to !to_user in chat !chat.', $params);
+}
+
+/**
+ * Try to load a user from a command argument.
+ * 
+ * @param mixed $command_arg 
+ * @return mixed - A user object or FALSE 
+ */
+function chatroom_get_user_from_command_arg($command_arg) {
+  if (is_numeric($command_arg)) {
+    return user_load($command_arg);
+  }
+  else {
+    return user_load(array('name' => $command_arg));
+  }
+}
+
+/**
  * Try to invoke a command.
  * 
  * @param mixed $message 
@@ -869,13 +998,13 @@ function chatroom_chat_save_message($message, $node) {
  */
 function chatroom_chat_call_command($message, $node) {
   $commands = module_invoke_all('chat_commands');
-  $command = chatroom_chat_parse_command($message['message']);
+  $command = chatroom_chat_parse_command($message['msg']);
   if ($command && isset($commands[$command->name])) {
-    call_user_func_array($callback, array($command, $node));
-  }
-  foreach (module_implements('chat_command_api') as $module) {
-    $function = $module . '_chat_command_api';
-    $function($command, $node);
+    $command->callback_result = call_user_func_array($commands[$command->name]['callback'], array($command, $node));
+    foreach (module_implements('chat_command_api') as $module) {
+      $function = $module . '_chat_command_api';
+      $function($command, $node);
+    }
   }
 }
 
@@ -889,11 +1018,12 @@ function chatroom_chat_parse_command($message) {
   $command = new StdClass();
   $command->args = array();
   $command->name = FALSE;
-  $command_regex = variable_get('chatroom_chat_command_prefix', '/') . '([^a-z_0-9]+)(.*)';
-  if (preg_match("#^$command_regex$#", $message, $matches)) {
+  $prefix = variable_get('chatroom_chat_command_prefix', '/');
+  if (preg_match("#^$prefix([a-z_0-9]+)(.*)#i", $message, $matches)) {
     $command->name = $matches[1];
     if (isset($matches[2])) {
       $command->args = explode(' ', $matches[2]);
+      array_shift($command->args);
     }
   }
   return $command->name ? $command : FALSE;
@@ -906,7 +1036,8 @@ function chatroom_chat_parse_command($message) {
  * @return void
  */
 function chatroom_chat_get_message_type($message) {
-  if (preg_match('#^' . variable_get('chatroom_chat_command_prefix', '/') . '#', $message)) {
+  $prefix = variable_get('chatroom_chat_command_prefix', '/');
+  if (substr($message, 0, strlen($prefix)) == $prefix) { 
     return 'command';
   }
   return 'message';
