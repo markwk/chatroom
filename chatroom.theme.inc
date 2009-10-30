@@ -10,7 +10,11 @@
  * Implementation of hook_theme().
  */
 function chatroom_theme($existing, $type, $theme, $path) {
+  // Add the path to our module folder so we can pick up popout template.
+  $page = $existing['page'];
+  $page['theme paths'][] = drupal_get_path('module', 'chatroom');
   return array( 
+    'page' => $page,
     'chatroom_block_chats' => array(
       'arguments' => array(),
     ),

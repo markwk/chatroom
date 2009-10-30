@@ -72,6 +72,12 @@ function chatroom_perm() {
  * Implementation of hook_menu().
  */
 function chatroom_menu() {
+  $items['chatroom/popup/redirect/%node'] = array(
+    'description' => t('Configure global settings for chat rooms and chats.'),
+    'page callback' => 'chatroom_popup_redirect',
+    'page arguments' => array(3),
+    'access callback' => TRUE,
+  );
   $items['admin/settings/chatroom'] = array(
     'title' => 'Chat room',
     'description' => t('Configure global settings for chat rooms and chats.'),
@@ -629,6 +635,8 @@ function chatroom_add_js($node) {
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
     'accessDeniedPath' => 'chatroom/access-denied',
+    'viewAsPopup' => $node->chat->popout,
+    'popupRedirect' => 'chatroom/popup/redirect',
   );
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -1182,5 +1190,17 @@ function chatroom_chat_is_kicked_user($chat_user, $node) {
 function chatroom_chat_is_banned_user($chat_user, $node) {
   $sql = "SELECT ccbid FROM {chatroom_chat_ban_list} WHERE nid = %d AND uid = %d";
   return db_result(db_query($sql, array($node->nid, $chat_user->uid)));
+}
+
+/**
+ * Redirect page if someone tries to view a popup chat in a full page. 
+ * 
+ * @param mixed $node 
+ * @access public
+ * @return void
+ */
+function chatroom_popup_redirect($node) {
+  drupal_set_message(t('The chat !chat has been loaded in a popup window.', array('!chat' => $node->title)));
+  drupal_goto(variable_get('chatroom_popup_redirect_path', base_path()));
 }
 

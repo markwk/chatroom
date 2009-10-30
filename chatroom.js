@@ -6,7 +6,9 @@ Drupal.chatroom = Drupal.chatroom || {};
  * Add behaviours to chatroom elements.
  */
 Drupal.behaviors.chatroom = function(context) {
-  
+  // TODO: send this down from php.
+  Drupal.settings.chatroom.popupParams = "height=500,width=500";
+
   // This is the 'are there any new messages' polling.
   setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
   
@@ -43,7 +45,28 @@ Drupal.behaviors.chatroom = function(context) {
       Drupal.settings.chatroom.hasFocus = false;
     }
   );
+
+  // If this chat was configured as a popup, but we're not in a popup, load a 
+  // popup from here, and redirect to a configured url which will set a 
+  // message so the user knows what happened.
+  if (opener == undefined && Drupal.settings.chatroom.viewAsPopup) {
+    Drupal.chatroom.loadPopup();
+    window.location = Drupal.settings.basePath + Drupal.settings.chatroom.popupRedirect + '/' + Drupal.settings.chatroom.chatId;
+  }
 };
+
+Drupal.chatroom.loadPopup = function() {
+  var popupWindow;
+  if (popupWindow != null) {
+    if (!popupWindow.closed) {
+      popupWindow.focus();
+    }
+  }
+  else {
+    popupWindow = window.open(location.href, Drupal.settings.chatroom.pageTitle, Drupal.settings.chatroom.popupParams);
+  }
+  return popupWindow;
+}
 
 Drupal.chatroom.poll = function() {
 
