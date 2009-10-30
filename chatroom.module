@@ -1201,6 +1201,6 @@ function chatroom_chat_is_banned_user($chat_user, $node) {
  */
 function chatroom_popup_redirect($node) {
   drupal_set_message(t('The chat !chat has been loaded in a popup window.', array('!chat' => $node->title)));
-  drupal_goto(variable_get('chatroom_popup_redirect_path', base_path()));
+  drupal_goto(variable_get('chatroom_popup_redirect_path', base_path() == '/' ? '' : base_path()));
 }
 
