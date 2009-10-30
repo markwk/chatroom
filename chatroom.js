@@ -89,7 +89,7 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   else {
     Drupal.settings.chatroom.successiveCacheHits = 0;
   }
-  
+
   // Add any messages we haven't already seen to the board. Poll requests can 
   // pass each other over the wire, so we can't rely on getting a given
   // message once only.
@@ -117,7 +117,20 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   if (response.data.usersHtml) {
     $('#chatroom-user-list').html(response.data.usersHtml);
   }
+
+  if (response.data.commandResponse) {
+    Drupal.chatroom.addCommandMessage(response.data.commandResponse);
+  }
 };
+
+Drupal.chatroom.addCommandMessage = function(response) {
+  $('#chatroom-board').append('<div class="new-message command-message">** ' + response.msg + '</div>');
+  var boardOffset = $('#chatroom-board').offset().top;
+  var targetOffset = $('div.new-message:last').offset().top;
+  var scrollAmount = targetOffset - boardOffset;
+  $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
+  $('.new-message').removeClass('new-message');
+}
 
 Drupal.chatroom.postMessage = function(message) {
   $.ajax({

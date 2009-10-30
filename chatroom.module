@@ -782,7 +782,7 @@ function chatroom_is_banned_user($room) {
 /**
  * Get the latest messages for a chat, and send back to the client.
  */
-function chatroom_chat_get_latest_messages($node, $last_msg_id) {
+function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_response = FALSE) {
   global $user;
 
   if (chatroom_chat_is_banned_user($user, $node)) {
@@ -817,6 +817,9 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id) {
     }
 
     $response['usersHtml'] = theme('chatroom_user_list', chatroom_load_online_users($node), $node);
+    if (is_object($command_response)) {
+      $response['commandResponse'] = $command_response;
+    }
   }
   print drupal_to_js(array('data' => $response));
 }
@@ -844,18 +847,22 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     return;
   }
 
-  // Write the message to the chat.
   $message = array(
     'ccid' => $node->chat->nid, 
     'uid' => $user->uid, 
     'msg' => $_POST['message'],
     'sid' => session_id(), 
     'type' => chatroom_chat_get_message_type($_POST['message']),
-    'recipient_uid' => isset($_POST['recipient_uid']) ? $_POST['recipient_uid'] : 0, 
+    'recipient_uid' => 0, 
   );
-  if ($msg_id = chatroom_chat_save_message($message, $node)) {
-    chatroom_chat_get_latest_messages($node, $msg_id - 1);
+  if ($message['type'] == 'command') {
+    $result = chatroom_chat_call_command($message, $node);
+    d::ffs($result);
   }
+  else {
+    $result = chatroom_chat_save_message($message, $node);
+  }
+  chatroom_chat_get_latest_messages($node, $last_msg_id, $result);
 }
 
 /**
@@ -869,14 +876,9 @@ function chatroom_chat_save_message($message, $node) {
   drupal_alter('chatroom_chat_msg', $message);
   if (drupal_write_record('chatroom_msg', $message)) {
     $node->chat->latest_msg_id = $message['cmid'];
-    if ($message['type'] == 'command') {
-      chatroom_chat_call_command($message, $node);
-    }
-    else {
-      foreach (module_implements('chat_msg_saved') as $module) {
-        $function = $module . '_chat_msg_saved';
-        $function($message, $node);
-      }
+    foreach (module_implements('chat_msg_saved') as $module) {
+      $function = $module . '_chat_msg_saved';
+      $function($message, $node);
     }
     return $message['cmid'];
   }
@@ -922,8 +924,19 @@ function chatroom_chat_command_api($command, $node) {
  * @return boolean
  */
 function chatroom_command_ban_user($command, $node) {
-  if ($user_to_kick = chatroom_get_user_from_command_arg($command->args[0])) {
-    return chatroom_ban_user($node, $user_to_kick);
+  global $user;
+  if ($user_to_ban = chatroom_get_user_from_command_arg($command->args[0])) {
+    if (chatroom_ban_user($node, $user_to_ban, $user)) {
+      $params = array(
+        '!banned_username' => $user_to_ban->name, 
+        '!chat' => $node->title,
+        '!chat_admin_username' => $user->name, 
+      );
+      $response = new StdClass();
+      $response->name = 'banned';
+      $response->msg = t('User !banned_username banned from chat !chat by !chat_admin_username.', $params);
+      return $response;
+    }
   }
   return FALSE;
 }
@@ -938,7 +951,17 @@ function chatroom_command_ban_user($command, $node) {
 function chatroom_command_kick_user($command, $node) {
   global $user;
   if ($user_to_kick = chatroom_get_user_from_command_arg($command->args[0])) {
-    return chatroom_kick_user($node, $user_to_kick, $user);
+    if (chatroom_kick_user($node, $user_to_kick, $user)) {
+      $params = array(
+        '!kicked_username' => $user_to_kick->name, 
+        '!chat' => $node->title,
+        '!chat_admin_username' => $user->name, 
+      );
+      $response = new StdClass();
+      $response->name = 'kicked';
+      $response->msg = t('User !kicked_username kicked out of chat !chat by !chat_admin_username.', $params);
+      return $response;
+    }
   }
   return FALSE;
 }
@@ -952,6 +975,11 @@ function chatroom_command_kick_user($command, $node) {
  */
 function chatroom_command_msg_user($command, $node) {
   global $user;
+
+  // The second arg is the message, so if there isn't one, just bail.
+  if (count($command->args) < 2) {
+    return FALSE;
+  }
   if ($to_user = chatroom_get_user_from_command_arg(array_shift($command->args))) {
     return chatroom_msg_user($node, $to_user, $user, implode(' ', $command->args));
   }
@@ -1036,6 +1064,15 @@ function chatroom_msg_user($node, $to_user, $from_user, $message) {
     '!chat' => $node->title,
   );
   watchdog('chatroom', 'User !from_user sent a private message "!message" to !to_user in chat !chat.', $params);
+  $message_data = array(
+    'ccid' => $node->chat->nid, 
+    'uid' => $from_user->uid, 
+    'msg' => $message,
+    'sid' => session_id(), 
+    'type' => 'private_message',
+    'recipient_uid' => $to_user->uid, 
+  );
+  return chatroom_chat_save_message($message_data, $node);
 }
 
 /**
@@ -1068,6 +1105,7 @@ function chatroom_chat_call_command($message, $node) {
       $function = $module . '_chat_command_api';
       $function($command, $node);
     }
+    return $command->callback_result;
   }
 }
 
@@ -1114,7 +1152,6 @@ function chatroom_chat_get_message_type($message) {
  * @return void
  */
 function chatroom_update_last_seen_time($node, $session_id) {
-
   $sql = "UPDATE {chatroom_chat_online_list} 
           SET last_seen_time = %d
           WHERE ccid = %d AND sid = '%s'";
