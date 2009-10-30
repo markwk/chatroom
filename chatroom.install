@@ -65,6 +65,10 @@ function chatroom_schema() {
   );
   $schema['chatroom_ban_list'] = array(
     'fields' => array(
+      'crbid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
       'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -87,10 +91,19 @@ function chatroom_schema() {
         'description' => t('UNIX timestamp of when the ban was imposed.'),
       ),
     ),
-    'primary key' => array('admin_uid', 'uid'),
+    'primary key' => array('crbid'),
+    'indexes' => array(
+      'admin_uid' => array('admin_uid'),
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
   );
   $schema['chatroom_chat_ban_list'] = array(
     'fields' => array(
+      'ccbid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
       'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -113,7 +126,47 @@ function chatroom_schema() {
         'description' => t('UNIX timestamp of when the ban was imposed.'),
       ),
     ),
-    'primary key' => array('admin_uid', 'uid'),
+    'primary key' => array('ccbid'),
+    'indexes' => array(
+      'admin_uid' => array('admin_uid'),
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
+  );
+  $schema['chatroom_chat_kicked_list'] = array(
+    'fields' => array(
+      'cckid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('Chat ID.'),
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('ID of the kicked out user.'),
+      ),
+      'admin_uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('ID of the chatroom admin who kicked the user out.'),
+      ),
+      'modified' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => t('UNIX timestamp of when the kick happened.'),
+      ),
+    ),
+    'primary key' => array('cckid'),
+    'indexes' => array(
+      'admin_uid' => array('admin_uid'),
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
   );
   $schema['chatroom_chat'] = array(
     'fields' => array(
