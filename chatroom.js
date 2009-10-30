@@ -49,7 +49,7 @@ Drupal.behaviors.chatroom = function(context) {
   // If this chat was configured as a popup, but we're not in a popup, load a 
   // popup from here, and redirect to a configured url which will set a 
   // message so the user knows what happened.
-  if (opener == undefined && Drupal.settings.chatroom.viewAsPopup) {
+  if (opener == undefined && Drupal.settings.chatroom.viewAsPopup == 1) {
     Drupal.chatroom.loadPopup();
     window.location = Drupal.settings.basePath + Drupal.settings.chatroom.popupRedirect + '/' + Drupal.settings.chatroom.chatId;
   }
