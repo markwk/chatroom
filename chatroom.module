@@ -660,8 +660,6 @@ function chatroom_add_js($node) {
  * @return array $messages
 */
 function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
-  global $user;
-
   $sql = "SELECT cm.*
           FROM {chatroom_msg} cm
           WHERE cm.ccid = %d 
@@ -804,11 +802,15 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
     chatroom_update_last_seen_time($node, session_id()); 
 
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
+      if ($message->msg_type == 'private_message' && $user->uid != $message->recipien_uid) {
+        continue;
+      }
       $msg = new StdClass();
       $msg->html = theme('chatroom_message', $message);
       $msg->text = strip_tags($message->msg);
       $msg->name = $message->name;
       $msg->cmid = $message->cmid;
+      $msg->type = $message->msg_type;
       $response['messages'][] = $msg;
       $latest_msg_id = $message->cmid;
     }
@@ -857,7 +859,6 @@ function chatroom_chat_post_message($node, $last_msg_id) {
   );
   if ($message['type'] == 'command') {
     $result = chatroom_chat_call_command($message, $node);
-    d::ffs($result);
   }
   else {
     $result = chatroom_chat_save_message($message, $node);
@@ -1069,7 +1070,7 @@ function chatroom_msg_user($node, $to_user, $from_user, $message) {
     'uid' => $from_user->uid, 
     'msg' => $message,
     'sid' => session_id(), 
-    'type' => 'private_message',
+    'msg_type' => 'private_message',
     'recipient_uid' => $to_user->uid, 
   );
   return chatroom_chat_save_message($message_data, $node);

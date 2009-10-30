@@ -215,7 +215,8 @@ function theme_chatroom_message($message) {
   else {
     $username = $message->name;
   }
-  $output = '<div class="chatroom-msg new-message">';
+  $class = "chatroom-msg new-message" . ($message->msg_type == 'private_message' ? ' chatroom-private' : '');
+  $output = '<div class="' . $class . '">';
   $output .= '<strong>' . $username . ':</strong> ';
   $output .= check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
   $output .= '</div>';
