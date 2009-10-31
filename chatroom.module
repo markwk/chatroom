@@ -72,9 +72,9 @@ function chatroom_perm() {
  * Implementation of hook_menu().
  */
 function chatroom_menu() {
-  $items['chatroom/popup/redirect/%node'] = array(
+  $items['chatroom/popout/redirect/%node'] = array(
     'description' => t('Configure global settings for chat rooms and chats.'),
-    'page callback' => 'chatroom_popup_redirect',
+    'page callback' => 'chatroom_popout_redirect',
     'page arguments' => array(3),
     'access callback' => TRUE,
   );
@@ -628,6 +628,7 @@ function chatroom_add_js($node) {
     'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
     'idleInterval' => (int) $node->chat->idle_freq,
     'chatId'       => (int) $node->nid,
+    'popoutParams' => chatroom_get_popout_params($node),
     'cacheDirectory' => variable_get('chatroom_cache_directory', '/tmp'), 
     'postMessagePath' => 'chatroom/chat/post/message',
     'chatPath' => 'node/' . $node->nid,
@@ -635,8 +636,8 @@ function chatroom_add_js($node) {
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
     'accessDeniedPath' => 'chatroom/access-denied',
-    'viewAsPopup' => $node->chat->popout,
-    'popupRedirect' => 'chatroom/popup/redirect',
+    'viewAsPopout' => $node->chat->popout,
+    'popoutRedirect' => 'chatroom/popout/redirect',
   );
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -1193,14 +1194,44 @@ function chatroom_chat_is_banned_user($chat_user, $node) {
 }
 
 /**
- * Redirect page if someone tries to view a popup chat in a full page. 
+ * Redirect page if someone tries to view a popout chat in a full page. 
  * 
  * @param mixed $node 
  * @access public
  * @return void
  */
-function chatroom_popup_redirect($node) {
-  drupal_set_message(t('The chat !chat has been loaded in a popup window.', array('!chat' => $node->title)));
-  drupal_goto(variable_get('chatroom_popup_redirect_path', base_path() == '/' ? '' : base_path()));
+function chatroom_popout_redirect($node) {
+  drupal_set_message(t('The chat !chat has been loaded in a popout window.', array('!chat' => $node->title)));
+  drupal_goto(variable_get('chatroom_popout_redirect_path', base_path() == '/' ? '' : base_path()));
+}
+
+/**
+ * Get the popout params for a chat.
+ * 
+ * TODO: make this configurable.
+ *
+ * @param mixed $node 
+ * @return string
+ */
+function chatroom_get_popout_params($node) {
+  return 'height=600,width=600';
+}
+
+/**
+ * Add popout event js if the node is configured for popouts.
+ * 
+ * @param mixed $node 
+ * @return string 
+ */
+function chatroom_get_popout_link_js($node) {
+  $popout_params = chatroom_get_popout_params($node);
+  $base_path = base_path();
+  $js = <<<JS
+$("#node-$node->nid h2 a").click(function () {
+  window.open('{$base_path}node/{$node->nid}', '', '$popout_params');
+  return false;
+});
+JS;
+  return $js;
 }
 

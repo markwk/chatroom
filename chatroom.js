@@ -6,8 +6,6 @@ Drupal.chatroom = Drupal.chatroom || {};
  * Add behaviours to chatroom elements.
  */
 Drupal.behaviors.chatroom = function(context) {
-  // TODO: send this down from php.
-  Drupal.settings.chatroom.popupParams = "height=500,width=500";
 
   // This is the 'are there any new messages' polling.
   setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
@@ -46,26 +44,25 @@ Drupal.behaviors.chatroom = function(context) {
     }
   );
 
-  // If this chat was configured as a popup, but we're not in a popup, load a 
-  // popup from here, and redirect to a configured url which will set a 
+  // If this chat was configured as a popout, but we're not in a popout, load a 
+  // popout from here, and redirect to a configured url which will set a 
   // message so the user knows what happened.
-  if (opener == undefined && Drupal.settings.chatroom.viewAsPopup == 1) {
-    Drupal.chatroom.loadPopup();
-    window.location = Drupal.settings.basePath + Drupal.settings.chatroom.popupRedirect + '/' + Drupal.settings.chatroom.chatId;
+  if (opener == undefined && Drupal.settings.chatroom.viewAsPopout == 1) {
+    Drupal.chatroom.loadPopout();
+    window.location = Drupal.settings.basePath + Drupal.settings.chatroom.popoutRedirect + '/' + Drupal.settings.chatroom.chatId;
   }
 };
 
-Drupal.chatroom.loadPopup = function() {
-  var popupWindow;
-  if (popupWindow != null) {
-    if (!popupWindow.closed) {
-      popupWindow.focus();
+Drupal.chatroom.loadPopout = function() {
+  var popoutWindow;
+  if (popoutWindow != null) {
+    if (!popoutWindow.closed) {
+      popoutWindow.focus();
     }
   }
   else {
-    popupWindow = window.open(location.href, Drupal.settings.chatroom.pageTitle, Drupal.settings.chatroom.popupParams);
+    popoutWindow = open(location.href, '', Drupal.settings.chatroom.popoutParams);
   }
-  return popupWindow;
 }
 
 Drupal.chatroom.poll = function() {
