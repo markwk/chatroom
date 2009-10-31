@@ -128,6 +128,7 @@ function chatroom_node_info() {
  * Implementation of hook_insert().
  */
 function chatroom_insert($node) {
+  cache_clear_all('chatroom_room_list');
   $chatroom = array(
     'nid' => $node->nid,
     'poll_freq' => $node->poll_freq,
@@ -146,6 +147,7 @@ function chatroom_insert($node) {
  * Implementation of hook_update().
  */
 function chatroom_update($node) {
+  cache_clear_all('chatroom_room_list');
   $chatroom = array(
     'nid' => $node->nid,
     'poll_freq' => $node->poll_freq,
@@ -164,6 +166,7 @@ function chatroom_update($node) {
  * Implementation of hook_delete().
  */
 function chatroom_delete(&$node) {
+  cache_clear_all('chatroom_room_list');
   db_query('DELETE FROM {chatroom} WHERE nid = %d', $node->nid);
   db_query("DELETE FROM {chatroom_chat} WHERE crid = %d", $node->nid);
   db_query('DELETE FROM {chatroom_ban_list} WHERE nid = %d', $node->nid);
@@ -248,6 +251,7 @@ function chatroom_load_chats($nid) {
  * Implementation of hook_insert().
  */
 function chatroom_chat_insert($node) {
+  cache_clear_all('chatroom_chat_list');
   $chat = array(
     'nid' => $node->nid,
     'crid' => isset($node->crid) ? $node->crid : 0,
@@ -267,6 +271,7 @@ function chatroom_chat_insert($node) {
  * Implementation of hook_update().
  */
 function chatroom_chat_update($node) {
+  cache_clear_all('chatroom_chat_list');
   $chat = array(
     'nid' => $node->nid,
     'crid' => isset($node->crid) ? $node->crid : 0,
@@ -286,6 +291,7 @@ function chatroom_chat_update($node) {
  * Implementation of hook_delete().
  */
 function chatroom_chat_delete(&$node) {
+  cache_clear_all('chatroom_chat_list');
   db_query('DELETE FROM {chatroom_chat} WHERE nid = %d', $node->nid);
   db_query('DELETE FROM {chatroom_chat_online_list} WHERE ccid = %d', $node->nid);
 }
@@ -471,47 +477,34 @@ function chatroom_archive_chat($chat_id) {
  * Implementation of hook_block().
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
-  $types = array('chats', 'rooms', 'chat_users', 'site_users');
-
+  $block_name = $delta == 0 ? 'chats' : ($delta == 1 ? 'chatrooms' : '');
   switch ($op) {
     case 'list':
       $blocks[0] = array(
         'info' => t('Chat room: active chats'),
         'cache' => BLOCK_CACHE_GLOBAL,
         'visibility' => 0,
-        'pages' => 'chatroom',
       );
       $blocks[1] = array(
         'info' => t('Chat room: active chat rooms'),
         'cache' => BLOCK_CACHE_GLOBAL,
         'visibility' => 0,
-        'pages' => 'chatroom',
-      );
-      $blocks[2] = array(
-        'info' => t('Chat room: chat user list'),
-        'cache' => BLOCK_CACHE_PER_PAGE,
-        'visibility' => 1,
-        'pages' => 'chatroom/chat/*',
-      );
-      $blocks[3] = array(
-        'info' => t('Chat room: site-wide user list'),
-        'cache' => BLOCK_CACHE_GLOBAL,
       );
       return $blocks;
 
     case 'configure':
-      switch ($types[$delta]) {
-        case 'chats':
+      switch ($delta) {
+        case 0:
           $items = t('chats');
           break;
-        case 'chat_rooms':
+        case 1:
           $items = t('chat rooms');
       }
       if (isset($items)) {
-        $form["chatroom_block_{$types[$delta]}"] = array(
+        $form["chatroom_block_$block_name"] = array(
           '#type' => 'select',
           '#title' => t('Number of !items to display', array('!items' => $items)),
-          '#default_value' => variable_get("chatroom_block_{$types[$delta]}", 5),
+          '#default_value' => variable_get("chatroom_block_$block_name", 5),
           '#options' => drupal_map_assoc(range(1, 15))
         );
         return $form;
@@ -519,57 +512,58 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
       break;
 
     case 'save':
-      variable_set("chatroom_block_{$types[$delta]}", $edit["chatroom_block_{$types[$delta]}"]);
+      variable_set("chatroom_block_$block_name", $edit["chatroom_block_$block_name"]);
       break;
 
     case 'view':
-      if (user_access('access chat rooms')) {
-        switch ($types[$delta]) {
-          case 'chat_users':
-            return theme('chatroom_block_chat_users', chatroom_load_chat(arg(2)));
+      switch ($block_name) {
+        case 'chats':
+          if (user_access('access chats')) {
+            return theme('chatroom_block_chats');
+          }
 
-          default:
-            return theme("chatroom_block_{$types[$delta]}");
-        }
+        case 'chatrooms':
+          if (user_access('access chat rooms')) {
+            return theme('chatroom_block_chatrooms');
+          }
       }
+      break;
   }
+}
+
+/**
+ * Get a list of active rooms.
+ */
+function chatroom_get_active_chatrooms($start = NULL, $end = NULL) {
+  if ($cache = cache_get('chatroom_room_list')) {
+    return $cache->data;
+  }
+  $result = db_query("SELECT nid FROM {node} WHERE type = 'chatroom' AND status = 1");
+  $chatrooms = array();
+  while ($nid = db_result($result)) {
+    $chatrooms[] = node_load($nid);
+  }
+  drupal_alter('chatroom_room_list', $chatrooms);
+  cache_set('chatroom_room_list', $chatrooms);
+  return $chatrooms;
 }
 
 /**
  * Get a list of active chats.
  */
-function chatroom_get_active_chats($start = NULL, $end = NULL, $save_query = TRUE) {
-  global $user;
-  $sql = "
-    SELECT cc.*, nr.title AS room_name, cr.nid 
-    FROM {chatroom_chat} cc
-    INNER JOIN {chatroom} cr ON cr.nid = cc.crid
-    INNER JOIN {node_revisions} nr ON nr.nid = cr.nid
-    INNER JOIN {node} n ON n.nid = nr.nid
-    WHERE cc.when_archived IS NULL
-    ORDER BY cc.modified DESC
-  ";
-  if ($save_query) {
-    $sql = db_rewrite_sql($sql);
-    variable_set("chatroom_get_active_chats_query_{$user->uid}", $sql);
-  }
-  else {
-    $sql = variable_get("chatroom_get_active_chats_query_{$user->uid}", $sql);
-  }
-  if (isset($start) && isset($end)) {
-    $result = db_query_range($sql, $start, $end);
-  }
-  else {
-    $result = db_query($sql);
+function chatroom_get_active_chats() {
+  if ($cache = cache_get('chatroom_chat_list')) {
+    return $cache->data;
   }
   $chats = array();
-  while ($chat = db_fetch_object($result)) {
-    $chats[] = $chat;
+  $sql = "SELECT nid FROM {node} WHERE type = 'chat' AND status = 1";
+  $result = db_query($sql);
+  while ($nid = db_result($result)) {
+    $chats[] = node_load($nid);
   }
-  if (!empty($chats)) {
-    return $chats;
-  }
-  return FALSE;
+  drupal_alter('chatroom_chat_list', $chatrooms);
+  cache_set('chatroom_chat_list', $chats);
+  return $chats;
 }
 
 /**
@@ -755,20 +749,6 @@ function chatroom_load_online_users($chat) {
 function chatroom_chat_update_cache($chat_id, $latest_msg_id) {
   $cache_file = variable_get('chatroom_cache_directory', '/tmp') . '/chatroom.chat.' . $chat_id . '.cache';
   file_put_contents($cache_file, "$latest_msg_id\n");
-}
-
-/**
- * gets a list of online users, not including the current user
- */
-function chatroom_get_site_online_list($uid) {
-  $users = array();
-  $result = db_query("SELECT uid, name FROM {users} WHERE access >= %d AND uid <> 0", time() - variable_get('session_write_interval', 180));
-  while ($user = db_fetch_object($result)) {
-    if ($uid != $user->uid) {
-      $users[] = $user;
-    }
-  }
-  return $users;
 }
 
 /**
@@ -1221,17 +1201,18 @@ function chatroom_get_popout_params($node) {
  * Add popout event js if the node is configured for popouts.
  * 
  * @param mixed $node 
+ * @param string $selector
  * @return string 
  */
-function chatroom_get_popout_link_js($node) {
+function chatroom_set_popout_link_js($node, $selector) {
   $popout_params = chatroom_get_popout_params($node);
   $base_path = base_path();
   $js = <<<JS
-$("#node-$node->nid h2 a").click(function () {
+$("$selector a").click(function () {
   window.open('{$base_path}node/{$node->nid}', '', '$popout_params');
   return false;
 });
 JS;
-  return $js;
+ drupal_add_js($js, 'inline', 'footer');
 }
 
