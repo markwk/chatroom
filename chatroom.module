@@ -262,7 +262,7 @@ function chatroom_chat_insert($node) {
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'popout' => $node->popout,
-    'profile_picture' => $node->profile_picture,
+    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
   );
   drupal_write_record('chatroom_chat', $chat);
 }
