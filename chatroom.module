@@ -922,10 +922,11 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     'uid' => $user->uid, 
     'msg' => $_POST['message'],
     'sid' => session_id(), 
-    'type' => chatroom_chat_get_message_type($_POST['message']),
+    'msg_type' => chatroom_chat_get_message_type($_POST['message']),
     'recipient_uid' => 0, 
+    'modified' => time(),
   );
-  if ($message['type'] == 'command') {
+  if ($message['msg_type'] == 'command') {
     $result = chatroom_chat_call_command($message, $node);
   }
   else {
@@ -1140,6 +1141,7 @@ function chatroom_msg_user($node, $to_user, $from_user, $message) {
     'sid' => session_id(), 
     'msg_type' => 'private_message',
     'recipient_uid' => $to_user->uid, 
+    'modified' => time(),
   );
   return chatroom_chat_save_message($message_data, $node);
 }

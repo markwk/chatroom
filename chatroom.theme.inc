@@ -182,7 +182,7 @@ function theme_chatroom_message($message) {
   }
   $class = "chatroom-msg new-message" . ($message->msg_type == 'private_message' ? ' chatroom-private' : '');
   $output = '<div class="' . $class . '">';
-  $output .= '<strong>' . $username . ':</strong> ';
+  $output .= '(' . format_date($message->modified, 'custom', variable_get('chatroom_msg_date_format', 'H:i:s')) . ') <strong>' . $username . ':</strong> ';
   $output .= check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
   $output .= '</div>';
   return $output;
