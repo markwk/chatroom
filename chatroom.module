@@ -1356,6 +1356,11 @@ function chatroom_chat_ajax_user_add($node) {
   if (!($node->uid == $user->uid || user_access('administer chats'))) {
     return;
   }
+  
+  // Don't let the chat owner add themselves - they have access by default.
+  if ($node->uid == $chat_user->uid) {
+    return;
+  }
 
   $user_data = array('uid' => $chat_user->uid, 'nid' => $node->nid);
   drupal_write_record('chatroom_chat_user', $user_data);
