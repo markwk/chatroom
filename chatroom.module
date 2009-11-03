@@ -284,11 +284,6 @@ function chatroom_chat_insert($node) {
     'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
   );
   drupal_write_record('chatroom_chat', $chat);
-  if ($node->private) {
-    $node->chat = new StdClass();
-    $node->chat->allowed_uids = chatroom_chat_parse_autocomplete_user_list($node->user_list);
-    chatroom_chat_set_user_list($node);
-  }
 }
 
 /**
@@ -310,11 +305,6 @@ function chatroom_chat_update($node) {
     'profile_picture' => $node->profile_picture,
   );
   drupal_write_record('chatroom_chat', $chat, 'nid');
-  if ($node->private) {
-    $node->chat = new StdClass();
-    $node->chat->allowed_uids = chatroom_chat_parse_autocomplete_user_list($node->user_list);
-    chatroom_chat_set_user_list($node);
-  }
 }
 
 /**
