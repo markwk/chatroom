@@ -228,11 +228,34 @@ function chatroom_schema() {
         'default' => 0,
         'description' => t('Whether to display user profile pictures in online lists for this chat.'),
       ),
+      'private' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Whether this is a private chat.'),
+      ),
     ),
     'indexes' => array(
       'crid' => array('crid'),
     ),
     'primary key' => array('nid'),
+  );
+  $schema['chatroom_chat_user'] = array(
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('Primary key: node ID of the chat.'),
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('ID of the user allowed in this chat.'),
+      ),
+    ),
+    'indexes' => array(
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
   );
   $schema['chatroom_msg'] = array(
     'fields' => array(
@@ -326,7 +349,7 @@ function chatroom_schema() {
   );
   $schema['chatroom_chat_invite'] = array(
     'fields' => array(
-      'ccid' => array(
+      'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
         'description' => t('Chat ID.'),
@@ -341,6 +364,16 @@ function chatroom_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'accepted' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'inviter_uid' => array('inviter_uid'),
+      'invitee_uid' => array('invitee_uid'),
+      'nid' => array('nid'),
     ),
   );
   return $schema;
@@ -487,7 +520,10 @@ function chatroom_update_5() {
   return array();
 }
 
+/**
+ * Run the update from the 6.x-1 branch to 6.x-2.
+ */
 function chatroom_update_6200() {
-  // TODO: schema updates from #5
   return array();
 }
+

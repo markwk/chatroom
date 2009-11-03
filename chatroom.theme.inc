@@ -15,6 +15,12 @@ function chatroom_theme($existing, $type, $theme, $path) {
   $page['theme paths'][] = drupal_get_path('module', 'chatroom');
   return array( 
     'page' => $page,
+    'chatroom_allowed_users_list' => array(
+      'arguments' => array('allowed_users'),
+    ),
+    'chatroom_allowed_user' => array(
+      'arguments' => array('allowed_user'),
+    ),
     'chatroom_block_chats' => array(
       'arguments' => array(),
     ),
@@ -325,6 +331,8 @@ function theme_chatroom_chat_banned_user($chat) {
  * @ingroup themeable
  */
 function theme_chatroom_chat($node) {
+  global $user;
+
   $output = theme('chatroom_user_list', $node->chat->users, $node);
   $output .= '<div id="chatroom-board">';
   foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
@@ -332,6 +340,9 @@ function theme_chatroom_chat($node) {
   }
   $output .= '</div>';
   $output .= theme('chatroom_buttons', $node);
+  if ($node->chat->private && ($node->uid == $user->uid || user_access('administer chats'))) {
+    $output .= drupal_get_form('chatroom_chat_user_manager_form', $node);
+  }
   if (user_access('administer chats') || user_access('administer chat rooms')) {
     $output .= drupal_get_form('chatroom_archive_chat_form', $node->nid);
   }
@@ -442,5 +453,33 @@ function theme_chatroom_teaser($node) {
     '%open_chats' => count($node->chatroom->chats),
   );
   return t('There are %open_chats chats in this chatroom.', $params);
+}
+
+/**
+ * Theme the user list widget.
+ * 
+ * @param mixed $allowed_users
+ * @return string
+ */
+function theme_chatroom_allowed_users_list($allowed_users) {
+  $html = '<ul id="chatroom_allowed_users_list">';
+  foreach ($allowed_users as $allowed_user) {
+    $html .= '<li id="chatroom_allowed_user_li_' . $allowed_user->uid . '">' . theme('chatroom_allowed_user', $allowed_user) . '</li>';
+  }
+  $html .= '</ul>';
+  return $html;
+}
+
+/**
+ * Theme an item in the allowed user list.
+ * 
+ * @param mixed $allowed_user 
+ * @return string
+ */
+function theme_chatroom_allowed_user($allowed_user) {
+  return theme('username', $allowed_user) 
+         . ' [<a id="chatroom_allowed_user_' . $allowed_user->uid 
+         . '" class="chatroom-remove-user" href="#remove">' 
+         . 'Click here to remove from chat.</a>]';
 }
 
