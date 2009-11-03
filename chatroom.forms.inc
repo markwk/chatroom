@@ -13,6 +13,9 @@ function chatroom_forms() {
   $forms['chatroom_chat_form'] = array(
     'callback' => 'chatroom_chat_interface',
   );
+  $forms['chatroom_chat_user_manager_form'] = array(
+    'callback' => 'chatroom_chat_user_manager_form',
+  );
   $forms['chatroom_create_chat_form'] = array(
     'callback' => 'chatroom_create_chat_form',
   );
@@ -285,8 +288,8 @@ function chatroom_admin_settings_validate($form, &$form_state) {
  * TODO: make the default values cascade.
  */
 function chatroom_chat_form(&$node, $form_state) {
-
   global $user;
+
   $form['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Name'),
@@ -342,6 +345,12 @@ function chatroom_chat_form(&$node, $form_state) {
     '#default_value' => empty($node->poll_freq) ? 1 : $node->poll_freq / 1000,
     '#options' => drupal_map_assoc(range(1, 10)),
     '#description' => t('How many seconds between each request for updates from the server.'),
+  );
+  $form['chat_settings']['private'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Make the chat private?'),
+    '#default_value' => isset($node->chat) ? $node->chat->private : 0,
+    '#description' => t('Do you want this chat to be private?'),
   );
   $form['chat_settings']['idle_freq'] = array(
     '#type' => 'select',
@@ -557,5 +566,48 @@ function chatroom_archive_chat_form($form_state, $chat_id) {
 function chatroom_archive_chat_form_submit($form, &$form_state) {
   chatroom_archive_chat($form_state['values']['chat_id']);
   cache_clear_all(TRUE, 'cache_block');
+}
+
+/**
+ * Return the widget to manage users in a private chat.
+ * 
+ * @param mixed $form_state 
+ * @param mixed $node 
+ * @return array
+ */
+function chatroom_chat_user_manager_form($form_state, $node) {
+
+  $allowed_users_form = array();
+  $settings = array(
+    'userAddPath' => 'chatroom/ajax/user/add',
+    'userRemovePath' =>  'chatroom/ajax/user/remove',   
+    'allowedUsers' => array(),
+  );
+  $allowed_users = chatroom_chat_get_allowed_users($node);
+  foreach ($allowed_users as $allowed_user) {
+    $settings['allowedUsers'][] = $allowed_user;
+  }
+
+  drupal_add_js(drupal_get_path('module', 'chatroom') . '/chatroom.user.add.widget.js');
+  drupal_add_js(array('chatroomChatForm' => $settings), 'setting');
+
+  $form['chat_users'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Chat users'),
+    '#collapsible' => TRUE,
+    '#collapsed' => !(isset($node->chat) && $node->chat->private),
+  );
+  $form['chat_users']['add_user'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Add a user to this chat'),
+    '#autocomplete_path' => 'user/autocomplete',
+    '#size' => 10,
+    '#description' => t('Type in a username, then hit enter.'),
+  );
+  $form['chat_users']['user_list'] = array(
+    '#type' => 'markup',
+    '#value' => theme('chatroom_allowed_users_list', $allowed_users),
+  );
+  return $form;
 }
 
