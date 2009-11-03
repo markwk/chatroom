@@ -834,6 +834,11 @@ function chatroom_is_banned_user($room) {
 function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_response = FALSE) {
   global $user;
 
+  if ($node->chat->private && !in_array($user->uid, $node->chat->allowed_uids)) {
+    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    return;
+  }
+
   if (chatroom_chat_is_banned_user($user, $node)) {
     drupal_json(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
     return;
@@ -888,6 +893,11 @@ function chatroom_chat_post_message($node, $last_msg_id) {
   // Check we have a message posted.
   if (!isset($_POST['message'])) {
     exit;
+  }
+
+  if ($node->chat->private && !in_array($user->uid, $node->chat->allowed_uids)) {
+    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    return;
   }
 
  if (chatroom_chat_is_banned_user($user, $node)) {
