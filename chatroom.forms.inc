@@ -405,56 +405,6 @@ function chatroom_chat_form(&$node, $form_state) {
   return $form;
 }
 
-function chatroom_chat_interface(&$form_state, $node) {
-  // The message board itself.
-  $form['board']['#value'] = theme('chatroom_user_list', $node->chat->users);
-  $form['board']['#value'] .= '<div id="chatroom-board">';
-  // Messages for initial display.
-  if (!$form_state['submitted']) {
-    $messages = chatroom_chat_load_messages($chat->nid, 0, 20);
-    $form['board']['#value'] .= theme('chatroom_messages', $messages);
-  }
-  $form['board']['#value'] .= '</div>';
-  // Control data for the form
-  $form['control'] = array(
-    '#type' => 'fieldset',
-    '#attributes' => array('id' => 'edit-control-fieldset'),
-  );
-  $data = array('nid');
-  // The actual submit button. Not displayed so the user isn't troubled with a
-  // whole bunch of throbbers.
-  $form['control']['submit'] = array(
-    '#type' => 'submit',
-    '#name' => 'submit',
-    '#ahah' => array(
-      'path' => 'chatroom/js',
-      'wrapper' => 'chatroom-board',
-      'method' => 'append',
-    ),
-  );
-  // Other form elements.
-  $form['message'] = array(
-    '#type' => 'textfield',
-    '#title' => variable_get('chatroom_chat_message_text', t('Type your message and hit enter')),
-    '#size' => 50,
-    '#maxlength' => variable_get('chatroom_max_message_size', 1000),
-  );
-  $form['away'] = array(
-     '#type' => 'checkbox',
-     '#title' => t('Show me as away.'),
-     '#name' => 'away',
-  );
-  if (variable_get('chatroom_alerts', FALSE)) {
-    $checked = variable_get('chatroom_alerts_default', FALSE) ? ' checked' : '';
-    $form['alerts'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Alert me if new messages are received.'),
-      '#name' => 'alert',
-    );
-  }
-  return $form;
-}
-
 /**
  * Return a create chat form.
  */

@@ -859,7 +859,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
         continue;
       }
       $msg = new StdClass();
-      $msg->html = theme('chatroom_message', $message);
+      $msg->html = theme('chatroom_message', $message, $node);
       $msg->text = strip_tags($message->msg);
       $msg->name = $message->name;
       $msg->cmid = $message->cmid;

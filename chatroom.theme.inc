@@ -35,6 +35,7 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_message' => array(
       'arguments' => array(
         'message',
+        'node',
       ),
     ),
     'chatroom_user_list' => array(
@@ -154,26 +155,22 @@ function theme_chatroom_block_chatrooms() {
  *
  * @ingroup themeable
  */
-function theme_chatroom_messages(array $messages) {
+function theme_chatroom_messages(array $messages, $node) {
   $output = '';
   foreach($messages as $message) {
-    $output .= theme('chatroom_message', $message);
+    $output .= theme('chatroom_message', $message, $node);
   }
   return $output;
 }
 
 /**
- * @ingroup themeable.
- */
-
-/**
  * Format a single message for display.
- *
- * TODO: use a configurable format.
- *
- * @ingroup themeable
+ * 
+ * @param mixed $message 
+ * @param mixed $node 
+ * @return string
  */
-function theme_chatroom_message($message) {
+function theme_chatroom_message($message, $node) {
   if ($message->uid) {
     $username = l($message->name, 'user/'. $message->uid);
   }
@@ -183,7 +180,7 @@ function theme_chatroom_message($message) {
   $class = "chatroom-msg new-message" . ($message->msg_type == 'private_message' ? ' chatroom-private' : '');
   $output = '<div class="' . $class . '">';
   $output .= '(' . format_date($message->modified, 'custom', variable_get('chatroom_msg_date_format', 'H:i:s')) . ') <strong>' . $username . ':</strong> ';
-  $output .= check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
+  $output .= check_markup($message->msg, $node->format, FALSE);
   $output .= '</div>';
   return $output;
 }
@@ -336,7 +333,7 @@ function theme_chatroom_chat($node) {
   $output = theme('chatroom_user_list', $node->chat->users, $node);
   $output .= '<div id="chatroom-board">';
   foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
-    $output .= theme('chatroom_message', $message); 
+    $output .= theme('chatroom_message', $message, $node);
   }
   $output .= '</div>';
   $output .= theme('chatroom_buttons', $node);
