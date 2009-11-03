@@ -795,14 +795,21 @@ function chatroom_load_online_users($chat) {
           ORDER BY u.name ASC";
   $sql = db_rewrite_sql($sql, 'col', 'sid', array('chatroom_chat_online_list' => TRUE));
   $result = db_query($sql, $chat->nid, time() - variable_get('chatroom_online_list_timeout', 10));
-  $users = array();
-  while ($u = db_fetch_object($result)) {
-    if ($u->uid == 0) {
-      $u->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $u->guest_id;
+  $chat_users = array();
+  $logged_in_users = array();
+  while ($chat_user = db_fetch_object($result)) {
+    if ($chat_user->uid == 0) {
+      $chat_user->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $u->guest_id;
     }
-    $users[$u->sid] = $u;
+    else if (in_array($chat_user->uid, $logged_in_users)) {
+      continue;
+    }
+    if ($chat_user->uid != 0) {
+      $logged_in_users[] = $chat_user->uid;
+    }
+    $chat_users[$chat_user->sid] = $chat_user;
   }
-  return $users;
+  return $chat_users;
 }
 
 /**
@@ -834,7 +841,7 @@ function chatroom_is_banned_user($room) {
 function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_response = FALSE) {
   global $user;
 
-  if ($node->chat->private && !in_array($user->uid, $node->chat->allowed_uids)) {
+  if ($node->chat->private && $node->uid != $user->uid && !in_array($user->uid, $node->chat->allowed_uids)) {
     drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
@@ -895,7 +902,7 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     exit;
   }
 
-  if ($node->chat->private && !in_array($user->uid, $node->chat->allowed_uids)) {
+  if ($node->chat->private && $node->uid != $user->uid && !in_array($user->uid, $node->chat->allowed_uids)) {
     drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
@@ -1298,7 +1305,7 @@ JS;
  * @return boolean
  */
 function chatroom_chat_user_has_access($node, $account) {
-  if ($node->chat->private) {
+  if ($node->chat->private && $node->uid != $account->uid && !user_access('administer chats')) {
     $sql = "SELECT uid FROM {chatroom_chat_user} WHERE nid = %d AND uid = %d";
     return db_result(db_query($sql, $node->nid, $account->uid));
   }
@@ -1344,7 +1351,7 @@ function chatroom_chat_ajax_user_add($node) {
   if (!isset($_POST['user_name']) || !$chat_user = user_load(array('name' => $_POST['user_name']))) {
     return;
   }
-  
+
   // Don't do this unless the logged in user owns the chats or can administer chats.
   if (!($node->uid == $user->uid || user_access('administer chats'))) {
     return;
@@ -1372,6 +1379,11 @@ function chatroom_chat_ajax_user_remove($node) {
   
   // No point if we don't have a valid user.
   if (!isset($_POST['uid']) || !$chat_user = user_load($_POST['uid'])) {
+    return;
+  }
+
+  // Don't let the user kick themself out.
+  if ($chat_user->uid == $user->uid) {
     return;
   }
   
