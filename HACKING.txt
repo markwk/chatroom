@@ -21,6 +21,7 @@ NOTE - these are not necessarily in any order. Patches for any items on this lis
 -- DONE
 
 5. The chat interface should work in a popup.
+-- DONE
 
 6. The chats should not require a chatroom.
 -- DONE
@@ -45,4 +46,8 @@ NOTE - these are not necessarily in any order. Patches for any items on this lis
 15. Chatroom should integrate with the Appbar module.
 
 16. Chatroom should show user pictures and integrate with imagecache if its enabled.
+-- DONE
+
+17. Chats should be able to be set to private.
+-- DONE
 
