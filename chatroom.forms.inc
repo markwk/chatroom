@@ -530,6 +530,7 @@ function chatroom_chat_user_manager_form($form_state, $node) {
   $allowed_users_form = array();
   $settings = array(
     'userAddPath' => 'chatroom/ajax/user/add',
+    'userInvitePath' => 'chatroom/ajax/user/invite',
     'userRemovePath' =>  'chatroom/ajax/user/remove',   
     'allowedUsers' => array(),
   );
@@ -557,6 +558,13 @@ function chatroom_chat_user_manager_form($form_state, $node) {
   $form['chat_users']['user_list'] = array(
     '#type' => 'markup',
     '#value' => theme('chatroom_allowed_users_list', $allowed_users),
+  );
+  $form['chat_users']['invite_user'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Invite a user to this chat'),
+    '#autocomplete_path' => 'user/autocomplete',
+    '#size' => 10,
+    '#description' => t('Type in a username, then hit enter.'),
   );
   return $form;
 }

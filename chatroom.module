@@ -72,6 +72,12 @@ function chatroom_perm() {
  * Implementation of hook_menu().
  */
 function chatroom_menu() {
+  $items['chatroom/ajax/user/invite/%node'] = array(
+    'description' => t('Invite a user to a chat.'),
+    'page callback' => 'chatroom_chat_ajax_user_invite',
+    'page arguments' => array(4),
+    'access callback' => TRUE,
+  );
   $items['chatroom/ajax/user/add/%node'] = array(
     'description' => t('Add a user to a private chat.'),
     'page callback' => 'chatroom_chat_ajax_user_add',
@@ -1316,7 +1322,7 @@ function chatroom_chat_get_allowed_users($node) {
   $allowed_users = array();
   $sql = "SELECT u.uid, u.name 
           FROM {users} u
-          INNER JOIN {chatroom_chat_user} ccu on ccu.uid = u.uid
+          INNER JOIN {chatroom_chat_user} ccu ON ccu.uid = u.uid
           WHERE ccu.nid = %d";
   $result = db_query($sql, $node->nid);
   while ($allowed_user = db_fetch_object($result)) {
@@ -1369,27 +1375,83 @@ function chatroom_chat_ajax_user_add($node) {
 function chatroom_chat_ajax_user_remove($node) {
   global $user;
   
-  // No point if this chat is not private.
-  if (!$node->chat->private) {
-    return;
-  }
-  
   // No point if we don't have a valid user.
   if (!isset($_POST['uid']) || !$chat_user = user_load($_POST['uid'])) {
     return;
   }
+  
+  if (chatroom_chat_user_remove($chat_user, $user, $node)) {
+    drupal_json(array('data' => array('userRemoved' => $chat_user->uid)));
+  }
+}
 
+/**
+ * Remove a user from a private chat.
+ * 
+ * @param mixed $user_to_be_removed 
+ * @param mixed $user_doing_the_removing 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_chat_user_remove($user_to_be_removed, $user_doing_the_removing, $node) {
+  // No point if this chat is not private.
+  if (!$node->chat->private) {
+    return FALSE;
+  }
+  
   // Don't let the user kick themself out.
-  if ($chat_user->uid == $user->uid) {
+  if ($user_to_be_removed->uid == $user_doing_the_removing->uid) {
+    return FALSE;
+  }
+  
+  // Don't do this unless the user owns the chats or can administer chats.
+  if (!($node->uid == $user_doing_the_removing->uid || user_access('administer chats', $user_doing_the_removing))) {
+    return FALSE;
+  }
+
+  return db_query('DELETE FROM {chatroom_chat_user} WHERE nid = %d AND uid = %d', $node->nid, $user_to_be_removed->uid);
+}
+
+/**
+ * Ajax menu callback, invite a user to a chat.
+ * 
+ * @param mixed $node 
+ * @return void
+ */
+function chatroom_chat_ajax_user_invite($node) {
+  global $user;
+
+  // No point if we don't have a valid user.
+  if (!isset($_POST['user_name']) || !$chat_user = user_load(array('name' => $_POST['user_name']))) {
     return;
   }
   
-  // Don't do this unless the logged in user owns the chats or can administer chats.
-  if (!($node->uid == $user->uid || user_access('administer chats'))) {
-    return;
+  if (chatroom_chat_save_invite($chat_user, $user, $node)) {
+    $output = '<div class="chatroom-system-msg new-message">User ' . $chat_user->name . ' invited</div>';
+    drupal_json(array('data' => array('userInvited' => $output)));
+  }
+}
+
+/**
+ * Save an invite to a chat.
+ * 
+ * @param mixed $invitee 
+ * @param mixed $inviter 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_chat_save_invite($invitee, $inviter, $node) {
+
+  if ($node->chat->private && !($node->uid == $inviter->uid || user_access('administer chats', $inviter))) {
+    return FALSE;
   }
 
-  db_query('DELETE FROM {chatroom_chat_user} WHERE nid = %d AND uid = %d', $node->nid, $chat_user->uid);
-  drupal_json(array('data' => array('userRemoved' => $chat_user->uid)));
+  $user_data = array(
+    'inviter_uid' => $inviter->uid, 
+    'invitee_uid' => $invitee->uid, 
+    'nid' => $node->nid,
+    'accepted' => 0,
+  );
+  return drupal_write_record('chatroom_chat_invite', $user_data);
 }
 

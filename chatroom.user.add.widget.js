@@ -59,7 +59,6 @@ Drupal.chatroom.userRemoveHandler = function(response, responseStatus) {
   }
 };
 
-
 Drupal.chatroom.userAddHandler = function(response, responseStatus) {
   var li = document.createElement('li'); 
   li.id = 'chatroom_allowed_user_li_' + response.data.uid;
@@ -72,7 +71,49 @@ Drupal.chatroom.userAddHandler = function(response, responseStatus) {
       Drupal.chatroom.userRemove(bits[1]);
     }
   });
+};
 
+Drupal.behaviors.chatroomInviteWidget = function(context) {
+  // Add the event to the user form to add a user to the list of allowed users.
+  $('#edit-invite-user').keyup(function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
+    if (key == 13) {
+      var userName = $('#edit-invite-user').val();
+      if (userName) {
+        Drupal.chatroom.userInvite(userName);
+      }
+    }
+    return false;
+  });
+}
+
+Drupal.chatroom.userInvite = function(userName) {
+  $.ajax({
+    type: 'POST',
+    url: Drupal.settings.basePath + Drupal.settings.chatroomChatForm.userInvitePath + '/' + Drupal.settings.chatroom.chatId,
+    dataType: 'json',
+    success: Drupal.chatroom.userInviteHandler,
+    data: { user_name: userName } 
+  });
+};
+
+Drupal.chatroom.userInviteHandler = function(response, responseStatus) {
+  if (response.data.userInvited) {
+    // Write a message to the chat window.
+    $('#chatroom-board').append(response.data.userInvited);
+    var boardOffset = $('#chatroom-board').offset().top;
+    var targetOffset = $('div.new-message:last').offset().top;
+    var scrollAmount = targetOffset - boardOffset;
+    $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
+    $('.new-message').removeClass('new-message');
+    if (Drupal.settings.chatroom.hasFocus == false) {
+      Drupal.settings.chatroom.newMsg = newMessage;
+      clearInterval(Drupal.settings.chatroom.warnInterval);
+      Drupal.settings.chatroom.warnInterval = setInterval("Drupal.chatroom.warnNewMsgLoop()", 1500);
+    }
+  }
 };
 
 // vi:ai:expandtab:sw=2 ts=2 
