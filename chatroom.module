@@ -146,7 +146,7 @@ function chatroom_node_info() {
  * Implementation of hook_insert().
  */
 function chatroom_insert($node) {
-  cache_clear_all('chatroom_room_list');
+  cache_clear_all('chatroom_room_list', 'cache');
   $chatroom = array(
     'nid' => $node->nid,
     'poll_freq' => $node->poll_freq,
@@ -165,7 +165,7 @@ function chatroom_insert($node) {
  * Implementation of hook_update().
  */
 function chatroom_update($node) {
-  cache_clear_all('chatroom_room_list');
+  cache_clear_all('chatroom_room_list', 'cache');
   $chatroom = array(
     'nid' => $node->nid,
     'poll_freq' => $node->poll_freq,
@@ -184,7 +184,7 @@ function chatroom_update($node) {
  * Implementation of hook_delete().
  */
 function chatroom_delete(&$node) {
-  cache_clear_all('chatroom_room_list');
+  cache_clear_all('chatroom_room_list', 'cache');
   db_query('DELETE FROM {chatroom} WHERE nid = %d', $node->nid);
   db_query("DELETE FROM {chatroom_chat} WHERE crid = %d", $node->nid);
   db_query('DELETE FROM {chatroom_ban_list} WHERE nid = %d', $node->nid);
@@ -269,7 +269,7 @@ function chatroom_load_chats($nid) {
  * Implementation of hook_insert().
  */
 function chatroom_chat_insert($node) {
-  cache_clear_all('chatroom_chat_list');
+  cache_clear_all('chatroom_chat_list', 'cache');
   $chat = array(
     'nid' => $node->nid,
     'crid' => isset($node->crid) ? $node->crid : 0,
@@ -295,7 +295,7 @@ function chatroom_chat_insert($node) {
  * Implementation of hook_update().
  */
 function chatroom_chat_update($node) {
-  cache_clear_all('chatroom_chat_list');
+  cache_clear_all('chatroom_chat_list', 'cache');
   $chat = array(
     'nid' => $node->nid,
     'crid' => isset($node->crid) ? $node->crid : 0,
@@ -335,7 +335,7 @@ function chatroom_chat_set_user_list($node) {
  * Implementation of hook_delete().
  */
 function chatroom_chat_delete(&$node) {
-  cache_clear_all('chatroom_chat_list');
+  cache_clear_all('chatroom_chat_list', 'cache');
   db_query('DELETE FROM {chatroom_chat} WHERE nid = %d', $node->nid);
   db_query('DELETE FROM {chatroom_chat_online_list} WHERE ccid = %d', $node->nid);
 }
