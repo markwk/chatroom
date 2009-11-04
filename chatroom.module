@@ -20,6 +20,68 @@ function chatroom_help($path, $arg) {
 }
 
 /**
+ * Implementation of hook_help().
+ */
+function chatroom_init() {
+  global $user;
+  
+  if ($user->uid > 0) {
+    if ($invites = chatroom_chat_get_user_invites($user)) {
+      chatroom_chat_notify_user_of_invites($user, $invites);
+    }
+  }
+}
+
+/**
+ * Notify a user of pending chat invites.
+ * 
+ * @param mixed $chat_user 
+ * @param mixed $invites 
+ * @return void
+ */
+function chatroom_chat_notify_user_of_invites($chat_user, $invites) {
+  foreach (module_implements('chatroom_chat_invites_notify') as $module) {
+    $function = $module . '_chatroom_chat_invites_notify';
+    $function($chat_user, $invites);
+  }
+  $sql = "UPDATE {chatroom_chat_invites} SET notifed = 1 WHERE cciid IN (" . db_placeholders(array_keys($invites)) . ')';
+  db_query($sql, array_keys($invites));
+}
+
+/**
+ * Implementation of hook_chatroom_chat_invites_notify().
+ * 
+ * @param mixed $chat_user 
+ * @param mixed $invites 
+ * @return void
+ */
+function chatroom_chatroom_chat_invites_notify($chat_user, $invites) {
+}
+
+/**
+ * Get any pending invites for a user.
+ * 
+ * @param mixed $chat_user 
+ * @return array
+ */
+function chatroom_chat_get_user_invites($chat_user) {
+  $sql = "SELECT cci.cciid, n.title, u.name, u.uid
+          FROM {chatroom_chat_invite} cci
+          INNER JOIN {node} n ON n.nid = cci.nid
+          INNER JOIN {users} u ON u.uid = cci.inviter_uid
+          WHERE cci.invitee_uid = %d
+          AND cci.accepted = 0
+          AND cci.notified = 0";
+  $result = db_query($sql, $chat_user->uid);
+
+  $invites = array();
+  while ($invite = db_fetch_object($result)) {
+    $invites[$invite->cciid] = $invite;
+  }
+  return $invites;
+}
+
+/**
  * Implementation of hook_access().
  */
 function chatroom_chat_access($op, $node, $account) {
