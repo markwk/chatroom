@@ -67,6 +67,7 @@ function chatroom_schema() {
     'fields' => array(
       'crbid' => array(
         'type' => 'serial',
+        'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'nid' => array(
@@ -102,6 +103,7 @@ function chatroom_schema() {
     'fields' => array(
       'ccbid' => array(
         'type' => 'serial',
+        'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'nid' => array(
@@ -137,6 +139,7 @@ function chatroom_schema() {
     'fields' => array(
       'cckid' => array(
         'type' => 'serial',
+        'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'nid' => array(
@@ -261,6 +264,7 @@ function chatroom_schema() {
     'fields' => array(
       'cmid' => array(
         'type' => 'serial',
+        'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'ccid' => array(
@@ -349,6 +353,11 @@ function chatroom_schema() {
   );
   $schema['chatroom_chat_invite'] = array(
     'fields' => array(
+      'cciid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
       'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -364,16 +373,24 @@ function chatroom_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'notified' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'accepted' => array(
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
     ),
+    'primary key' => array('cciid'),
     'indexes' => array(
       'inviter_uid' => array('inviter_uid'),
       'invitee_uid' => array('invitee_uid'),
       'nid' => array('nid'),
+      'notified' => array('notified'),
+      'accepted' => array('accepted'),
     ),
   );
   return $schema;
