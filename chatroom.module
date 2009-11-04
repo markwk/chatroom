@@ -648,6 +648,34 @@ function chatroom_archive_old_msgs($chat_id) {
 }
 
 /**
+ * Update an invite and set it to accepted.
+ * 
+ * @param mixed $node 
+ * @param mixed $chat_user 
+ * @return void
+ */
+function chatroom_chat_accept_invite($node, $chat_user) {
+  $sql = "UPDATE {chatroom_chat_invite} SET accepted = 1 WHERE nid = %d AND initee_uid = %d";
+  db_query($sql, $node->nid, $chat_user->uid);
+  foreach (module_implements('chatroom_chat_invite_accepted') as $module) {
+    $function = $module . '_chatroom_chat_invite_accepted';
+    $function($node, $chat_user);
+  }
+}
+
+/**
+ * Check to see if a user has an invite to the given chat.
+ * 
+ * @param mixed $node 
+ * @param mixed $chat_user 
+ * @return boolean
+ */
+function chatroom_chat_user_has_invite($node, $chat_user) {
+  $sql = "SELECT nid FROM {chatroom_chat_invite} WHERE invitee_uid = %d AND nid = %d";
+  return db_result(db_query($sql, $chat_user->uid, $node->nid));
+}
+
+/**
  * Register a user in a chat.
  */
 function chatroom_chat_register_user($node) {
@@ -655,6 +683,11 @@ function chatroom_chat_register_user($node) {
 
   $session_id = session_id();
   if (!db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $node->nid, $session_id))) {
+
+    if (chatroom_chat_user_has_invite($node, $user)) {
+      chatroom_accept_invite($node, $user);
+    }
+
     $params = array($node->nid, $user->uid, $session_id, time());
     if ($user->uid) {
       $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, last_seen_time) VALUES (%d, %d, '%s', %d)";
@@ -721,47 +754,29 @@ function chatroom_add_js($node) {
  * @return array $messages
 */
 function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
-  $sql = "SELECT cm.*
+  $sql = "SELECT cm.*, u.name, 0 guest_id
           FROM {chatroom_msg} cm
+          INNER JOIN {users} u ON u.uid = cm.uid
           WHERE cm.ccid = %d 
           AND cm.cmid > %d 
           ORDER BY cm.cmid ASC";
   $args = array($chat_id, $last_cmid);
-
   if ($limit) {
     $sql .= ' LIMIT %d';
     $args[] = $limit;
   }
-
-  // Give modules a chance to modify query.
-  $result = db_query(db_rewrite_sql($sql, 'cm', 'cmid', array('chatroom_msg' => TRUE)), $args);
+  $result = db_query($sql, $args);
 
   $messages = array();
-  $uids = array();
   $guest_sids = array();
   while ($message = db_fetch_object($result)) {
-    $message->guest_id = 0;
-    $message->name = '';
-    $messages[$message->cmid] = $message;
-    if ($message->uid > 0 && !in_array($message->uid, $uids)) {
-      $uids[] = $message->uid;
-    }
     if ($message->uid == 0 && !in_array($message->sid, $guest_sids)) {
       $guest_sids[] = $message->sid;
+      $message->name = variable_get('chatroom_guest_user_prefix', 'guest-');
     }
+    $messages[$message->cmid] = $message;
   }
 
-  if (!empty($uids)) {
-    $sql = "SELECT uid, name FROM {users} WHERE uid IN (" . db_placeholders($uids) . ")";
-    $result = db_query($sql, $uids);
-    while ($chat_user = db_fetch_object($result)) {
-      foreach ($messages as $message) {
-        if ($message->uid == $chat_user->uid) {
-          $messages[$message->cmid]->name = $chat_user->name;
-        }
-      }
-    }
-  }
   if (!empty($guest_sids)) {
     $sql = "SELECT sid, guest_id FROM {chatroom_chat_online_list} WHERE sid IN (" . db_placeholders($guest_sids, 'varchar') . ")";
     $result = db_query($sql, $guest_sids);
@@ -769,7 +784,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
       foreach ($messages as $message) {
         if ($message->sid == $guest->sid) {
           $messages[$message->cmid]->guest_id = $guest->guest_id;
-          $messages[$message->cmid]->name = variable_get('chatroom_guest_user_prefix', 'guest-') . $guest->guest_id;
+          $messages[$message->cmid]->name .= $guest->guest_id;
         }
       }
     }
@@ -1452,6 +1467,13 @@ function chatroom_chat_save_invite($invitee, $inviter, $node) {
     'nid' => $node->nid,
     'accepted' => 0,
   );
-  return drupal_write_record('chatroom_chat_invite', $user_data);
+  if (drupal_write_record('chatroom_chat_invite', $user_data)) {
+    foreach (module_implements('chatroom_chat_invite_created') as $module) {
+      $function = $module . '_chatroom_chat_invite_created';
+      $function($node, $invitee, $inviter);
+    }
+    return TRUE;
+  }
+  return FALSE;
 }
 
