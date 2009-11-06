@@ -20,7 +20,7 @@
  * client has seen do we bootstrap Drupal. 
  */
 
-// We need the $last_msg_id, $chat_id and $chat_cache_file to check the
+// We need the $latest_msg_id, $chat_id and $chat_cache_file to check the
 // cache for this chat. 
 if (!isset($_POST['latest_msg_id']) || !preg_match('/^\d+$/', $_POST['latest_msg_id'])) {
   exit;
@@ -43,7 +43,7 @@ if (!isset($_POST['skip_cache'])) {
 $skip_cache = $_POST['skip_cache'] == 1 ? TRUE : FALSE;
 
 // We let the client signal that we should skip the cache. Right now we're 
-// using this to make sure user's last-seen time is updated, and there may 
+// using this to make sure users last-seen time is updated, and there may 
 // be more uses for it down the track.
 if (!$skip_cache && file_exists($chat_cache_file)) {
 
