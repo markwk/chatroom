@@ -10,27 +10,32 @@
  * Implementation of hook_theme().
  */
 function chatroom_theme($existing, $type, $theme, $path) {
+  // Add the path to our module folder so we can pick up popout template.
+  $page = $existing['page'];
+  $page['theme paths'][] = drupal_get_path('module', 'chatroom');
   return array( 
+    'page' => $page,
+    'chatroom_allowed_users_list' => array(
+      'arguments' => array('allowed_users'),
+    ),
+    'chatroom_allowed_user' => array(
+      'arguments' => array('allowed_user'),
+    ),
     'chatroom_block_chats' => array(
       'arguments' => array(),
     ),
     'chatroom_latest_message' => array(
-      'arguments' => array('message'),
-    ),
-    'chatroom_block_rooms' => array(
-      'arguments' => array(),
-    ),
-    'chatroom_block_chat_users' => array(
       'arguments' => array(
-        'chat' => NULL,
+        'message',
       ),
-     ),
-    'chatroom_block_site_users' => array(
+    ),
+    'chatroom_block_chatrooms' => array(
       'arguments' => array(),
     ),
     'chatroom_message' => array(
       'arguments' => array(
         'message',
+        'node',
       ),
     ),
     'chatroom_user_list' => array(
@@ -41,12 +46,12 @@ function chatroom_theme($existing, $type, $theme, $path) {
     ),
     'chatroom_chat_kicked_user' => array(
       'arguments' => array(
-        'chat', 
+        'node', 
       ),
     ),
     'chatroom_chat_banned_user' => array(
       'arguments' => array(
-        'chat',
+        'node',
       ),
     ),
     'chatroom_list' => array(
@@ -89,13 +94,23 @@ function chatroom_theme($existing, $type, $theme, $path) {
  */
 function theme_chatroom_block_chats() {
   $content = '<ul class="menu" id="chatroom-sitewide-chats">';
-  $chats = chatroom_get_active_chats(0, variable_get('chatroom_block_chats', 5));
-  if ($chats) {
-    foreach ($chats as $chat) {
-      $chat_link = l($chat->chatname, "chatroom/chat/$chat->ccid");
-      $room_link = l($chat->room_name, "node/$chat->nid");
-      $content .= '<li id="chat_'. $chat->ccid .'">'. $chat_link .'<br />';
-      $content .= '<span class="chatroomLink">'. t('in') .' '. $room_link .'</span></li>';
+  if ($chats = chatroom_get_active_chats()) {
+    $total = variable_get('chatroom_block_chats', 5);
+    foreach ($chats as $number => $node) {
+      if ($number == $total) {
+        break;
+      }
+      $id = "chatroom-block-chats-$node->nid";
+      $content .= '<li id="' . $id .'">'. l($node->title, "node/$node->nid");
+      if (isset($chat->chatroom)) {
+        $room_link = l($node->chatroom->title, "node/$node->chatroom->nid");
+        $content .= '<br /><span class="chatroomLink">'. t('in') .' '. $room_link .'</span>';
+      }
+      if ($node->chat->popout) {
+        chatroom_set_popout_link_js($node, "#$id");
+        $content .= '<br />(' . t('This chat will load in a popout window.') . ')';
+      }
+      $content .= '</li>';
     }
   }
   else {
@@ -113,14 +128,18 @@ function theme_chatroom_block_chats() {
  *
  * @ingroup themeable
  */
-function theme_chatroom_block_rooms() {
+function theme_chatroom_block_chatrooms() {
   $content = '<ul class="menu" id="chatroom-sitewide-chatrooms">';
-  $rooms = chatroom_get_room_list(FALSE, 0, variable_get('chatroom_block_chat_rooms', 5));
+  $rooms = chatroom_get_active_chatrooms();
   if (empty($rooms)) {
     $content .= '<li id="chatroom_empty"><em>'. t('There are no active chat rooms.') .'</em></li>';
   }
   else {
-    foreach ($rooms as $room) {
+    $total = variable_get('chatroom_block_chatrooms', 5);
+    foreach ($rooms as $number => $room) {
+      if ($number == $total) {
+        break;
+      }
       $content .= '<li id="chatroom_'. $room->nid .'">'. l($room->title, "node/$room->nid") .'</li>';
     }
   }
@@ -132,92 +151,36 @@ function theme_chatroom_block_rooms() {
 }
 
 /**
- * Theme the block listing on-line users in the current chat.
- *
- * @ingroup themeable
- */
-function theme_chatroom_block_chat_users($chat) {
-  chatroom_load_users($chat);
-  $title = '';
-  $content = '';
-  if (!empty($chat->users)) {
-    $title = t('Who is on line in %chat', array('%chat' => $chat->chatname));
-    $content = '<ul class="menu" id="chatroom-online">';
-    foreach ($chat->users as $chat_user) {
-      $content .= '<li id="'. $chat_user->guest_id .'"';
-      $content .= isset($chat_user->away) && $chat_user->away ? ' class="chatroom-user-away">' : '>';
-      $content .= $chat_user->name . '</li>';
-    }
-    $content .= '</ul>';
-    if (variable_get('chatroom_alerts', FALSE)) {
-      $checked = variable_get('chatroom_alerts_default', FALSE) ? ' checked' : '';
-      $content .= '<div id="chatroom-user-options">';
-      $content .= '<label><input type="checkbox"'. $checked .' id="chatroom-user-alert" /> ';
-      $content .= t('Alert me if new users enter.') .'</label></div>';
-    }
-  }
-  return array(
-    'content' => $content,
-    'subject' => $title,
-  );
-}
-
-/**
- * Theme the block listing online users for the whole site.
- *
- * @ingroup themeable
- */
-function theme_chatroom_block_site_users() {
-  global $user;
-  if ($users = chatroom_get_site_online_list($user->uid)) {
-    foreach ($users as $chat_user) {
-      $items[] = theme('username', $chat_user);
-    }
-    $content = str_replace('class="item-list"', 'class="item-list menu" id="chatroom-sitewide-online"', theme('item_list', $items));
-  }
-  else {
-    $content = '<ul class="item-list menu" id="chatroom-sitewide-online"><li id="no_users"><em>'. t('There are no other users on line.') .'</em></li></ul>';
-  }
-  return array(
-    'content' => $content,
-    'subject' => t('On-line users'),
-  );
-}
-
-/**
  * Format an array of messages.
  *
  * @ingroup themeable
  */
-function theme_chatroom_messages(array $messages) {
+function theme_chatroom_messages(array $messages, $node) {
   $output = '';
   foreach($messages as $message) {
-    $output .= theme('chatroom_message', $message);
+    $output .= theme('chatroom_message', $message, $node);
   }
   return $output;
 }
 
 /**
- * @ingroup themeable.
- */
-
-/**
  * Format a single message for display.
- *
- * TODO: use a configurable format.
- *
- * @ingroup themeable
+ * 
+ * @param mixed $message 
+ * @param mixed $node 
+ * @return string
  */
-function theme_chatroom_message($message) {
+function theme_chatroom_message($message, $node) {
   if ($message->uid) {
     $username = l($message->name, 'user/'. $message->uid);
   }
   else {
     $username = $message->name;
   }
-  $output = '<div class="chatroom-msg new-message">';
-  $output .= '<strong>' . $username . ':</strong> ';
-  $output .= check_markup($message->msg, FILTER_FORMAT_DEFAULT, FALSE);
+  $class = "chatroom-msg new-message" . ($message->msg_type == 'private_message' ? ' chatroom-private' : '');
+  $output = '<div class="' . $class . '">';
+  $output .= '(' . format_date($message->modified, 'custom', variable_get('chatroom_msg_date_format', 'H:i:s')) . ') <strong>' . $username . ':</strong> ';
+  $output .= check_markup($message->msg, $node->format, FALSE);
   $output .= '</div>';
   return $output;
 }
@@ -344,8 +307,8 @@ function theme_chatroom_list($rooms) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_kicked_user($chat) {
-  $msg = $chat->kicked_out_message ? $chat->kicked_out_message : t('You have been kicked out of %chat for misbehaving.', array('%chat' => $chat->chatname));
+function theme_chatroom_chat_kicked_user($node) {
+  $msg = $node->chat->kicked_out_message ? $node->chat->kicked_out_message : t('You have been kicked out of %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-kicked-msg">'. $msg .'</div>';
 }
 
@@ -355,7 +318,7 @@ function theme_chatroom_chat_kicked_user($chat) {
  * @ingroup themeable
  */
 function theme_chatroom_chat_banned_user($chat) {
-  $msg = $chat->banned_message ? $chat->banned_message : t('You have been banned from %chatroom.', array('%chatroom' => $chat->chatroom_name));
+  $msg = $node->chat->banned_message ? $node->chat->banned_message : t('You have been banned from %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-banned-msg">'. $msg .'</div>';
 }
 
@@ -365,13 +328,18 @@ function theme_chatroom_chat_banned_user($chat) {
  * @ingroup themeable
  */
 function theme_chatroom_chat($node) {
+  global $user;
+
   $output = theme('chatroom_user_list', $node->chat->users, $node);
   $output .= '<div id="chatroom-board">';
   foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
-    $output .= theme('chatroom_message', $message); 
+    $output .= theme('chatroom_message', $message, $node);
   }
   $output .= '</div>';
   $output .= theme('chatroom_buttons', $node);
+  if ($node->chat->private && ($node->uid == $user->uid || user_access('administer chats'))) {
+    $output .= drupal_get_form('chatroom_chat_user_manager_form', $node);
+  }
   if (user_access('administer chats') || user_access('administer chat rooms')) {
     $output .= drupal_get_form('chatroom_archive_chat_form', $node->nid);
   }
@@ -454,13 +422,23 @@ function theme_chatroom_chat_teaser($node) {
     return t('Archived on !date, contains %message_count messages.', $params);
   }
   else {
-    $params = array(
-      '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
-      '%message' => $node->chat->latest_msg->msg,
-      '%user' => theme('username', user_load($node->chat->latest_msg->uid)),
-      '%message_count' => $node->chat->msg_count,
-    );
-    return t('Last message at !date: %message by %user. Total messages: %message_count.', $params);
+    if ($node->chat->latest_msg) {
+      $popout_text = '';
+      if ($node->chat->popout) {
+        chatroom_set_popout_link_js($node, "#node-$node->nid h2");
+        $popout_text = t('This chat will load in a popout window.');
+      }
+      $params = array(
+        '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
+        '%message' => $node->chat->latest_msg->msg,
+        '!user' => theme('username', user_load($node->chat->latest_msg->uid)),
+        '%message_count' => $node->chat->msg_count,
+      );
+      return t("Last message at !date: %message by !user. Total messages: %message_count. $popout_text", $params);
+    }
+    else {
+      return t('There are no messages in this chat.');
+    }
   }
 }
 
@@ -472,5 +450,33 @@ function theme_chatroom_teaser($node) {
     '%open_chats' => count($node->chatroom->chats),
   );
   return t('There are %open_chats chats in this chatroom.', $params);
+}
+
+/**
+ * Theme the user list widget.
+ * 
+ * @param mixed $allowed_users
+ * @return string
+ */
+function theme_chatroom_allowed_users_list($allowed_users) {
+  $html = '<ul id="chatroom_allowed_users_list">';
+  foreach ($allowed_users as $allowed_user) {
+    $html .= '<li id="chatroom_allowed_user_li_' . $allowed_user->uid . '">' . theme('chatroom_allowed_user', $allowed_user) . '</li>';
+  }
+  $html .= '</ul>';
+  return $html;
+}
+
+/**
+ * Theme an item in the allowed user list.
+ * 
+ * @param mixed $allowed_user 
+ * @return string
+ */
+function theme_chatroom_allowed_user($allowed_user) {
+  return theme('username', $allowed_user) 
+         . ' [<a id="chatroom_allowed_user_' . $allowed_user->uid 
+         . '" class="chatroom-remove-user" href="#remove">' 
+         . 'Click here to remove from chat.</a>]';
 }
 

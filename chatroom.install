@@ -65,6 +65,11 @@ function chatroom_schema() {
   );
   $schema['chatroom_ban_list'] = array(
     'fields' => array(
+      'crbid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
       'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -87,10 +92,20 @@ function chatroom_schema() {
         'description' => t('UNIX timestamp of when the ban was imposed.'),
       ),
     ),
-    'primary key' => array('admin_uid', 'uid'),
+    'primary key' => array('crbid'),
+    'indexes' => array(
+      'admin_uid' => array('admin_uid'),
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
   );
   $schema['chatroom_chat_ban_list'] = array(
     'fields' => array(
+      'ccbid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
       'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -113,7 +128,48 @@ function chatroom_schema() {
         'description' => t('UNIX timestamp of when the ban was imposed.'),
       ),
     ),
-    'primary key' => array('admin_uid', 'uid'),
+    'primary key' => array('ccbid'),
+    'indexes' => array(
+      'admin_uid' => array('admin_uid'),
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
+  );
+  $schema['chatroom_chat_kicked_list'] = array(
+    'fields' => array(
+      'cckid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('Chat ID.'),
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('ID of the kicked out user.'),
+      ),
+      'admin_uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('ID of the chatroom admin who kicked the user out.'),
+      ),
+      'modified' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => t('UNIX timestamp of when the kick happened.'),
+      ),
+    ),
+    'primary key' => array('cckid'),
+    'indexes' => array(
+      'admin_uid' => array('admin_uid'),
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
   );
   $schema['chatroom_chat'] = array(
     'fields' => array(
@@ -175,16 +231,40 @@ function chatroom_schema() {
         'default' => 0,
         'description' => t('Whether to display user profile pictures in online lists for this chat.'),
       ),
+      'private' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Whether this is a private chat.'),
+      ),
     ),
     'indexes' => array(
       'crid' => array('crid'),
     ),
     'primary key' => array('nid'),
   );
+  $schema['chatroom_chat_user'] = array(
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('Primary key: node ID of the chat.'),
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => t('ID of the user allowed in this chat.'),
+      ),
+    ),
+    'indexes' => array(
+      'nid' => array('nid'),
+      'uid' => array('uid'),
+    ),
+  );
   $schema['chatroom_msg'] = array(
     'fields' => array(
       'cmid' => array(
         'type' => 'serial',
+        'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'ccid' => array(
@@ -273,7 +353,12 @@ function chatroom_schema() {
   );
   $schema['chatroom_chat_invite'] = array(
     'fields' => array(
-      'ccid' => array(
+      'cciid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'nid' => array(
         'type' => 'int',
         'not null' => TRUE,
         'description' => t('Chat ID.'),
@@ -288,6 +373,24 @@ function chatroom_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'notified' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'accepted' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('cciid'),
+    'indexes' => array(
+      'inviter_uid' => array('inviter_uid'),
+      'invitee_uid' => array('invitee_uid'),
+      'nid' => array('nid'),
+      'notified' => array('notified'),
+      'accepted' => array('accepted'),
     ),
   );
   return $schema;
@@ -434,7 +537,10 @@ function chatroom_update_5() {
   return array();
 }
 
+/**
+ * Run the update from the 6.x-1 branch to 6.x-2.
+ */
 function chatroom_update_6200() {
-  // TODO: schema updates from #5
   return array();
 }
+

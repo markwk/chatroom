@@ -13,6 +13,9 @@ function chatroom_forms() {
   $forms['chatroom_chat_form'] = array(
     'callback' => 'chatroom_chat_interface',
   );
+  $forms['chatroom_chat_user_manager_form'] = array(
+    'callback' => 'chatroom_chat_user_manager_form',
+  );
   $forms['chatroom_create_chat_form'] = array(
     'callback' => 'chatroom_create_chat_form',
   );
@@ -119,7 +122,7 @@ function chatroom_form(&$node, $form_state) {
     '#type' => 'checkbox',
     '#title' => t('User profile picture.'),
     '#description' => t('Enable User profile picture for chatroom.'),
-    '#default_value' => $node->chat->profile_picture,
+    '#default_value' => isset($node->chatroom) ? $node->chatroom->profile_picture : '',
     '#disabled' => !variable_get('user_pictures', FALSE),
   );
   if (module_exists('imagecache')) {
@@ -285,8 +288,8 @@ function chatroom_admin_settings_validate($form, &$form_state) {
  * TODO: make the default values cascade.
  */
 function chatroom_chat_form(&$node, $form_state) {
-
   global $user;
+
   $form['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Name'),
@@ -343,6 +346,12 @@ function chatroom_chat_form(&$node, $form_state) {
     '#options' => drupal_map_assoc(range(1, 10)),
     '#description' => t('How many seconds between each request for updates from the server.'),
   );
+  $form['chat_settings']['private'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Make the chat private?'),
+    '#default_value' => isset($node->chat) ? $node->chat->private : 0,
+    '#description' => t('Do you want this chat to be private?'),
+  );
   $form['chat_settings']['idle_freq'] = array(
     '#type' => 'select',
     '#title' => t('Idle time'),
@@ -377,7 +386,7 @@ function chatroom_chat_form(&$node, $form_state) {
     '#type' => 'checkbox',
     '#title' => t('User profile picture.'),
     '#description' => t('Enable User profile picture for chatroom.'),
-    '#default_value' => $node->chat->profile_picture,
+    '#default_value' => isset($node->chat) ? $node->chat->profile_picture : '',
     '#disabled' => !variable_get('user_pictures', FALSE),
   );
   if (module_exists('imagecache')) {
@@ -391,56 +400,6 @@ function chatroom_chat_form(&$node, $form_state) {
       '#default_value' => variable_get('chatroom_profile_picture_preset', ''),
       '#options' => $presets,
       '#description' => t("This will set the picture size."),
-    );
-  }
-  return $form;
-}
-
-function chatroom_chat_interface(&$form_state, $node) {
-  // The message board itself.
-  $form['board']['#value'] = theme('chatroom_user_list', $node->chat->users);
-  $form['board']['#value'] .= '<div id="chatroom-board">';
-  // Messages for initial display.
-  if (!$form_state['submitted']) {
-    $messages = chatroom_chat_load_messages($chat->nid, 0, 20);
-    $form['board']['#value'] .= theme('chatroom_messages', $messages);
-  }
-  $form['board']['#value'] .= '</div>';
-  // Control data for the form
-  $form['control'] = array(
-    '#type' => 'fieldset',
-    '#attributes' => array('id' => 'edit-control-fieldset'),
-  );
-  $data = array('nid');
-  // The actual submit button. Not displayed so the user isn't troubled with a
-  // whole bunch of throbbers.
-  $form['control']['submit'] = array(
-    '#type' => 'submit',
-    '#name' => 'submit',
-    '#ahah' => array(
-      'path' => 'chatroom/js',
-      'wrapper' => 'chatroom-board',
-      'method' => 'append',
-    ),
-  );
-  // Other form elements.
-  $form['message'] = array(
-    '#type' => 'textfield',
-    '#title' => variable_get('chatroom_chat_message_text', t('Type your message and hit enter')),
-    '#size' => 50,
-    '#maxlength' => variable_get('chatroom_max_message_size', 1000),
-  );
-  $form['away'] = array(
-     '#type' => 'checkbox',
-     '#title' => t('Show me as away.'),
-     '#name' => 'away',
-  );
-  if (variable_get('chatroom_alerts', FALSE)) {
-    $checked = variable_get('chatroom_alerts_default', FALSE) ? ' checked' : '';
-    $form['alerts'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Alert me if new messages are received.'),
-      '#name' => 'alert',
     );
   }
   return $form;
@@ -557,5 +516,56 @@ function chatroom_archive_chat_form($form_state, $chat_id) {
 function chatroom_archive_chat_form_submit($form, &$form_state) {
   chatroom_archive_chat($form_state['values']['chat_id']);
   cache_clear_all(TRUE, 'cache_block');
+}
+
+/**
+ * Return the widget to manage users in a private chat.
+ * 
+ * @param mixed $form_state 
+ * @param mixed $node 
+ * @return array
+ */
+function chatroom_chat_user_manager_form($form_state, $node) {
+
+  $allowed_users_form = array();
+  $settings = array(
+    'userAddPath' => 'chatroom/ajax/user/add',
+    'userInvitePath' => 'chatroom/ajax/user/invite',
+    'userRemovePath' =>  'chatroom/ajax/user/remove',   
+    'allowedUsers' => array(),
+  );
+  $allowed_users = chatroom_chat_get_allowed_users($node);
+  foreach ($allowed_users as $allowed_user) {
+    $settings['allowedUsers'][] = $allowed_user;
+  }
+
+  drupal_add_js(drupal_get_path('module', 'chatroom') . '/chatroom.user.add.widget.js');
+  drupal_add_js(array('chatroomChatForm' => $settings), 'setting');
+
+  $form['chat_users'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Chat users'),
+    '#collapsible' => TRUE,
+    '#collapsed' => !(isset($node->chat) && $node->chat->private),
+  );
+  $form['chat_users']['add_user'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Add a user to this chat'),
+    '#autocomplete_path' => 'user/autocomplete',
+    '#size' => 10,
+    '#description' => t('Type in a username, then hit enter.'),
+  );
+  $form['chat_users']['user_list'] = array(
+    '#type' => 'markup',
+    '#value' => theme('chatroom_allowed_users_list', $allowed_users),
+  );
+  $form['chat_users']['invite_user'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Invite a user to this chat'),
+    '#autocomplete_path' => 'user/autocomplete',
+    '#size' => 10,
+    '#description' => t('Type in a username, then hit enter.'),
+  );
+  return $form;
 }
 

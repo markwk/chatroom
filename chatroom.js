@@ -6,7 +6,7 @@ Drupal.chatroom = Drupal.chatroom || {};
  * Add behaviours to chatroom elements.
  */
 Drupal.behaviors.chatroom = function(context) {
-  
+
   // This is the 'are there any new messages' polling.
   setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
   
@@ -43,7 +43,27 @@ Drupal.behaviors.chatroom = function(context) {
       Drupal.settings.chatroom.hasFocus = false;
     }
   );
+
+  // If this chat was configured as a popout, but we're not in a popout, load a 
+  // popout from here, and redirect to a configured url which will set a 
+  // message so the user knows what happened.
+  if (opener == undefined && Drupal.settings.chatroom.viewAsPopout == 1) {
+    Drupal.chatroom.loadPopout();
+    window.location = Drupal.settings.basePath + Drupal.settings.chatroom.popoutRedirect + '/' + Drupal.settings.chatroom.chatId;
+  }
 };
+
+Drupal.chatroom.loadPopout = function() {
+  var popoutWindow;
+  if (popoutWindow != null) {
+    if (!popoutWindow.closed) {
+      popoutWindow.focus();
+    }
+  }
+  else {
+    popoutWindow = open(location.href, '', Drupal.settings.chatroom.popoutParams);
+  }
+}
 
 Drupal.chatroom.poll = function() {
 
@@ -69,6 +89,11 @@ Drupal.chatroom.poll = function() {
  
 Drupal.chatroom.pollHandler = function(response, responseStatus) {
 
+  // If the user was kicked or banned, get the out of here.
+  if (response.data.accessDenied) {
+    window.location = Drupal.settings.basePath + Drupal.settings.chatroom.accessDeniedPath + '/' + Drupal.settings.chatroom.chatId + '/' + response.data.accessDenied;
+  }
+
   // If the chat was archived, reload the page.
   if (response.data.archived) {
     window.location = Drupal.settings.basePath + Drupal.settings.chatroom.chatPath;
@@ -84,7 +109,7 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   else {
     Drupal.settings.chatroom.successiveCacheHits = 0;
   }
-  
+
   // Add any messages we haven't already seen to the board. Poll requests can 
   // pass each other over the wire, so we can't rely on getting a given
   // message once only.
@@ -112,7 +137,20 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   if (response.data.usersHtml) {
     $('#chatroom-user-list').html(response.data.usersHtml);
   }
+
+  if (response.data.commandResponse) {
+    Drupal.chatroom.addCommandMessage(response.data.commandResponse);
+  }
 };
+
+Drupal.chatroom.addCommandMessage = function(response) {
+  $('#chatroom-board').append('<div class="new-message command-message">** ' + response.msg + '</div>');
+  var boardOffset = $('#chatroom-board').offset().top;
+  var targetOffset = $('div.new-message:last').offset().top;
+  var scrollAmount = targetOffset - boardOffset;
+  $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
+  $('.new-message').removeClass('new-message');
+}
 
 Drupal.chatroom.postMessage = function(message) {
   $.ajax({
