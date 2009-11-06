@@ -15,7 +15,7 @@ Drupal.behaviors.chatroomUserWidget = function(context) {
         for (var i = 0; i < currentUserCount; i++) {
           // If this user is already on our list, just bail out.
           if (allowedUsers[i].name == userName) {
-            return;
+            return false;
           }
         }
         Drupal.chatroom.userAdd(userName);
@@ -82,6 +82,7 @@ Drupal.behaviors.chatroomInviteWidget = function(context) {
     if (key == 13) {
       var userName = $('#edit-invite-user').val();
       if (userName) {
+        $('#edit-invite-user').val('');
         Drupal.chatroom.userInvite(userName);
       }
     }
