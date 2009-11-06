@@ -60,6 +60,11 @@ function chatroom_schema() {
         'default' => 0,
         'description' => t('Whether to display user profile pictures in online lists by default for chats in this room.'),
       ),
+      'imagecache_preset' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => t('Default imagecache preset for chats in this chatroom.'),
+      ),
     ),
     'primary key' => array('nid'),
   );
@@ -235,6 +240,11 @@ function chatroom_schema() {
         'type' => 'int',
         'default' => 0,
         'description' => t('Whether this is a private chat.'),
+      ),
+      'imagecache_preset' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => t('Imagecache preset for this chat.'),
       ),
     ),
     'indexes' => array(

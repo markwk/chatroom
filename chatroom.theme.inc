@@ -193,14 +193,16 @@ function theme_chatroom_message($message, $node) {
 function theme_chatroom_user_list($users, $chat) {
   global $user;
   $html = '<ul id="chatroom-user-list">';
+  $preset = FALSE;
+  if (module_exists('imagecache')) {
+    $preset = imagecache_preset_by_name($chat->imagecache_preset);
+  }
   if (!empty($users)) {
     foreach ($users as $chat_user) {
       $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
-      $html .= '<li class="' . $class . '">' . theme('username', $chat_user);
+      $html .= '<li class="' . $class . '">';
       if ($chat->chat->profile_picture) {
-        $size = variable_get('chatroom_profile_picture_preset', 0);
-        if (module_exists('imagecache') && $size && $chat_user->uid) {
-          $preset = imagecache_preset($size);
+        if ($chat_user->uid && $preset) {
           $alt = t("@user's picture", array('@user' => $chat_user->name));
           $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
           $html .= $chat_user->picture . theme('username', $chat_user);
