@@ -233,6 +233,7 @@ function chatroom_insert($node) {
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'popout' => $node->popout,
     'profile_picture' => $node->profile_picture,
+    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom', $chatroom);
 }
@@ -252,6 +253,7 @@ function chatroom_update($node) {
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'popout' => $node->popout,
     'profile_picture' => $node->profile_picture,
+    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom', $chatroom, 'nid');
 }
@@ -358,6 +360,7 @@ function chatroom_chat_insert($node) {
     'popout' => $node->popout,
     'private' => $node->private,
     'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
+    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom_chat', $chat);
 }
@@ -379,6 +382,7 @@ function chatroom_chat_update($node) {
     'popout' => $node->popout,
     'private' => $node->private,
     'profile_picture' => $node->profile_picture,
+    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom_chat', $chat, 'nid');
 }
@@ -1313,8 +1317,6 @@ function chatroom_update_last_seen_time($node, $session_id) {
 /**
  * Check to see if the user has been kicked from a chat.
  * 
- * TODO: make the kicked out period configurable.
- *
  * @param mixed $chat_user 
  * @param mixed $node 
  * @return boolean

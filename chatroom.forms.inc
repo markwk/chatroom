@@ -127,13 +127,13 @@ function chatroom_form(&$node, $form_state) {
   );
   if (module_exists('imagecache')) {
     $presets = array('');
-    foreach (imagecache_presets() as $key => $preset) {
-      $presets[$key] = check_plain($preset['presetname']);
+    foreach (imagecache_presets() as $preset) {
+      $presets[$preset['presetname']] = check_plain($preset['presetname']);
     }
-    $form['chatroom_profile_picture_support']['profile_picture_preset'] = array(
+    $form['chatroom_profile_picture_support']['imagecache_preset'] = array(
       '#type' => 'select',
       '#title' => t('Profile picture preset'),
-      '#default_value' => variable_get('chatroom_profile_picture_preset', ''),
+      '#default_value' => $node->chatroom->imagecache_preset, 
       '#options' => $presets,
       '#description' => t("This will set the picture size."),
     );
@@ -284,8 +284,6 @@ function chatroom_admin_settings_validate($form, &$form_state) {
 
 /**
  * Implementation of hook_form().
- *
- * TODO: make the default values cascade.
  */
 function chatroom_chat_form(&$node, $form_state) {
   global $user;
@@ -308,14 +306,14 @@ function chatroom_chat_form(&$node, $form_state) {
   $form['kicked_out_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat kicked out message'),
-    '#default_value' => '',
+    '#default_value' => $node->chat->kicked_out_message,
     '#rows' => 3,
     '#description' => t('This text will appear on the page kicked out users are sent to. Defaults to, "You have been kicked out of %chat for misbehaving."', array('%chat' => t('chat-name'))),
   );
   $form['banned_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat room banned message'),
-    '#default_value' => '',
+    '#default_value' => $node->chat->banned_message,
     '#rows' => 3,
     '#description' => t('This text will appear on the page banned users are sent to. Defaults to, "You have been banned from %chatroom."', array('%chatroom' => t('chat-room'))),
   );
@@ -342,7 +340,7 @@ function chatroom_chat_form(&$node, $form_state) {
   $form['chat_settings']['poll_freq'] = array(
     '#type' => 'select',
     '#title' => t('Update frequency'),
-    '#default_value' => empty($node->poll_freq) ? 1 : $node->poll_freq / 1000,
+    '#default_value' => isset($node->chat) ? $node->chat->poll_freq / 1000 : 1,
     '#options' => drupal_map_assoc(range(1, 10)),
     '#description' => t('How many seconds between each request for updates from the server.'),
   );
@@ -355,7 +353,7 @@ function chatroom_chat_form(&$node, $form_state) {
   $form['chat_settings']['idle_freq'] = array(
     '#type' => 'select',
     '#title' => t('Idle time'),
-    '#default_value' => empty($node->idle_freq) ? 60 : $node->idle_freq / 1000,
+    '#default_value' => isset($node->chat) ? $node->chat->idle_freq / 1000 : 60,
     '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
@@ -373,7 +371,7 @@ function chatroom_chat_form(&$node, $form_state) {
     '#type' => 'select',
     '#title' => t('Old messages'),
     '#description' => t('How many old messages to show when entering a chat.'),
-    '#default_value' => empty($node->previous_messages_display_count) ? 20 : $node->previous_messages_display_count,
+    '#default_value' => isset($node->chat) ? $node->chat->previous_messages_display_count : 20,
     '#options' => drupal_map_assoc($previous_msg_range),
   );
   $form['chatroom_profile_picture_support'] = array(
@@ -391,13 +389,13 @@ function chatroom_chat_form(&$node, $form_state) {
   );
   if (module_exists('imagecache')) {
     $presets = array('');
-    foreach (imagecache_presets() as $key => $preset) {
-      $presets[$key] = check_plain($preset['presetname']);
+    foreach (imagecache_presets() as $preset) {
+      $presets[$preset['presetname']] = check_plain($preset['presetname']);
     }
-    $form['chatroom_profile_picture_support']['profile_picture_preset'] = array(
+    $form['chatroom_profile_picture_support']['imagecache_preset'] = array(
       '#type' => 'select',
       '#title' => t('Profile picture preset'),
-      '#default_value' => variable_get('chatroom_profile_picture_preset', ''),
+      '#default_value' => $node->chat->imagecache_preset, 
       '#options' => $presets,
       '#description' => t("This will set the picture size."),
     );
@@ -409,6 +407,7 @@ function chatroom_chat_form(&$node, $form_state) {
  * Return a create chat form.
  */
 function chatroom_create_chat_form(&$form_state, $room) {
+  $form_state['chatroom'] = $room;
   $form['chatroom_create_chat'] = array(
     '#type' => 'fieldset',
     '#title' => t('Create a new chat'),
@@ -422,10 +421,6 @@ function chatroom_create_chat_form(&$form_state, $room) {
     '#required' => TRUE,
     '#description' => t('Enter the name for the chat'),
   );
-  $form['chatroom_create_chat']['nid'] = array(
-    '#type' => 'hidden',
-    '#value' => $room->nid,
-  );
   $form['chatroom_create_chat']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Create chat'),
@@ -436,23 +431,24 @@ function chatroom_create_chat_form(&$form_state, $room) {
 }
 
 /**
- * Create a chat.
+ * Create a chat from the chatroom list page.
  */
 function chatroom_create_chat_form_submit($form, &$form_state) {
   global $user;
+  $chatroom = $form_state['chatroom'];
   $values = (object) $form_state['values'];
   $chat = new StdClass();
   $chat->type = 'chat';
   $chat->title = $values->chat_name;
   $chat->uid = $user->uid;
   $chat->created = time();
-  $chat->crid = $values->nid;
-  $chat->idle_freq = 20000;
-  $chat->poll_freq = 1000;
-  $chat->kicked_out_message = '';
-  $chat->banned_message = ''; 
-  $chat->previous_messages_display_count = 20;
-  $chat->popout = 0;
+  $chat->crid = $chatroom->nid;
+  $chat->idle_freq = $chatroom->chatroom->idle_freq;
+  $chat->poll_freq = $chatroom->chatroom->poll_freq;
+  $chat->kicked_out_message = $chatroom->chatroom->kicked_out_message;
+  $chat->banned_message = $chatroom->chatroom->banned_message; 
+  $chat->previous_messages_display_count = $chatroom->chatroo->previous_messages_display_count;
+  $chat->popout = $chatroom->chatroom->popout;
   node_save($chat);
 }
 

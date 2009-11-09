@@ -41,7 +41,7 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_user_list' => array(
       'arguments' => array(
         'users',
-        'chat',
+        'node',
       ),
     ),
     'chatroom_chat_kicked_user' => array(
@@ -187,32 +187,32 @@ function theme_chatroom_message($message, $node) {
 
 /**
  * Format the list of users in a chatroom.
- *
- * @ingroup themeable
+ * 
+ * @param mixed $users 
+ * @param mixed $node 
+ * @return string
  */
-function theme_chatroom_user_list($users, $chat) {
+function theme_chatroom_user_list($users, $node) {
   global $user;
   $html = '<ul id="chatroom-user-list">';
   $preset = FALSE;
-  if (module_exists('imagecache')) {
-    $preset = imagecache_preset_by_name($chat->imagecache_preset);
+  if (module_exists('imagecache') && $node->chat->imagecache_preset) {
+    $preset = imagecache_preset_by_name($node->chat->imagecache_preset);
   }
-  if (!empty($users)) {
-    foreach ($users as $chat_user) {
-      $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
-      $html .= '<li class="' . $class . '">';
-      if ($chat->chat->profile_picture) {
-        if ($chat_user->uid && $preset) {
-          $alt = t("@user's picture", array('@user' => $chat_user->name));
-          $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
-          $html .= $chat_user->picture . theme('username', $chat_user);
-        }
-        else { 
-          $html .= theme('user_picture', $chat_user);
-        }
+  foreach ($users as $chat_user) {
+    $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
+    $html .= '<li class="' . $class . '">';
+    if ($node->chat->profile_picture) {
+      if ($chat_user->uid && $preset) {
+        $alt = t("@user's picture", array('@user' => $chat_user->name));
+        $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
+        $html .= $chat_user->picture . theme('username', $chat_user);
       }
-      $html.= '</li>';
+      else { 
+        $html .= theme('user_picture', $chat_user);
+      }
     }
+    $html.= '</li>';
   }
   $html .= '</ul>';
   return $html;
