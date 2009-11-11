@@ -17,7 +17,7 @@ Drupal.behaviors.chatroom = function(context) {
     var messageText = $('#edit-chatroom-message-entry-box').val();
     if (messageText) {
       Drupal.chatroom.postMessage(messageText);
-      $('#edit-chatroom-message-entry-box').val('');
+      $('#edit-chatroom-message-entry-box').val('').focus();
     }
     return false;
   });
