@@ -720,7 +720,7 @@ function chatroom_archive_old_msgs($chat_id) {
  * @return void
  */
 function chatroom_chat_accept_invite($node, $chat_user) {
-  $sql = "UPDATE {chatroom_chat_invite} SET accepted = 1 WHERE nid = %d AND initee_uid = %d";
+  $sql = "UPDATE {chatroom_chat_invite} SET accepted = 1 WHERE nid = %d AND invitee_uid = %d";
   db_query($sql, $node->nid, $chat_user->uid);
   foreach (module_implements('chatroom_chat_invite_accepted') as $module) {
     $function = $module . '_chatroom_chat_invite_accepted';
@@ -750,7 +750,7 @@ function chatroom_chat_register_user($node) {
   if (!db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $node->nid, $session_id))) {
 
     if (chatroom_chat_user_has_invite($node, $user)) {
-      chatroom_accept_invite($node, $user);
+      chatroom_chat_accept_invite($node, $user);
     }
 
     $params = array($node->nid, $user->uid, $session_id, time());
