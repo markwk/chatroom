@@ -135,7 +135,7 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   }
 
   if (response.data.usersHtml) {
-    $('#chatroom-user-list').html(response.data.usersHtml);
+    $('#chatroom-user-list').replaceWith(response.data.usersHtml);
   }
 
   if (response.data.commandResponse) {
