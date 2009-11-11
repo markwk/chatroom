@@ -198,8 +198,8 @@ function theme_chatroom_user_list($users, $node) {
   foreach ($users as $chat_user) {
     $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
     $html .= '<li class="' . $class . '">';
-    if ($node->chat->profile_picture) {
-      if ($chat_user->uid && $preset) {
+    if ($chat_user->uid && $node->chat->profile_picture && $chat_user->picture) {
+      if ($preset) {
         $alt = t("@user's picture", array('@user' => $chat_user->name));
         $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
         $html .= $chat_user->picture . theme('username', $chat_user);
@@ -207,6 +207,9 @@ function theme_chatroom_user_list($users, $node) {
       else { 
         $html .= theme('user_picture', $chat_user);
       }
+    }
+    else {
+      $html .= theme('username', $chat_user);
     }
     $html.= '</li>';
   }
