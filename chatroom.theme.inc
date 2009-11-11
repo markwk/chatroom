@@ -327,13 +327,15 @@ function theme_chatroom_chat_banned_user($chat) {
  */
 function theme_chatroom_chat($node) {
   global $user;
-
-  $output = theme('chatroom_user_list', $node->chat->users, $node);
+  
+  $output = '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
+  $output .= theme('chatroom_user_list', $node->chat->users, $node);
+  $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
   foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
     $output .= theme('chatroom_message', $message, $node);
   }
-  $output .= '</div>';
+  $output .= '</div></div>';
   $output .= theme('chatroom_buttons', $node);
   if (!$node->is_popout) {
     $output .= '<div id="chatroom-popout-link"><a href="#">View this chat in a popout window</a></div>';
