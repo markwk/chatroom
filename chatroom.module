@@ -160,12 +160,6 @@ function chatroom_menu() {
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
-  $items['chatroom/popout/redirect/%node'] = array(
-    'description' => t('Configure global settings for chat rooms and chats.'),
-    'page callback' => 'chatroom_popout_redirect',
-    'page arguments' => array(3),
-    'access callback' => TRUE,
-  );
   $items['chatroom/user/autocomplete'] = array(
     'title' => 'Chat room',
     'page callback' => 'chatroom_user_autocomplete',
@@ -231,7 +225,6 @@ function chatroom_insert($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'popout' => $node->popout,
     'profile_picture' => $node->profile_picture,
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
@@ -251,7 +244,6 @@ function chatroom_update($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'popout' => $node->popout,
     'profile_picture' => $node->profile_picture,
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
@@ -357,7 +349,6 @@ function chatroom_chat_insert($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'popout' => $node->popout,
     'private' => $node->private,
     'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
@@ -379,7 +370,6 @@ function chatroom_chat_update($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'popout' => $node->popout,
     'private' => $node->private,
     'profile_picture' => $node->profile_picture,
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
@@ -557,6 +547,7 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
       }
       $node->chat->users = chatroom_load_online_users($node);
       chatroom_add_js($node);
+      $node->is_popout = isset($_GET['chatroom_popout']);
       $content = theme('chatroom_chat', $node);
     }
     else {
@@ -795,7 +786,6 @@ function chatroom_add_js($node) {
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
     'accessDeniedPath' => 'chatroom/access-denied',
-    'viewAsPopout' => $node->chat->popout,
     'popoutRedirect' => 'chatroom/popout/redirect',
   );
 
@@ -1364,22 +1354,21 @@ function chatroom_get_popout_params($node) {
 }
 
 /**
- * Add popout event js if the node is configured for popouts.
+ * Add popout event js for a chat node.
  * 
  * @param mixed $node 
  * @param string $selector
- * @return string 
  */
 function chatroom_set_popout_link_js($node, $selector) {
   $popout_params = chatroom_get_popout_params($node);
   $base_path = base_path();
   $js = <<<JS
 $("$selector a").click(function () {
-  window.open('{$base_path}node/{$node->nid}', '', '$popout_params');
+  window.open('{$base_path}node/{$node->nid}?chatroom_popout=true', '', '$popout_params');
   return false;
 });
 JS;
- drupal_add_js($js, 'inline', 'footer');
+  drupal_add_js($js, 'inline', 'footer');
 }
 
 /**

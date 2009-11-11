@@ -50,11 +50,6 @@ function chatroom_schema() {
         'default' => 20,
         'description' => t('The number of previous messages to display to a user when they first enter a chat.'),
       ),
-      'popout' => array(
-        'type' => 'int',
-        'default' => 0,
-        'description' => t('Default for whether to load chats in this chatroom in a popout window.'),
-      ),
       'profile_picture' => array(
         'type' => 'int',
         'default' => 0,
@@ -225,11 +220,6 @@ function chatroom_schema() {
       'when_archived' => array(
         'type' => 'int',
         'description' => t('UNIX timestamp of when the chat was last archived.'),
-      ),
-      'popout' => array(
-        'type' => 'int',
-        'default' => 0,
-        'description' => t('Whether to load this chat in a popout window.'),
       ),
       'profile_picture' => array(
         'type' => 'int',

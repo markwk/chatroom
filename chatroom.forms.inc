@@ -106,12 +106,6 @@ function chatroom_form(&$node, $form_state) {
     '#default_value' => empty($node->chatroom->previous_messages_display_count) ? 20 : $node->chatroom->previous_messages_display_count,
     '#options' => drupal_map_assoc($old_msg_range),
   );
-  $form['chat_settings']['popout'] = array(
-    '#type' => 'checkbox',
-    '#title' => t("Load this rooms' chats in a popout?"),
-    '#description' => t('Should chats in this room default to loading in a popup window?'),
-    '#default_value' => isset($node->chatroom) ? $node->chatroom->popout : 0,
-  );
   $form['chatroom_profile_picture_support'] = array(
     '#type' => 'fieldset',
     '#title' => t('User profile picture support'),
@@ -357,12 +351,6 @@ function chatroom_chat_form(&$node, $form_state) {
     '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
-  $form['chat_settings']['popout'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Load this chat in a popout?'),
-    '#description' => t('Should this chat load in a popup window?'),
-    '#default_value' => isset($node->chat) ? $node->chat->popout : 0,
-  );
   $previous_msg_range = array();
   for ($i = 1; $i <= 25; $i++) {
     $previous_msg_range[$i] = $i * 10;
@@ -448,7 +436,6 @@ function chatroom_create_chat_form_submit($form, &$form_state) {
   $chat->kicked_out_message = $chatroom->chatroom->kicked_out_message;
   $chat->banned_message = $chatroom->chatroom->banned_message; 
   $chat->previous_messages_display_count = $chatroom->chatroo->previous_messages_display_count;
-  $chat->popout = $chatroom->chatroom->popout;
   node_save($chat);
 }
 

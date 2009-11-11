@@ -106,10 +106,6 @@ function theme_chatroom_block_chats() {
         $room_link = l($node->chatroom->title, "node/$node->chatroom->nid");
         $content .= '<br /><span class="chatroomLink">'. t('in') .' '. $room_link .'</span>';
       }
-      if ($node->chat->popout) {
-        chatroom_set_popout_link_js($node, "#$id");
-        $content .= '<br />(' . t('This chat will load in a popout window.') . ')';
-      }
       $content .= '</li>';
     }
   }
@@ -339,6 +335,10 @@ function theme_chatroom_chat($node) {
   }
   $output .= '</div>';
   $output .= theme('chatroom_buttons', $node);
+  if (!$node->is_popout) {
+    $output .= '<div id="chatroom-popout-link"><a href="#">View this chat in a popout window</a></div>';
+    chatroom_set_popout_link_js($node, '#chatroom-popout-link');
+  }
   if ($node->chat->private && ($node->uid == $user->uid || user_access('administer chats'))) {
     $output .= drupal_get_form('chatroom_chat_user_manager_form', $node);
   }
@@ -405,8 +405,8 @@ function theme_chatroom_chat_archive($node) {
  */
 function chatroom_preprocess_page(&$vars) {
   // Add a template hint for the popout page template.
-  if (isset($vars['node']) && arg(2) != 'edit' && $vars['node']->type == 'chat') {
-    if ($vars['node']->chat->popout && $vars['node']->chat->when_archived === NULL) {
+  if (isset($vars['node']) && arg(2) != 'edit' && $vars['node']->type == 'chat' && isset($_GET['chatroom_popout'])) {
+    if ($vars['node']->chat->when_archived === NULL) {
       $vars['template_files'] = array('page-chat-popout');
     }
   }
@@ -425,18 +425,13 @@ function theme_chatroom_chat_teaser($node) {
   }
   else {
     if ($node->chat->latest_msg) {
-      $popout_text = '';
-      if ($node->chat->popout) {
-        chatroom_set_popout_link_js($node, "#node-$node->nid h2");
-        $popout_text = t('This chat will load in a popout window.');
-      }
       $params = array(
         '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
         '%message' => $node->chat->latest_msg->msg,
         '!user' => theme('username', user_load($node->chat->latest_msg->uid)),
         '%message_count' => $node->chat->msg_count,
       );
-      return t("Last message at !date: %message by !user. Total messages: %message_count. $popout_text", $params);
+      return t("Last message at !date: %message by !user. Total messages: %message_count.", $params);
     }
     else {
       return t('There are no messages in this chat.');
