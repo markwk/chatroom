@@ -11,13 +11,13 @@ Drupal.behaviors.chatroom = function(context) {
   setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
   
   // Add behaviour to the 'send a message' field.
-  $('#chatroom-chat-message-submit').keyup(function (e) {
+  $('#edit-chatroom-message-entry-box').keyup(function (e) {
     var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
-    var messageText = $('#chatroom-chat-message-submit').val();
+    var messageText = $('#edit-chatroom-message-entry-box').val();
     if (key == 13) {
       if (messageText) {
         Drupal.chatroom.postMessage(messageText);
-        $('#chatroom-chat-message-submit').val('');
+        $('#edit-chatroom-message-entry-box').val('');
       }
     }
   });

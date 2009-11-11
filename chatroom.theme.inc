@@ -349,12 +349,31 @@ function theme_chatroom_chat($node) {
 }
 
 /**
+ * Form fields for chatroom text entry.
+ * 
+ * @param mixed $form_state 
+ * @param mixed $node 
+ * @return array
+ */
+function chatroom_chat_buttons($form_state, $node) {
+  $form['chatroom_message_entry_box'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Enter your message text here'),
+    '#size' => 50,
+    '#rows' => 1,
+    '#maxlength' => variable_get('chatroom_max_message_size', 1000),
+  );
+  return $form;
+}
+
+/**
  * Theme chat buttons.
  *
  * @ingroup themeable
  */
-function theme_chatroom_buttons($chat) {
-  return '<div id="chatroom-chat-buttons"><input id="chatroom-chat-message-submit" type="text" value="" /></div>';
+function theme_chatroom_buttons($node) {
+  $output = drupal_get_form('chatroom_chat_buttons', $node);
+  return '<div id="chatroom-chat-buttons">' . $output . '</div>';
 }
 
 /**
