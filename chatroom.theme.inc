@@ -61,17 +61,17 @@ function chatroom_theme($existing, $type, $theme, $path) {
     ),
     'chatroom_chat' => array(
       'arguments' => array(
-        'chat',
+        'node',
       ),
     ),
     'chatroom_chat_archive' => array(
       'arguments' => array(
-        'chat',
+        'node',
       ),
     ),
     'chatroom_buttons' => array(
       'arguments' => array(
-        'chat' => NULL,
+        'node' => NULL,
       ),
     ),
     'chatroom_chat_teaser' => array(
@@ -367,6 +367,10 @@ function chatroom_chat_buttons($form_state, $node) {
     '#size' => 50,
     '#rows' => 1,
     '#maxlength' => variable_get('chatroom_max_message_size', 1000),
+  );
+  $form['chatroom_message_entry_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Chat'),
   );
   return $form;
 }
