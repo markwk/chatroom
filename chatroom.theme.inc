@@ -41,7 +41,7 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_user_list' => array(
       'arguments' => array(
         'users',
-        'chat',
+        'node',
       ),
     ),
     'chatroom_chat_kicked_user' => array(
@@ -61,17 +61,17 @@ function chatroom_theme($existing, $type, $theme, $path) {
     ),
     'chatroom_chat' => array(
       'arguments' => array(
-        'chat',
+        'node',
       ),
     ),
     'chatroom_chat_archive' => array(
       'arguments' => array(
-        'chat',
+        'node',
       ),
     ),
     'chatroom_buttons' => array(
       'arguments' => array(
-        'chat' => NULL,
+        'node' => NULL,
       ),
     ),
     'chatroom_chat_teaser' => array(
@@ -105,10 +105,6 @@ function theme_chatroom_block_chats() {
       if (isset($chat->chatroom)) {
         $room_link = l($node->chatroom->title, "node/$node->chatroom->nid");
         $content .= '<br /><span class="chatroomLink">'. t('in') .' '. $room_link .'</span>';
-      }
-      if ($node->chat->popout) {
-        chatroom_set_popout_link_js($node, "#$id");
-        $content .= '<br />(' . t('This chat will load in a popout window.') . ')';
       }
       $content .= '</li>';
     }
@@ -187,30 +183,35 @@ function theme_chatroom_message($message, $node) {
 
 /**
  * Format the list of users in a chatroom.
- *
- * @ingroup themeable
+ * 
+ * @param mixed $users 
+ * @param mixed $node 
+ * @return string
  */
-function theme_chatroom_user_list($users, $chat) {
+function theme_chatroom_user_list($users, $node) {
   global $user;
   $html = '<ul id="chatroom-user-list">';
-  if (!empty($users)) {
-    foreach ($users as $chat_user) {
-      $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
-      $html .= '<li class="' . $class . '">' . theme('username', $chat_user);
-      if ($chat->chat->profile_picture) {
-        $size = variable_get('chatroom_profile_picture_preset', 0);
-        if (module_exists('imagecache') && $size && $chat_user->uid) {
-          $preset = imagecache_preset($size);
-          $alt = t("@user's picture", array('@user' => $chat_user->name));
-          $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
-          $html .= $chat_user->picture . theme('username', $chat_user);
-        }
-        else { 
-          $html .= theme('user_picture', $chat_user);
-        }
+  $preset = FALSE;
+  if (module_exists('imagecache') && $node->chat->imagecache_preset) {
+    $preset = imagecache_preset_by_name($node->chat->imagecache_preset);
+  }
+  foreach ($users as $chat_user) {
+    $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
+    $html .= '<li class="' . $class . '">';
+    if ($chat_user->uid && $node->chat->profile_picture && $chat_user->picture) {
+      if ($preset) {
+        $alt = t("@user's picture", array('@user' => $chat_user->name));
+        $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
+        $html .= $chat_user->picture . theme('username', $chat_user);
       }
-      $html.= '</li>';
+      else { 
+        $html .= theme('user_picture', $chat_user);
+      }
     }
+    else {
+      $html .= theme('username', $chat_user);
+    }
+    $html.= '</li>';
   }
   $html .= '</ul>';
   return $html;
@@ -329,14 +330,20 @@ function theme_chatroom_chat_banned_user($chat) {
  */
 function theme_chatroom_chat($node) {
   global $user;
-
-  $output = theme('chatroom_user_list', $node->chat->users, $node);
+  
+  $output = '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
+  $output .= theme('chatroom_user_list', $node->chat->users, $node);
+  $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
   foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
     $output .= theme('chatroom_message', $message, $node);
   }
-  $output .= '</div>';
+  $output .= '</div></div>';
   $output .= theme('chatroom_buttons', $node);
+  if (!$node->is_popout) {
+    $output .= '<div id="chatroom-popout-link"><a href="#">View this chat in a popout window</a></div>';
+    chatroom_set_popout_link_js($node, '#chatroom-popout-link');
+  }
   if ($node->chat->private && ($node->uid == $user->uid || user_access('administer chats'))) {
     $output .= drupal_get_form('chatroom_chat_user_manager_form', $node);
   }
@@ -347,12 +354,35 @@ function theme_chatroom_chat($node) {
 }
 
 /**
+ * Form fields for chatroom text entry.
+ * 
+ * @param mixed $form_state 
+ * @param mixed $node 
+ * @return array
+ */
+function chatroom_chat_buttons($form_state, $node) {
+  $form['chatroom_message_entry_box'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Enter your message text here'),
+    '#size' => 50,
+    '#rows' => 1,
+    '#maxlength' => variable_get('chatroom_max_message_size', 1000),
+  );
+  $form['chatroom_message_entry_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Chat'),
+  );
+  return $form;
+}
+
+/**
  * Theme chat buttons.
  *
  * @ingroup themeable
  */
-function theme_chatroom_buttons($chat) {
-  return '<div id="chatroom-chat-buttons"><input id="chatroom-chat-message-submit" type="text" value="" /></div>';
+function theme_chatroom_buttons($node) {
+  $output = drupal_get_form('chatroom_chat_buttons', $node);
+  return '<div id="chatroom-chat-buttons">' . $output . '</div>';
 }
 
 /**
@@ -403,8 +433,8 @@ function theme_chatroom_chat_archive($node) {
  */
 function chatroom_preprocess_page(&$vars) {
   // Add a template hint for the popout page template.
-  if (isset($vars['node']) && arg(2) != 'edit' && $vars['node']->type == 'chat') {
-    if ($vars['node']->chat->popout && $vars['node']->chat->when_archived === NULL) {
+  if (isset($vars['node']) && arg(2) != 'edit' && $vars['node']->type == 'chat' && isset($_GET['chatroom_popout'])) {
+    if ($vars['node']->chat->when_archived === NULL) {
       $vars['template_files'] = array('page-chat-popout');
     }
   }
@@ -423,18 +453,13 @@ function theme_chatroom_chat_teaser($node) {
   }
   else {
     if ($node->chat->latest_msg) {
-      $popout_text = '';
-      if ($node->chat->popout) {
-        chatroom_set_popout_link_js($node, "#node-$node->nid h2");
-        $popout_text = t('This chat will load in a popout window.');
-      }
       $params = array(
         '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
         '%message' => $node->chat->latest_msg->msg,
         '!user' => theme('username', user_load($node->chat->latest_msg->uid)),
         '%message_count' => $node->chat->msg_count,
       );
-      return t("Last message at !date: %message by !user. Total messages: %message_count. $popout_text", $params);
+      return t("Last message at !date: %message by !user. Total messages: %message_count.", $params);
     }
     else {
       return t('There are no messages in this chat.');

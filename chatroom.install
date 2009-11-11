@@ -50,15 +50,15 @@ function chatroom_schema() {
         'default' => 20,
         'description' => t('The number of previous messages to display to a user when they first enter a chat.'),
       ),
-      'popout' => array(
-        'type' => 'int',
-        'default' => 0,
-        'description' => t('Default for whether to load chats in this chatroom in a popout window.'),
-      ),
       'profile_picture' => array(
         'type' => 'int',
         'default' => 0,
         'description' => t('Whether to display user profile pictures in online lists by default for chats in this room.'),
+      ),
+      'imagecache_preset' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => t('Default imagecache preset for chats in this chatroom.'),
       ),
     ),
     'primary key' => array('nid'),
@@ -221,11 +221,6 @@ function chatroom_schema() {
         'type' => 'int',
         'description' => t('UNIX timestamp of when the chat was last archived.'),
       ),
-      'popout' => array(
-        'type' => 'int',
-        'default' => 0,
-        'description' => t('Whether to load this chat in a popout window.'),
-      ),
       'profile_picture' => array(
         'type' => 'int',
         'default' => 0,
@@ -235,6 +230,11 @@ function chatroom_schema() {
         'type' => 'int',
         'default' => 0,
         'description' => t('Whether this is a private chat.'),
+      ),
+      'imagecache_preset' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => t('Imagecache preset for this chat.'),
       ),
     ),
     'indexes' => array(
