@@ -779,7 +779,7 @@ function chatroom_add_js($node) {
     'idleInterval' => (int) $node->chat->idle_freq,
     'chatId'       => (int) $node->nid,
     'popoutParams' => chatroom_get_popout_params($node),
-    'cacheDirectory' => variable_get('chatroom_cache_directory', '/tmp'), 
+    'cacheDirectory' => file_directory_temp(),
     'postMessagePath' => 'chatroom/chat/post/message',
     'chatPath' => 'node/' . $node->nid,
 		'successiveCacheHits' => 0,
@@ -891,7 +891,7 @@ function chatroom_load_online_users($chat) {
  * updates chat's cache file modified time
  */
 function chatroom_chat_update_cache($chat_id, $latest_msg_id) {
-  $cache_file = variable_get('chatroom_cache_directory', '/tmp') . '/chatroom.chat.' . $chat_id . '.cache';
+  $cache_file = file_directory_temp() . '/chatroom.chat.' . $chat_id . '.cache';
   file_put_contents($cache_file, "$latest_msg_id\n");
 }
 
