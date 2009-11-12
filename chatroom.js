@@ -82,7 +82,7 @@ Drupal.chatroom.poll = function() {
       chat_cache_directory: Drupal.settings.chatroom.cacheDirectory, 
       chat_id: Drupal.settings.chatroom.chatId,
       skip_cache: skipCacheCheck,
-      successive_cache_hits: Drupal.settings.chatroom.successiveCacheHits,
+      successive_cache_hits: Drupal.settings.chatroom.successiveCacheHits
     } 
   });
 };
