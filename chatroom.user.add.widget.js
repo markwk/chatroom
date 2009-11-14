@@ -1,7 +1,6 @@
 // $Id$
 
 Drupal.behaviors.chatroomUserWidget = function(context) {
-  // Add the event to the user form to add a user to the list of allowed users.
   $('#edit-add-user').keyup(function (e) {
     e.preventDefault();
     e.stopPropagation();
@@ -13,7 +12,6 @@ Drupal.behaviors.chatroomUserWidget = function(context) {
         var currentUserCount = allowedUsers.length;
         $('#edit-add-user').val('');
         for (var i = 0; i < currentUserCount; i++) {
-          // If this user is already on our list, just bail out.
           if (allowedUsers[i].name == userName) {
             return false;
           }
@@ -22,14 +20,6 @@ Drupal.behaviors.chatroomUserWidget = function(context) {
       }
     }
     return false;
-  });
-
-  // Add events to the user list to remove them.
-  $('.chatroom-remove-user').click(function (e) {
-    var bits = e.target.id.match(/chatroom_allowed_user_([\d]+)$/);
-    if (bits) {
-      Drupal.chatroom.userRemove(bits[1]);
-    }
   });
 }
 
@@ -55,26 +45,21 @@ Drupal.chatroom.userRemove = function(uid) {
 
 Drupal.chatroom.userRemoveHandler = function(response, responseStatus) {
   if (response.data.userRemoved) {
-    $('#chatroom_allowed_user_li_' + response.data.userRemoved).remove();
+    $('#chatroom-board').append(response.data.userRemoved);
+    Drupal.chatroom.scrollToLatestMessage();
   }
 };
 
 Drupal.chatroom.userAddHandler = function(response, responseStatus) {
-  var li = document.createElement('li'); 
-  li.id = 'chatroom_allowed_user_li_' + response.data.uid;
-  li.innerHTML = response.data.userLinkHtml;
-  document.getElementById('chatroom_allowed_users_list').appendChild(li);
-  // Add events to the user list to remove them.
-  $('#chatroom_allowed_user_' + response.data.uid).click(function (e) {
-    var bits = e.target.id.match(/chatroom_allowed_user_([\d]+)$/);
-    if (bits) {
-      Drupal.chatroom.userRemove(bits[1]);
-    }
-  });
+  if (response.data.userAdded) {
+    $('#chatroom-board').append(response.data.userAdded);
+    Drupal.chatroom.scrollToLatestMessage();
+    $('#chatroom-user-list').replaceWith(response.data.usersHtml);
+    Drupal.attachBehaviors('#chatroom-user-list');
+  }
 };
 
 Drupal.behaviors.chatroomInviteWidget = function(context) {
-  // Add the event to the user form to add a user to the list of allowed users.
   $('#edit-invite-user').keyup(function (e) {
     e.preventDefault();
     e.stopPropagation();
@@ -102,18 +87,8 @@ Drupal.chatroom.userInvite = function(userName) {
 
 Drupal.chatroom.userInviteHandler = function(response, responseStatus) {
   if (response.data.userInvited) {
-    // Write a message to the chat window.
     $('#chatroom-board').append(response.data.userInvited);
-    var boardOffset = $('#chatroom-board').offset().top;
-    var targetOffset = $('div.new-message:last').offset().top;
-    var scrollAmount = targetOffset - boardOffset;
-    $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
-    $('.new-message').removeClass('new-message');
-    if (Drupal.settings.chatroom.hasFocus == false) {
-      Drupal.settings.chatroom.newMsg = newMessage;
-      clearInterval(Drupal.settings.chatroom.warnInterval);
-      Drupal.settings.chatroom.warnInterval = setInterval("Drupal.chatroom.warnNewMsgLoop()", 1500);
-    }
+    Drupal.chatroom.scrollToLatestMessage();
   }
 };
 

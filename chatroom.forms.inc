@@ -13,8 +13,8 @@ function chatroom_forms() {
   $forms['chatroom_chat_form'] = array(
     'callback' => 'chatroom_chat_interface',
   );
-  $forms['chatroom_chat_user_manager_form'] = array(
-    'callback' => 'chatroom_chat_user_manager_form',
+  $forms['chatroom_chat_management_form'] = array(
+    'callback' => 'chatroom_chat_management_form',
   );
   $forms['chatroom_create_chat_form'] = array(
     'callback' => 'chatroom_create_chat_form',
@@ -301,14 +301,14 @@ function chatroom_chat_form(&$node, $form_state) {
   $form['kicked_out_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat kicked out message'),
-    '#default_value' => $node->chat->kicked_out_message,
+    '#default_value' => isset($node->chat) ? $node->chat->kicked_out_message : '',
     '#rows' => 3,
     '#description' => t('This text will appear on the page kicked out users are sent to. Defaults to, "You have been kicked out of %chat for misbehaving."', array('%chat' => t('chat-name'))),
   );
   $form['banned_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat room banned message'),
-    '#default_value' => $node->chat->banned_message,
+    '#default_value' => isset($node->chat) ? $node->chat->banned_message : '',
     '#rows' => 3,
     '#description' => t('This text will appear on the page banned users are sent to. Defaults to, "You have been banned from %chatroom."', array('%chatroom' => t('chat-room'))),
   );
@@ -505,23 +505,22 @@ function chatroom_archive_chat_form_submit($form, &$form_state) {
 }
 
 /**
- * Return the widget to manage users in a private chat.
+ * Return a widget to manage a chat - make it private, send invites, etc.
  * 
  * @param mixed $form_state 
  * @param mixed $node 
  * @return array
  */
-function chatroom_chat_user_manager_form($form_state, $node) {
+function chatroom_chat_management_form($form_state, $node) {
 
   $allowed_users_form = array();
   $settings = array(
     'userAddPath' => 'chatroom/ajax/user/add',
     'userInvitePath' => 'chatroom/ajax/user/invite',
-    'userRemovePath' =>  'chatroom/ajax/user/remove',   
+    'userRemovePath' => 'chatroom/ajax/user/remove',
     'allowedUsers' => array(),
   );
-  $allowed_users = chatroom_chat_get_allowed_users($node);
-  foreach ($allowed_users as $allowed_user) {
+  foreach (chatroom_chat_get_allowed_users($node) as $allowed_user) {
     $settings['allowedUsers'][] = $allowed_user;
   }
 
@@ -541,12 +540,8 @@ function chatroom_chat_user_manager_form($form_state, $node) {
     '#size' => 10,
     '#description' => t('Type in a username, then hit enter.'),
   );
-  $form['chat_users']['user_list'] = array(
-    '#type' => 'markup',
-    '#value' => theme('chatroom_allowed_users_list', $allowed_users),
-  );
   $form['chat_users']['invite_user'] = array(
-    '#type' => 'textfield', 
+    '#type' => 'textfield',
     '#title' => t('Invite a user to this chat'),
     '#autocomplete_path' => 'user/autocomplete',
     '#size' => 10,

@@ -78,6 +78,7 @@ function chatroom_schema() {
       'uid' => array(
         'type' => 'int',
         'not null' => TRUE,
+        'default' => 0,
         'description' => t('ID of the banned user.'),
       ),
       'admin_uid' => array(
@@ -152,6 +153,13 @@ function chatroom_schema() {
         'not null' => TRUE,
         'description' => t('ID of the kicked out user.'),
       ),
+      'sid' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'default' => '',
+        'not null' => TRUE,
+        'description' => t('The session ID of the banned guest.'),
+      ),
       'admin_uid' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -169,6 +177,7 @@ function chatroom_schema() {
       'admin_uid' => array('admin_uid'),
       'nid' => array('nid'),
       'uid' => array('uid'),
+      'sid' => array('sid'),
     ),
   );
   $schema['chatroom_chat'] = array(
