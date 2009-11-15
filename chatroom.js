@@ -44,7 +44,7 @@ Drupal.behaviors.chatroom = function(context) {
 
   $('#edit-chatroom-message-entry-box').keyup(function(e) { 
     var messageText = $('#edit-chatroom-message-entry-box').val();
-    if (messageText && e.keyCode == 13 && !e.shiftKey && !e.controlKey) {
+    if (messageText && e.keyCode == 13 && !e.shiftKey && !e.ctrlKey) {
       Drupal.chatroom.postMessage(messageText);
       $('#edit-chatroom-message-entry-box').val('').focus();
     }
