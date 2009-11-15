@@ -34,6 +34,13 @@ $(document).ready(function () {
  * Add behaviours to chatroom elements.
  */
 Drupal.behaviors.chatroom = function(context) {
+  $("#chatroom-popout-link").click(function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' + 
+    window.open(Drupal.settings.basePath + 'node/' + Drupal.settings.chatroom.chatId + '?chatroom_popout=true', '', Drupal.settings.chatroom.popoutParams);
+  });
+
   $('#edit-chatroom-message-entry-box').keyup(function(e) { 
     var messageText = $('#edit-chatroom-message-entry-box').val();
     if (messageText && e.keyCode == 13 && !e.shiftKey && !e.controlKey) {
@@ -65,7 +72,7 @@ Drupal.behaviors.chatroom = function(context) {
     e.stopPropagation();
     Drupal.chatroom.banUser(e.target.parentNode.id);
   });
-};
+}
 
 Drupal.chatroom.banUser = function(uid) {
   $.ajax({
@@ -73,7 +80,10 @@ Drupal.chatroom.banUser = function(uid) {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { uid: uid }
+    data: { 
+      uid: uid,
+      is_popout: opener == undefined ? 'true' : 'false'
+    }
   });
 }
 
@@ -83,7 +93,10 @@ Drupal.chatroom.kickUser = function(uid) {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.kickUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { uid: uid }
+    data: { 
+      uid: uid,
+      is_popout: opener == undefined ? 'true' : 'false'
+    }
   });
 }
 
@@ -93,20 +106,11 @@ Drupal.chatroom.makeChatPrivate = function() {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.makePrivatePath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { user_name: userName }
-  });
-}
-
-Drupal.chatroom.loadPopout = function() {
-  var popoutWindow;
-  if (popoutWindow != null) {
-    if (!popoutWindow.closed) {
-      popoutWindow.focus();
+    data: { 
+      user_name: userName,
+      is_popout: opener == undefined ? 'true' : 'false'
     }
-  }
-  else {
-    popoutWindow = open(location.href, '', Drupal.settings.chatroom.popoutParams);
-  }
+  });
 }
 
 Drupal.chatroom.poll = function() {
@@ -125,10 +129,11 @@ Drupal.chatroom.poll = function() {
       chat_cache_directory: Drupal.settings.chatroom.cacheDirectory, 
       chat_id: Drupal.settings.chatroom.chatId,
       skip_cache: skipCacheCheck,
+      is_popout: opener == undefined ? 'true' : 'false', 
       successive_cache_hits: Drupal.settings.chatroom.successiveCacheHits
     } 
   });
-};
+}
  
 Drupal.chatroom.pollHandler = function(response, responseStatus) {
   // If the user was kicked or banned, get them out of here.
@@ -180,7 +185,7 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   if (response.data.commandResponse) {
     Drupal.chatroom.addCommandMessage(response.data.commandResponse);
   }
-};
+}
 
 Drupal.chatroom.addCommandMessage = function(response) {
   $('#chatroom-board').append('<div class="new-message command-message">** ' + response.msg + '</div>');

@@ -1458,25 +1458,6 @@ function chatroom_get_popout_params($node) {
 }
 
 /**
- * Add popout event js for a chat node.
- * 
- * @param mixed $node 
- * @param string $selector
- */
-function chatroom_set_popout_link_js($node, $selector) {
-  $popout_params = chatroom_get_popout_params($node);
-  $base_path = base_path();
-  $js = <<<JS
-$("$selector").click(function (e) {
-  e.preventDefault();
-  e.stopPropagation();
-  window.open('{$base_path}node/{$node->nid}?chatroom_popout=true', '', '$popout_params');
-});
-JS;
-  drupal_add_js($js, 'inline', 'footer');
-}
-
-/**
  * Check to see if the given user has access to this chat.
  * 
  * @param mixed $node 
@@ -1745,10 +1726,9 @@ function chatroom_chat_get_active_user_links($node) {
   global $user;
   
   $links = array();
-  if (!isset($_GET['chatroom_popout'])) {
+  if (!isset($_GET['chatroom_popout']) && (!isset($_POST['is_popout']) || $_POST['is_popout'] == 'false')) {
     $options = array('attributes' => array('id' => 'chatroom-popout-link'));
     $links[] = chatroom_chat_user_link('View in popout', 'view-in-popout', $options, FALSE, TRUE);
-    chatroom_set_popout_link_js($node, '#chatroom-popout-link');
   }
 
   foreach (module_implements('chatroom_active_user_links') as $module) {
