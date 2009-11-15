@@ -95,6 +95,13 @@ function chatroom_form(&$node, $form_state) {
     '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
+  $form['chat_settings']['max_users'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Maximum users'),
+    '#default_value' => isset($node->chatroom) ? $node->chatroom->max_users : 0,
+    '#description' => t('The default maximum number of users for this chatroom. 0 is unlimited'),
+    '#size' => 5,
+  );
   $old_msg_range = array();
   for ($i = 1; $i <= 25; $i++) {
     $old_msg_range[$i] = $i * 10;
@@ -352,6 +359,13 @@ function chatroom_chat_form(&$node, $form_state) {
     '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
+  $form['chat_settings']['max_users'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Maximum users'),
+    '#default_value' => isset($node->chat) ? $node->chat->max_users : 0,
+    '#description' => t('The maximum number of users for this chat. 0 is unlimited'),
+    '#size' => 5,
+  );
   $previous_msg_range = array();
   for ($i = 1; $i <= 25; $i++) {
     $previous_msg_range[$i] = $i * 10;
@@ -438,7 +452,8 @@ function chatroom_create_chat_form_submit($form, &$form_state) {
   $chat->poll_freq = $chatroom->chatroom->poll_freq;
   $chat->kicked_out_message = $chatroom->chatroom->kicked_out_message;
   $chat->banned_message = $chatroom->chatroom->banned_message; 
-  $chat->previous_messages_display_count = $chatroom->chatroo->previous_messages_display_count;
+  $chat->max_users = $chatroom->chatroom->max_users; 
+  $chat->previous_messages_display_count = $chatroom->chatroom->previous_messages_display_count;
   node_save($chat);
 }
 

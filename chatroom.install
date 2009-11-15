@@ -60,6 +60,11 @@ function chatroom_schema() {
         'length' => '255',
         'description' => t('Default imagecache preset for chats in this chatroom.'),
       ),
+      'max_users' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Max users for this chatroom.'),
+      ),
     ),
     'primary key' => array('nid'),
   );
@@ -244,6 +249,11 @@ function chatroom_schema() {
         'type' => 'varchar',
         'length' => '255',
         'description' => t('Imagecache preset for this chat.'),
+      ),
+      'max_users' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Max users for this chat.'),
       ),
     ),
     'indexes' => array(

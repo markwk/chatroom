@@ -15,6 +15,9 @@ function chatroom_theme($existing, $type, $theme, $path) {
   $page['theme paths'][] = drupal_get_path('module', 'chatroom');
   return array( 
     'page' => $page,
+    'chatroom_chat_max_users' => array(
+      'arguments' => array('node'),
+    ),
     'chatroom_chat_user_link' => array(
       'arguments' => array('link'),
     ),
@@ -512,5 +515,15 @@ function theme_chatroom_teaser($node) {
  */
 function theme_chatroom_chat_user_link($link) {
   return '[' . l($link->text, $link->path, $link->options) . ']';
+}
+
+/**
+ * Get HTML for max users message.
+ *
+ * @ingroup themeable
+ */
+function theme_chatroom_chat_max_users($node) {
+  $msg = t('The threshold for maximum users has been reached for this chat, please try again in a few minutes.');
+  return '<div id="chatroom-banned-msg">'. $msg .'</div>';
 }
 

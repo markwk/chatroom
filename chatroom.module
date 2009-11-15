@@ -239,6 +239,7 @@ function chatroom_insert($node) {
     'nid' => $node->nid,
     'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
+    'max_users' => $node->max_users,
     'kicked_out_message' => $node->kicked_out_message,
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
@@ -258,6 +259,7 @@ function chatroom_update($node) {
     'nid' => $node->nid,
     'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
+    'max_users' => $node->max_users,
     'kicked_out_message' => $node->kicked_out_message,
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
@@ -359,6 +361,7 @@ function chatroom_chat_insert($node) {
     'crid' => isset($node->crid) ? $node->crid : 0,
     'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
+    'max_users' => $node->max_users,
     'kicked_out_message' => $node->kicked_out_message,
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
@@ -380,6 +383,7 @@ function chatroom_chat_update($node) {
     'crid' => isset($node->crid) ? $node->crid : 0,
     'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
+    'max_users' => $node->max_users,
     'kicked_out_message' => $node->kicked_out_message,
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
@@ -548,6 +552,14 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
 
   $node = node_prepare($node);
   if (!$teaser && $page) {
+
+    if (chatroom_chat_is_banned_user($user, $node)) {
+      drupal_goto("chatroom/access-denied/$node->nid/banned");
+    }
+    else if (chatroom_chat_is_kicked_user($user, $node)) {
+      drupal_goto("chatroom/access-denied/$node->nid/kicked");
+    }
+
     drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
     
     $bc = drupal_get_breadcrumb();
@@ -557,20 +569,18 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
     $bc[] = l($node->title, "node/$node->nid");
     drupal_set_breadcrumb($bc);
 
-    // Display a message if the user is banned.
-    if (chatroom_chat_is_banned_user($user, $node)) {
-      drupal_goto("chatroom/access-denied/$node->nid/banned");
-    }
-    else if (chatroom_chat_is_kicked_user($user, $node)) {
-      drupal_goto("chatroom/access-denied/$node->nid/kicked");
-    }
-    elseif (!isset($node->chat->when_archived)) {
-      if (!chatroom_chat_register_user($node)) {
-        chatroom_update_last_seen_time($node, session_id());
+    if (!isset($node->chat->when_archived)) {
+      if (chatroom_max_users_reached($node)) {
+        $content = theme('chatroom_chat_max_users', $node);
       }
-      $node->chat->users = chatroom_load_online_users($node);
-      chatroom_add_js($node);
-      $content = theme('chatroom_chat', $node);
+      else {
+        if (!chatroom_chat_register_user($node)) {
+          chatroom_update_last_seen_time($node, session_id());
+        }
+        $node->chat->users = chatroom_load_online_users($node);
+        chatroom_add_js($node);
+        $content = theme('chatroom_chat', $node);
+      }
     }
     else {
       $content = theme('chatroom_chat_archive', $node);
@@ -1809,4 +1819,29 @@ function chatroom_chat_ajax_user_kick($node) {
     drupal_json(array('data' => $result));
   }
 }
- 
+
+/**
+ * Return true if the maximum number of users is reached.
+ */
+function chatroom_max_users_reached($node) {
+  global $user;
+
+  if ($node->chat->max_users == 0) {
+    return FALSE;
+  }
+  
+  $users = chatroom_load_online_users($node);
+
+  if (count($users) < $node->chat->max_users) {
+    return FALSE;
+  }
+  else {
+    foreach ($users as $chat_user) {
+      if ($chat_user->uid == $user->uid) {
+        return FALSE;
+      }
+    }
+  }
+  return TRUE;
+}
+
