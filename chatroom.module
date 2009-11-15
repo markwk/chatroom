@@ -389,7 +389,7 @@ function chatroom_chat_update($node) {
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
     'private' => $node->private,
-    'profile_picture' => $node->profile_picture,
+    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom_chat', $chat, 'nid');
