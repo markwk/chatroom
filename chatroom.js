@@ -28,6 +28,7 @@ $(document).ready(function () {
       Drupal.settings.chatroom.hasFocus = false;
     }
   );
+  Drupal.settings.chatroom.isPopout = opener == undefined ? 'false' : 'true';
 });
 
 /**
@@ -82,7 +83,6 @@ Drupal.chatroom.banUser = function(uid) {
     success: Drupal.chatroom.pollHandler,
     data: { 
       uid: uid,
-      is_popout: opener == undefined ? 'true' : 'false'
     }
   });
 }
@@ -95,7 +95,7 @@ Drupal.chatroom.kickUser = function(uid) {
     success: Drupal.chatroom.pollHandler,
     data: { 
       uid: uid,
-      is_popout: opener == undefined ? 'true' : 'false'
+      is_popout: Drupal.settings.chatroom.isPopout
     }
   });
 }
@@ -108,7 +108,7 @@ Drupal.chatroom.makeChatPrivate = function() {
     success: Drupal.chatroom.pollHandler,
     data: { 
       user_name: userName,
-      is_popout: opener == undefined ? 'true' : 'false'
+      is_popout: Drupal.settings.chatroom.isPopout
     }
   });
 }
@@ -129,7 +129,7 @@ Drupal.chatroom.poll = function() {
       chat_cache_directory: Drupal.settings.chatroom.cacheDirectory, 
       chat_id: Drupal.settings.chatroom.chatId,
       skip_cache: skipCacheCheck,
-      is_popout: opener == undefined ? 'true' : 'false', 
+      is_popout: Drupal.settings.chatroom.isPopout
       successive_cache_hits: Drupal.settings.chatroom.successiveCacheHits
     } 
   });
