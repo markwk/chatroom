@@ -34,6 +34,16 @@ $(document).ready(function () {
  * Add behaviours to chatroom elements.
  */
 Drupal.behaviors.chatroom = function(context) {
+  $('#edit-chatroom-message-entry-box').keyup(function(e) { 
+    var messageText = $('#edit-chatroom-message-entry-box').val();
+    if (messageText && e.keyCode == 13 && !e.shiftKey && !e.controlKey) {
+      Drupal.chatroom.postMessage(messageText);
+      $('#edit-chatroom-message-entry-box').val('').focus();
+    }
+    else {
+      return true;
+    }
+  });
   $('#edit-chatroom-message-entry-submit').click(function (e) {
     e.preventDefault();
     e.stopPropagation();
@@ -42,7 +52,6 @@ Drupal.behaviors.chatroom = function(context) {
       Drupal.chatroom.postMessage(messageText);
       $('#edit-chatroom-message-entry-box').val('').focus();
     }
-    return false;
   });
 
   $('.chatroom-kick-user-link').click(function (e) {
