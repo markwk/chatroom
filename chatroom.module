@@ -1467,9 +1467,10 @@ function chatroom_set_popout_link_js($node, $selector) {
   $popout_params = chatroom_get_popout_params($node);
   $base_path = base_path();
   $js = <<<JS
-$("$selector").click(function () {
+$("$selector").click(function (e) {
+  e.preventDefault();
+  e.stopPropagation();
   window.open('{$base_path}node/{$node->nid}?chatroom_popout=true', '', '$popout_params');
-  return false;
 });
 JS;
   drupal_add_js($js, 'inline', 'footer');
