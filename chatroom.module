@@ -33,6 +33,25 @@ function chatroom_init() {
 }
 
 /**
+ * Menu callback; Retrieve a JSON object containing autocomplete suggestions for existing users.
+ */
+function chatroom_chat_user_autocomplete($node, $string = '') {
+  global $user;
+  if (!($node->uid == $user->uid || user_access('administer chats'))) {
+    return;
+  }
+
+  $matches = array();
+  if ($string) {
+    $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%s%%')", $string, 0, 10);
+    while ($user = db_fetch_object($result)) {
+      $matches[$user->name] = check_plain($user->name);
+    }
+  }
+  drupal_json($matches);
+}
+
+/**
  * Notify a user of pending chat invites.
  * 
  * @param mixed $chat_user 
@@ -142,6 +161,12 @@ function chatroom_perm() {
  * Implementation of hook_menu().
  */
 function chatroom_menu() {
+  $items['chatroom/chat/user/autocomplete/%node'] = array(
+    'description' => t('Load user suggestions for autocomplete widget'),
+    'page callback' => 'chatroom_chat_user_autocomplete',
+    'page arguments' => array(4),
+    'access callback' => TRUE,
+  );
   $items['chatroom/chat/make/private/%node'] = array(
     'description' => t('Make a chat private'),
     'page callback' => 'chatroom_chat_ajax_make_private',
@@ -177,12 +202,6 @@ function chatroom_menu() {
     'page callback' => 'chatroom_chat_ajax_user_kick',
     'page arguments' => array(4),
     'access callback' => TRUE,
-  );
-  $items['chatroom/user/autocomplete'] = array(
-    'title' => 'Chat room',
-    'page callback' => 'chatroom_user_autocomplete',
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
   );
   $items['admin/settings/chatroom'] = array(
     'title' => 'Chat room',
