@@ -356,7 +356,7 @@ function theme_chatroom_chat($node) {
   $output .= theme('chatroom_user_list', $node->chat->users, $node);
   $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
-  foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
+  foreach ($node->chat->latest_messages as $message) {
     $output .= theme('chatroom_message', $message, $node);
   }
   $output .= '</div></div>';

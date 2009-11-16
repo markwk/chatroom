@@ -579,6 +579,12 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
         }
         $node->chat->users = chatroom_load_online_users($node);
         chatroom_add_js($node);
+        foreach (chatroom_chat_load_latest_messages($node) as $message) {
+          if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
+            continue;
+          }
+          $node->chat->latest_messages[] = $message;
+        }
         $content = theme('chatroom_chat', $node);
       }
     }
@@ -901,8 +907,35 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
     $sql .= ' LIMIT %d';
     $args[] = $limit;
   }
-  $result = db_query($sql, $args);
+  return chatroom_chat_load_messages_helper($sql, $args);
+}
 
+/**
+ * Load the latest messages from a chat.
+ * 
+ * @param mixed $node
+ * @return array
+ */
+function chatroom_chat_load_latest_messages($node) {
+  $sql = "SELECT cm.*, u.name, 0 guest_id
+          FROM {chatroom_msg} cm
+          INNER JOIN {users} u ON u.uid = cm.uid
+          WHERE cm.ccid = %d 
+          ORDER BY cm.cmid DESC
+          LIMIT %d";
+  $messages = chatroom_chat_load_messages_helper($sql, array($node->nid, $node->chat->previous_messages_display_count));
+  return array_reverse($messages, TRUE);
+}
+
+/**
+ * Helper function to load messages.
+ * 
+ * @param mixed $sql 
+ * @param mixed $args 
+ * @return array
+ */
+function chatroom_chat_load_messages_helper($sql, $args) {
+  $result = db_query($sql, $args);
   $messages = array();
   $guest_sids = array();
   while ($message = db_fetch_object($result)) {
@@ -1013,7 +1046,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
     chatroom_update_last_seen_time($node, session_id()); 
 
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
-      if ($message->msg_type == 'private_message' && $user->uid != $message->recipien_uid) {
+      if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
         continue;
       }
       $msg = new StdClass();
