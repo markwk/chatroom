@@ -551,14 +551,15 @@ function chatroom_chat_management_form($form_state, $node) {
   $form['chat_users']['add_user'] = array(
     '#type' => 'textfield', 
     '#title' => t('Add a user to this chat'),
-    '#autocomplete_path' => 'user/autocomplete',
+    '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
     '#size' => 10,
     '#description' => t('Type in a username, then hit enter.'),
   );
   $form['chat_users']['invite_user'] = array(
     '#type' => 'textfield',
     '#title' => t('Invite a user to this chat'),
-    '#autocomplete_path' => 'user/autocomplete',
+    '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
+    '#size' => 10,
     '#size' => 10,
     '#description' => t('Type in a username, then hit enter.'),
   );
