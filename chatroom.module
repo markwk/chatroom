@@ -579,6 +579,7 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
         }
         $node->chat->users = chatroom_load_online_users($node);
         chatroom_add_js($node);
+        $node->chat->latest_messages = array();
         foreach (chatroom_chat_load_latest_messages($node) as $message) {
           if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
             continue;
