@@ -377,7 +377,7 @@ function chatroom_chat_insert($node) {
   cache_clear_all('chatroom_chat_list', 'cache');
   $chat = array(
     'nid' => $node->nid,
-    'crid' => isset($node->crid) ? $node->crid : 0,
+    'crid' => $node->chatroom_nid,
     'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
     'max_users' => $node->max_users,
@@ -399,7 +399,7 @@ function chatroom_chat_update($node) {
   cache_clear_all('chatroom_chat_list', 'cache');
   $chat = array(
     'nid' => $node->nid,
-    'crid' => isset($node->crid) ? $node->crid : 0,
+    'crid' => $node->chatroom_nid,
     'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
     'max_users' => $node->max_users,

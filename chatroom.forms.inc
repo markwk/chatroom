@@ -297,6 +297,10 @@ function chatroom_chat_form(&$node, $form_state) {
     '#description' => t('The name for your chat.'),
     '#required' => TRUE,
   );
+  $form['chatroom_nid'] = array(
+    '#type' => 'hidde',
+    '#value' => $node->chatroom ? $node->chatroom->nid : 0,
+  );
   $form['body_filter']['body'] = array(
     '#type' => 'textarea',
     '#title' => t('Description'),
@@ -459,7 +463,7 @@ function chatroom_create_chatroom_chat($chatroom, $values, $chat_user) {
   $node->title = $values->chat_name;
   $node->uid = $chat_user->uid;
   $node->created = isset($values->created) ? $values->created : time();
-  $node->crid = $chatroom->nid;
+  $node->chatroom_nid = $chatroom->nid;
   $node->idle_freq = $chatroom->chatroom->idle_freq;
   $node->poll_freq = $chatroom->chatroom->poll_freq;
   $node->kicked_out_message = $chatroom->chatroom->kicked_out_message;
