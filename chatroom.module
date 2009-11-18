@@ -769,7 +769,12 @@ function chatroom_get_active_chats() {
     return $cache->data;
   }
   $chats = array();
-  $sql = "SELECT nid FROM {node} WHERE type = 'chat' AND status = 1";
+  $sql = "SELECT n.nid 
+          FROM {node} n
+          INNER JOIN {chatroom_chat} cc ON cc.nid = n.nid
+          WHERE n.type = 'chat'
+          AND cc.when_archived IS NULL
+          AND n.status = 1";
   $result = db_query($sql);
   while ($nid = db_result($result)) {
     $chats[] = node_load($nid);
