@@ -442,19 +442,36 @@ function chatroom_create_chat_form_submit($form, &$form_state) {
   global $user;
   $chatroom = $form_state['chatroom'];
   $values = (object) $form_state['values'];
-  $chat = new StdClass();
-  $chat->type = 'chat';
-  $chat->title = $values->chat_name;
-  $chat->uid = $user->uid;
-  $chat->created = time();
-  $chat->crid = $chatroom->nid;
-  $chat->idle_freq = $chatroom->chatroom->idle_freq;
-  $chat->poll_freq = $chatroom->chatroom->poll_freq;
-  $chat->kicked_out_message = $chatroom->chatroom->kicked_out_message;
-  $chat->banned_message = $chatroom->chatroom->banned_message; 
-  $chat->max_users = $chatroom->chatroom->max_users; 
-  $chat->previous_messages_display_count = $chatroom->chatroom->previous_messages_display_count;
-  node_save($chat);
+  return chatroom_create_chatroom_chat($chatroom, $values, $user);
+}
+
+/**
+ * Create a chat that belongs in a chatroom.
+ * 
+ * @param mixed $chatroom 
+ * @param mixed $values 
+ * @access public
+ * @return StdClass
+ */
+function chatroom_create_chatroom_chat($chatroom, $values, $chat_user) {
+  $node = new StdClass();
+  $node->type = 'chat';
+  $node->title = $values->chat_name;
+  $node->uid = $chat_user->uid;
+  $node->created = isset($values->created) ? $values->created : time();
+  $node->crid = $chatroom->nid;
+  $node->idle_freq = $chatroom->chatroom->idle_freq;
+  $node->poll_freq = $chatroom->chatroom->poll_freq;
+  $node->kicked_out_message = $chatroom->chatroom->kicked_out_message;
+  $node->banned_message = $chatroom->chatroom->banned_message; 
+  $node->max_users = $chatroom->chatroom->max_users; 
+  $node->previous_messages_display_count = $chatroom->chatroom->previous_messages_display_count;
+  $node->when_archived = isset($data->when_archived) ? $data->when_archived : NULL;
+  $node->comment = isset($data->comment) ? $data->comment : COMMENT_NODE_DISABLED;
+  $node->promote = isset($data->promote) ? $data->promote : 0;
+  $node->sticky = isset($data->sticky) ? $data->sticky : 0;
+  node_save($node);
+  return $node;
 }
 
 /**
