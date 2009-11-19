@@ -551,13 +551,15 @@ function chatroom_chat_management_form(&$form_state, $node) {
     '#collapsible' => TRUE,
     '#collapsed' => !(isset($node->chat) && $node->chat->private),
   );
-  $form['chat_manager']['add_user'] = array(
-    '#type' => 'textfield', 
-    '#title' => t('Add a user to this chat'),
-    '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
-    '#size' => 10,
-    '#description' => t('Type in a username, then hit enter.'),
-  );
+  if ($node->chat->private) {
+    $form['chat_manager']['add_user'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('Add a user to this chat'),
+      '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
+      '#size' => 10,
+      '#description' => t('Type in a username, then hit enter.'),
+    );
+  }
   $form['chat_manager']['invite_user'] = array(
     '#type' => 'textfield',
     '#title' => t('Invite a user to this chat'),
