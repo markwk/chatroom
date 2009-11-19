@@ -502,7 +502,6 @@ function chatroom_unarchive_chat_form(&$form_state, $node) {
  * @return string
  */
 function chatroom_unarchive_chat_form_submit($form, &$form_state) {
-  d::ffs($form_state['chat']);
   chatroom_chat_unarchive_chat($form_state['chat']);
   cache_clear_all(TRUE, 'cache_block');
 }
