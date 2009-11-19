@@ -1,11 +1,11 @@
 // $Id$
 
 Drupal.behaviors.chatroomUserWidget = function(context) {
-  $('#edit-add-user').keyup(function (e) {
-    e.preventDefault();
-    e.stopPropagation();
+  $('#edit-add-user').keypress(function (e) {
     var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
     if (key == 13) {
+      e.stopPropagation();
+      e.preventDefault();
       var userName = $('#edit-add-user').val();
       if (userName) {
         var allowedUsers = Drupal.settings.chatroomChatForm.allowedUsers;
@@ -19,7 +19,6 @@ Drupal.behaviors.chatroomUserWidget = function(context) {
         Drupal.chatroom.userAdd(userName);
       }
     }
-    return false;
   });
 }
 
@@ -60,11 +59,11 @@ Drupal.chatroom.userAddHandler = function(response, responseStatus) {
 };
 
 Drupal.behaviors.chatroomInviteWidget = function(context) {
-  $('#edit-invite-user').keyup(function (e) {
-    e.preventDefault();
-    e.stopPropagation();
+  $('#edit-invite-user').keypress(function (e) {
     var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
     if (key == 13) {
+      e.preventDefault();
+      e.stopPropagation();
       var userName = $('#edit-invite-user').val();
       if (userName) {
         $('#edit-invite-user').val('');
