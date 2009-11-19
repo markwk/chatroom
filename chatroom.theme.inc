@@ -15,8 +15,17 @@ function chatroom_theme($existing, $type, $theme, $path) {
   $page['theme paths'][] = drupal_get_path('module', 'chatroom');
   return array( 
     'page' => $page,
+    'chatroom_chat_max_users' => array(
+      'arguments' => array('node'),
+    ),
+    'chatroom_chat_user_link' => array(
+      'arguments' => array('link'),
+    ),
     'chatroom_allowed_users_list' => array(
       'arguments' => array('allowed_users'),
+    ),
+    'chatroom_chat_make_private_button' => array(
+      'arguments' => array('node'),
     ),
     'chatroom_allowed_user' => array(
       'arguments' => array('allowed_user'),
@@ -25,64 +34,43 @@ function chatroom_theme($existing, $type, $theme, $path) {
       'arguments' => array(),
     ),
     'chatroom_latest_message' => array(
-      'arguments' => array(
-        'message',
-      ),
+      'arguments' => array('message'),
     ),
     'chatroom_block_chatrooms' => array(
       'arguments' => array(),
     ),
     'chatroom_message' => array(
-      'arguments' => array(
-        'message',
-        'node',
-      ),
+      'arguments' => array('message', 'node'),
+    ),
+    'chatroom_system_message' => array(
+      'arguments' => array('message', 'node'),
     ),
     'chatroom_user_list' => array(
-      'arguments' => array(
-        'users',
-        'node',
-      ),
+      'arguments' => array('users', 'node'),
     ),
     'chatroom_chat_kicked_user' => array(
-      'arguments' => array(
-        'node', 
-      ),
+      'arguments' => array('node'),
     ),
     'chatroom_chat_banned_user' => array(
-      'arguments' => array(
-        'node',
-      ),
+      'arguments' => array('node'),
     ),
     'chatroom_list' => array(
-      'arguments' => array(
-        'tree',
-      ),
+      'arguments' => array('tree'),
     ),
     'chatroom_chat' => array(
-      'arguments' => array(
-        'node',
-      ),
+      'arguments' => array('node'),
     ),
     'chatroom_chat_archive' => array(
-      'arguments' => array(
-        'node',
-      ),
+      'arguments' => array('node'),
     ),
     'chatroom_buttons' => array(
-      'arguments' => array(
-        'node' => NULL,
-      ),
+      'arguments' => array('node'),
     ),
     'chatroom_chat_teaser' => array(
-      'arguments' => array(
-        'node',
-      ),
+      'arguments' => array('node'),
     ),
     'chatroom_teaser' => array(
-      'arguments' => array(
-        'node',
-      ),
+      'arguments' => array('node'),
     ),
   );
 }
@@ -182,6 +170,17 @@ function theme_chatroom_message($message, $node) {
 }
 
 /**
+ * Format a single system message for display.
+ * 
+ * @param mixed $message 
+ * @param mixed $node 
+ * @return string
+ */
+function theme_chatroom_system_message($message, $node) {
+  return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format, FALSE) . '</div>';
+}
+
+/**
  * Format the list of users in a chatroom.
  * 
  * @param mixed $users 
@@ -190,14 +189,21 @@ function theme_chatroom_message($message, $node) {
  */
 function theme_chatroom_user_list($users, $node) {
   global $user;
-  $html = '<ul id="chatroom-user-list">';
+  $is_admin = $user->uid == $node->uid || user_access('administer chats');
+  
+  // Get the links to be shown after the user name.
+  $user_links = chatroom_chat_get_user_links($node, $users);
+  $active_user_links = chatroom_chat_get_active_user_links($node);
+
+  $html = '<div id="chatroom-use-list-wrapper"><ul id="chatroom-user-list">';
   $preset = FALSE;
   if (module_exists('imagecache') && $node->chat->imagecache_preset) {
     $preset = imagecache_preset_by_name($node->chat->imagecache_preset);
   }
   foreach ($users as $chat_user) {
     $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
-    $html .= '<li class="' . $class . '">';
+    $id = 'chatroom_' . ($chat_user->uid ? "user_$chat_user->uid" : "guest_$chat_user->guest_id");
+    $html .= '<li id="' . $id . '" class="' . $class . '">';
     if ($chat_user->uid && $node->chat->profile_picture && $chat_user->picture) {
       if ($preset) {
         $alt = t("@user's picture", array('@user' => $chat_user->name));
@@ -211,9 +217,29 @@ function theme_chatroom_user_list($users, $node) {
     else {
       $html .= theme('username', $chat_user);
     }
-    $html.= '</li>';
+
+    // Add links after the user name.
+    $visible_links = array();
+    if ($chat_user->uid == $user->uid) {
+      foreach ($active_user_links as $link) {
+        if ($link->admin_only && !$is_admin) {
+          continue;
+        }
+        $visible_links[] = theme('chatroom_chat_user_link', $link);
+      }
+    }
+    foreach ($user_links as $link) {
+      if ($link->admin_only && !$is_admin) {
+        continue;
+      }
+      if ($chat_user->uid == $user->uid && !$link->show_active_user) {
+        continue;
+      }
+      $visible_links[] = theme('chatroom_chat_user_link', $link);
+    }
+    $html.= ' ' . implode(' ', $visible_links) . '</li>';
   }
-  $html .= '</ul>';
+  $html .= '</ul></div>';
   return $html;
 }
 
@@ -226,40 +252,6 @@ function theme_chatroom_latest_message($message) {
     '!user' => $message->uid ? l($message->name, "user/$message->uid") : variable_get('chatroom_guest_user_prefix', t('guest-')) . $message->guest_id,
     '!date' => format_date($message->modified, 'medium'),
   ));
-  return $output;
-}
-
-/**
- * Format the chat room listing.
- *
- * @ingroup themeable
- */
-function theme_chatroom_display($tree) {
-  global $user;
-  // chat room list, chats list, and 'add new chat' link
-
-  if (!empty($tree)) {
-    $output  = '<div id="chatroom">';
-    $output .= '<ul>';
-
-    if (user_access('create chat rooms')) {
-      $output .= '<li>'. l(t('Post a new chat room.'), "node/add/chatroom") .'</li>';
-    }
-    else if ($user->uid) {
-      //
-    }
-    else {
-      $output .= '<li>'. t('<a href="!login">Login</a> to post a new chat room.', array('!login' => url('user/login'))) .'</li>';
-    }
-    $output .= '</ul>';
-    $output .= theme('chatroom_list', $tree);
-    $output .= '</div>';
-  }
-  else {
-    drupal_set_title(t('No chat rooms defined'));
-    $output = '';
-  }
-
   return $output;
 }
 
@@ -278,7 +270,7 @@ function theme_chatroom_list($rooms) {
       $description .= ' <div class="name">'. l($room->title, "node/$room->nid") .'</div>';
 
       if ($room->body) {
-        $description .= ' <div class="description">'. $room->body ."</div>\n";
+        $description .= ' <div class="description">'. check_markup($room->body, $room->format, FALSE) ."</div>\n";
       }
       $description .= "</div>\n";
 
@@ -318,7 +310,7 @@ function theme_chatroom_chat_kicked_user($node) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_banned_user($chat) {
+function theme_chatroom_chat_banned_user($node) {
   $msg = $node->chat->banned_message ? $node->chat->banned_message : t('You have been banned from %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-banned-msg">'. $msg .'</div>';
 }
@@ -335,22 +327,25 @@ function theme_chatroom_chat($node) {
   $output .= theme('chatroom_user_list', $node->chat->users, $node);
   $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
-  foreach (chatroom_chat_load_messages($node->nid, 0, 20) as $message) {
+  foreach ($node->chat->latest_messages as $message) {
     $output .= theme('chatroom_message', $message, $node);
   }
   $output .= '</div></div>';
   $output .= theme('chatroom_buttons', $node);
-  if (!$node->is_popout) {
-    $output .= '<div id="chatroom-popout-link"><a href="#">View this chat in a popout window</a></div>';
-    chatroom_set_popout_link_js($node, '#chatroom-popout-link');
-  }
-  if ($node->chat->private && ($node->uid == $user->uid || user_access('administer chats'))) {
-    $output .= drupal_get_form('chatroom_chat_user_manager_form', $node);
-  }
-  if (user_access('administer chats') || user_access('administer chat rooms')) {
-    $output .= drupal_get_form('chatroom_archive_chat_form', $node->nid);
+  if ($node->uid == $user->uid || user_access('administer chats')) {
+    $output .= drupal_get_form('chatroom_chat_management_form', $node);
   }
   return $output;
+}
+
+/**
+ * Theme the make private button.
+ * 
+ * @param mixed $node 
+ * @return string
+ */
+function theme_chatroom_chat_make_private_button($node) {
+  return '<div id="chatroom-make-private-button"><a href="#make-private-button">[' . t("Make this chat private") . ']</a></div>';
 }
 
 /**
@@ -398,28 +393,28 @@ function theme_chatroom_chat_archive($node) {
   $html = '<p>' . t('Archived on !date.', array('!date' => format_date($node->chat->when_archived, 'medium'))) . '</p>';
   $html .= '<div id="chatroom-container-archive">';
   if ($messages = chatroom_chat_load_messages($node->nid)) {
-    $table_rows = array();
     foreach ($messages as $msg) {
-      $name = isset($msg->name) ? $msg->name : variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
+      if ($message->uid) {
+        $name = l($message->name, 'user/'. $message->uid);
+      }
+      else {
+        $name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
+      }
       if (empty($msg->recipient_uid)) {
-        $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
-        $row_html .= '<span class="chatroom-old-msg"><span class="header">' . "$name:</span>$msg->msg</span>";
+        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small') . " $name: " . check_plain($msg->msg) . "</p>";
       }
       else if ($is_admin || $user->uid == $msg->uid || $user->uid == $msg->recipient_uid) {
-        $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
-        $row_html .= '<span class="chatroom-old-msg">';
-        $row_html .= '<span class="header">' . "$name ";
+        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small');
         if ($msg->uid == $user->uid && $recipient != $name) {
-          $row_html .= '<span class="chatroom-private">(privately to '. $recipient .')</span>:</span> ';
+          $row_html .= ' (privately to '. $recipient .')> ';
         }
         else {
-          $row_html .= '<span class="chatroom-private">(privately)</span>:</span> ';
+          $row_html .= ' (privately): ';
         }
-        $row_html .= $msg->msg . '</span>';
+        $row_html .= check_plain($msg->msg) . '</p>';
       }
-      $table_rows[] = array($row_html); 
+      $html .= "$row_html\n";
     }
-    $html .= theme('table', array(), $table_rows);
   }
   else {
     $html .= '<p>' . t('This chat contains no messages.') . '</p>';
@@ -442,6 +437,9 @@ function chatroom_preprocess_page(&$vars) {
 
 /**
  * Theme the teaser for a chat node.
+ * 
+ * @param mixed $node
+ * @return string
  */
 function theme_chatroom_chat_teaser($node) {
   if ($node->chat->when_archived) {
@@ -469,6 +467,9 @@ function theme_chatroom_chat_teaser($node) {
 
 /**
  * Theme the teaser for a chatroom node.
+ * 
+ * @param mixed $node
+ * @return string
  */
 function theme_chatroom_teaser($node) {
   $params = array(
@@ -478,30 +479,22 @@ function theme_chatroom_teaser($node) {
 }
 
 /**
- * Theme the user list widget.
+ * Theme a chatroom user list link.
  * 
- * @param mixed $allowed_users
+ * @param mixed $link 
  * @return string
  */
-function theme_chatroom_allowed_users_list($allowed_users) {
-  $html = '<ul id="chatroom_allowed_users_list">';
-  foreach ($allowed_users as $allowed_user) {
-    $html .= '<li id="chatroom_allowed_user_li_' . $allowed_user->uid . '">' . theme('chatroom_allowed_user', $allowed_user) . '</li>';
-  }
-  $html .= '</ul>';
-  return $html;
+function theme_chatroom_chat_user_link($link) {
+  return '[' . l($link->text, $link->path, $link->options) . ']';
 }
 
 /**
- * Theme an item in the allowed user list.
- * 
- * @param mixed $allowed_user 
- * @return string
+ * Get HTML for max users message.
+ *
+ * @ingroup themeable
  */
-function theme_chatroom_allowed_user($allowed_user) {
-  return theme('username', $allowed_user) 
-         . ' [<a id="chatroom_allowed_user_' . $allowed_user->uid 
-         . '" class="chatroom-remove-user" href="#remove">' 
-         . 'Click here to remove from chat.</a>]';
+function theme_chatroom_chat_max_users($node) {
+  $msg = t('The threshold for maximum users has been reached for this chat, please try again in a few minutes.');
+  return '<div id="chatroom-banned-msg">'. $msg .'</div>';
 }
 

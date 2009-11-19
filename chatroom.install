@@ -60,6 +60,11 @@ function chatroom_schema() {
         'length' => '255',
         'description' => t('Default imagecache preset for chats in this chatroom.'),
       ),
+      'max_users' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Max users for this chatroom.'),
+      ),
     ),
     'primary key' => array('nid'),
   );
@@ -78,6 +83,7 @@ function chatroom_schema() {
       'uid' => array(
         'type' => 'int',
         'not null' => TRUE,
+        'default' => 0,
         'description' => t('ID of the banned user.'),
       ),
       'admin_uid' => array(
@@ -152,6 +158,13 @@ function chatroom_schema() {
         'not null' => TRUE,
         'description' => t('ID of the kicked out user.'),
       ),
+      'sid' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'default' => '',
+        'not null' => TRUE,
+        'description' => t('The session ID of the banned guest.'),
+      ),
       'admin_uid' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -169,6 +182,7 @@ function chatroom_schema() {
       'admin_uid' => array('admin_uid'),
       'nid' => array('nid'),
       'uid' => array('uid'),
+      'sid' => array('sid'),
     ),
   );
   $schema['chatroom_chat'] = array(
@@ -235,6 +249,11 @@ function chatroom_schema() {
         'type' => 'varchar',
         'length' => '255',
         'description' => t('Imagecache preset for this chat.'),
+      ),
+      'max_users' => array(
+        'type' => 'int',
+        'default' => 0,
+        'description' => t('Max users for this chat.'),
       ),
     ),
     'indexes' => array(
@@ -448,7 +467,7 @@ function chatroom_uninstall() {
 
   $roles = db_query("SELECT * FROM {permission}");
   require_once dirname(__FILE__) . '/chatroom.module';
-  $chatroom_perms = chatroom_perms();
+  $chatroom_perms = chatroom_perm();
   while ($role = db_fetch_object($roles)) {
     $new_perms = array();
     foreach (explode(', ', $role->perm) as $perm) {
@@ -538,9 +557,88 @@ function chatroom_update_5() {
 }
 
 /**
- * Run the update from the 6.x-1 branch to 6.x-2.
+ * Dumb do nothing update. Sigh.
  */
 function chatroom_update_6200() {
   return array();
+}
+
+/**
+ * Run the update from the 6.x-1 branch to 6.x-2.
+ */
+function chatroom_update_6201() {
+  $ret = array();
+
+  set_time_limit(0);
+  module_load_include('inc', 'chatroom', 'chatroom.forms');
+
+  // Rename the old tables and leave the data as is.
+  $old_tables = array(
+    'chatroom', 
+    'chatroom_ban_list', 
+    'chatroom_chat', 
+    'chatroom_msg', 
+    'chatroom_online_list',
+  );
+  foreach ($old_tables as $old_table_name) {
+    db_rename_table($ret, $old_table_name, $old_table_name . '_old_version');
+  }
+
+  // Create the new tables.
+  foreach (chatroom_schema() as $new_table_name => $new_table_schema) {
+    db_create_table($ret, $new_table_name, $new_table_schema);
+  }
+
+  node_get_types('types', NULL, TRUE);
+
+  // Update chatroom nodes.
+  db_query("INSERT INTO {chatroom} (nid) SELECT nid FROM {chatroom_old_version}");
+  $result = db_query("SELECT * FROM {chatroom_old_version}");
+  while ($old_room = db_fetch_object($result)) {
+    $node = new StdClass();
+    $node->nid = $old_room->nid;
+    $node->type = 'chatroom';
+    $node->module = 'chatroom';
+    $node->poll_freq = $old_room->poll_freq;
+    $node->idle_freq = $old_room->idle_freq;
+    $node->max_users = $old_room->max_users;
+    $node->kicked_out_message = $old_room->kicked_out_message;
+    $node->banned_message = $old_room->banned_message;
+    $node->previous_messages_display_count = $old_room->old_msg_count;
+    $node->profile_picture = '';
+    $node->imagecache_preset = '';
+    node_save($node);
+  }
+
+  // Create new chat nodes for each old chat.
+  $result = db_query("SELECT * FROM {chatroom_chat_old_version}");
+  $chat_old_new_map = array();
+  while ($old_chat = db_fetch_object($result)) {
+    $values = new StdClass();
+    $values->chat_name = $old_chat->chatname;
+    $values->created = $old_chat->modified;
+    $chat_old_new_map[$old_chat->ccid] = chatroom_create_chatroom_chat(node_load($old_chat->crid), $values, user_load($old_chat->uid));
+    if ($old_chat->when_archived) {
+      db_query("UPDATE {chatroom_chat} SET when_archived = %d WHERE nid = %d", $old_chat->when_archived, $chat_old_new_map[$old_chat->ccid]->nid);
+    }
+  }
+  
+  // Migrate messages.
+  db_query("INSERT INTO {chatroom_msg} (cmid, ccid, uid, msg_type, msg, sid, recipient_uid, modified)
+              SELECT cmid, ccid, uid, msg_type, msg, sid, recipient, modified
+              FROM {chatroom_msg_old_version}");
+  foreach ($chat_old_new_map as $old_chat_id => $new_chat_node) {
+    db_query("UPDATE {chatroom_msg} SET ccid = %d WHERE ccid = %d", $new_chat_node->nid, $old_chat_id);
+  }
+
+  // Migrate banned list.
+  db_query("INSERT INTO {chatroom_ban_list} (uid, admin_uid, modified)
+              SELECT uid, admin_uid, modified
+              FROM {chatroom_ban_list_old_version}");
+
+  // We don't support some of the old blocks now.
+  db_query("DELETE FROM {blocks} WHERE module = 'chatroom' AND delta IN (2, 3)");
+
+  return $ret;
 }
 

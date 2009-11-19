@@ -2,12 +2,6 @@
 #chatroom table {
   width: 100%;
 }
-#chatroom-container-archive tbody {
-  border-top: hidden;
-}
-#chatroom-container-archive td {
-  padding: 0;
-}
 #chatroom-user-options {
   font-size: 80%;
 }
@@ -36,7 +30,6 @@
   clear: both;
 }
 .chatroom-textentry-smileys,
-.chatroom-old-msg .header,
 .chatroom-msg .header {
   padding-top: 10px;
 }
@@ -67,11 +60,13 @@
 .chatroom-textentry-options table {
   border-collapse: separate;
 }
+/*
 .chatroom-old-msg,
 .chatroom-old-me-msg,
 .chatroom-archive-date {
   color: #a0a0a0;
 }
+*/
 .chatroom-archive-date {
   white-space: nowrap;
   margin-right: 5px;
@@ -88,13 +83,15 @@
 #chatroom-container-archive,
 .chatroom-time-msg,
 .chatroom-me-msg,
+/*
 .chatroom-old-msg,
 .chatroom-old-me-msg,
+*/
 .chatroom-system-msg,
 .chatroom-msg {
   background-color: #f5f5f5;
 }
-.chatroom-old-msg .header,
+/*.chatroom-old-msg .header,*/
 .chatroom-msg .header {
   font-weight: bold;;
   margin-right:5px;
