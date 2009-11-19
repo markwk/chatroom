@@ -166,12 +166,6 @@ function chatroom_menu() {
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
-  $items['chatroom/chat/make/private/%node'] = array(
-    'description' => t('Make a chat private'),
-    'page callback' => 'chatroom_chat_ajax_make_private',
-    'page arguments' => array(4),
-    'access callback' => TRUE,
-  );
   $items['chatroom/ajax/user/invite/%node'] = array(
     'description' => t('Invite a user to a chat.'),
     'page callback' => 'chatroom_chat_ajax_user_invite',
@@ -853,7 +847,6 @@ function chatroom_add_js($node) {
     'popoutParams' => chatroom_get_popout_params($node),
     'cacheDirectory' => file_directory_temp(),
     'postMessagePath' => 'chatroom/chat/post/message',
-    'makePrivatePath' => 'chatroom/chat/make/private',
     'banUserPath' => 'chatroom/ajax/user/ban',
     'kickUserPath' => 'chatroom/ajax/user/kick',
     'chatPath' => 'node/' . $node->nid,
@@ -1726,43 +1719,6 @@ function chatroom_chat_save_invite($invitee, $inviter, $node) {
 }
 
 /**
- * Make the given chat private.
- * 
- * @param mixed $node 
- * @param mixed $chat_user 
- * @return boolean
- */
-function chatroom_chat_make_private($node) {
-  db_query('UPDATE {chatroom_chat} SET private = 1 WHERE nid = %d', $node->nid); 
-  return db_affected_rows();
-}
-
-/**
- * Ajax menu callback, make a chat private.
- * 
- * @param mixed $node 
- * @return void
- */
-function chatroom_chat_ajax_make_private($node) {
-  global $user;
-
-  $result = array('messages' => array(), 'commandResponse' => new StdClass());
-  if ($node->chat->private) {
-    $result['commandResponse']->msg = t('This chat is already private.');
-  }
-  else if (!($node->uid == $user->uid || user_access('administer chats'))) {
-    $result['commandResponse']->msg = t("You don't have access to make this chat private.");
-  }
-  else if (chatroom_chat_make_private($node)) {
-    $result['commandResponse']->msg = t("This chat is now private.");
-  }
-  else {
-    $result['commandResponse']->msg = t("There was an error making this chat private.");
-  }
-  drupal_json(array('data' => $result));
-}
-
-/**
  * Helper function, returns a user-list-link.
  * 
  * The first three options are as Drupal's built-in l() would expect.
@@ -1932,8 +1888,8 @@ function chatroom_max_users_reached($node) {
  * @return boolean
  */
 function chatroom_chat_make_chat_private($node) {
-  cache_clear_all('chatroom_chat_list', 'cache');
   db_query("UPDATE {chatroom_chat} SET private = 1 WHERE nid = %d", $node->nid);
+  cache_clear_all('chatroom_chat_list', 'cache');
   return db_affected_rows();
 }
 
@@ -1944,8 +1900,9 @@ function chatroom_chat_make_chat_private($node) {
  * @return boolean
  */
 function chatroom_chat_make_chat_public($node) {
-  cache_clear_all('chatroom_chat_list', 'cache');
+  db_query("DELETE FROM {chatroom_chat_user} WHERE nid = %d", $node->nid);
   db_query("UPDATE {chatroom_chat} SET private = 0 WHERE nid = %d", $node->nid);
+  cache_clear_all('chatroom_chat_list', 'cache');
   return db_affected_rows();
 }
 

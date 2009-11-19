@@ -100,19 +100,6 @@ Drupal.chatroom.kickUser = function(uid) {
   });
 }
 
-Drupal.chatroom.makeChatPrivate = function() {
-  $.ajax({
-    type: 'POST',
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.makePrivatePath + '/' + Drupal.settings.chatroom.chatId,
-    dataType: 'json',
-    success: Drupal.chatroom.pollHandler,
-    data: { 
-      user_name: userName,
-      is_popout: Drupal.settings.chatroom.isPopout
-    }
-  });
-}
-
 Drupal.chatroom.poll = function() {
   var skipCacheCheck = 0;
   if (Drupal.settings.chatroom.successiveCacheHits > Drupal.settings.chatroom.skipCacheCheckCount) {
