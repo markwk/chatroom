@@ -190,7 +190,10 @@ function theme_chatroom_system_message($message, $node) {
 function theme_chatroom_user_list($users, $node) {
   global $user;
   $is_admin = $user->uid == $node->uid || user_access('administer chats');
+  
+  // Get the links to be shown after the user name.
   $user_links = chatroom_chat_get_user_links($node, $users);
+  $active_user_links = chatroom_chat_get_active_user_links($node);
 
   $html = '<div id="chatroom-use-list-wrapper"><ul id="chatroom-user-list">';
   $preset = FALSE;
@@ -214,9 +217,11 @@ function theme_chatroom_user_list($users, $node) {
     else {
       $html .= theme('username', $chat_user);
     }
+
+    // Add links after the user name.
     $visible_links = array();
     if ($chat_user->uid == $user->uid) {
-      foreach (chatroom_chat_get_active_user_links($node) as $link) {
+      foreach ($active_user_links as $link) {
         if ($link->admin_only && !$is_admin) {
           continue;
         }
