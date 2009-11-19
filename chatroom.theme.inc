@@ -393,25 +393,25 @@ function theme_chatroom_chat_archive($node) {
   $html = '<p>' . t('Archived on !date.', array('!date' => format_date($node->chat->when_archived, 'medium'))) . '</p>';
   $html .= '<div id="chatroom-container-archive">';
   if ($messages = chatroom_chat_load_messages($node->nid)) {
-    foreach ($messages as $msg) {
+    foreach ($messages as $message) {
       if ($message->uid) {
         $name = l($message->name, 'user/'. $message->uid);
       }
       else {
-        $name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
+        $name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $message->guest_id;
       }
-      if (empty($msg->recipient_uid)) {
-        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small') . " $name: " . check_plain($msg->msg) . "</p>";
+      if (empty($message->recipient_uid)) {
+        $row_html = '<p class="chatroom-old-msg">' . format_date($message->modified, 'small') . " $name: " . check_plain($message->msg) . "</p>";
       }
-      else if ($is_admin || $user->uid == $msg->uid || $user->uid == $msg->recipient_uid) {
-        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small');
-        if ($msg->uid == $user->uid && $recipient != $name) {
+      else if ($is_admin || $user->uid == $message->uid || $user->uid == $message->recipient_uid) {
+        $row_html = '<p class="chatroom-old-msg">' . format_date($message->modified, 'small');
+        if ($message->uid == $user->uid && $recipient != $name) {
           $row_html .= ' (privately to '. $recipient .')> ';
         }
         else {
           $row_html .= ' (privately): ';
         }
-        $row_html .= check_plain($msg->msg) . '</p>';
+        $row_html .= check_plain($message->msg) . '</p>';
       }
       $html .= "$row_html\n";
     }
