@@ -1754,10 +1754,10 @@ function chatroom_chat_user_link($text, $path, $options = array(), $admin_only =
  * @return array
  */
 function chatroom_chat_get_user_links($node, $users) {
-  $links[] = chatroom_chat_user_link('Ban user', 'ban-user', array('attributes' => array('class' => 'chatroom-ban-user-link')));
-  $links[] = chatroom_chat_user_link('Kick user', 'kick-user', array('attributes' => array('class' => 'chatroom-kick-user-link')));
+  $links[] = chatroom_chat_user_link(t('Ban user'), 'ban-user', array('attributes' => array('class' => 'chatroom-ban-user-link')));
+  $links[] = chatroom_chat_user_link(t('Kick user'), 'kick-user', array('attributes' => array('class' => 'chatroom-kick-user-link')));
   if ($node->chat->private) {
-    $links[] = chatroom_chat_user_link('Remove', 'remove-user');
+    $links[] = chatroom_chat_user_link(t('Remove user'), 'remove-user');
   }
 
   foreach (module_implements('chatroom_user_links') as $module) {
@@ -1786,7 +1786,7 @@ function chatroom_chat_get_active_user_links($node) {
   $links = array();
   if (!isset($_GET['chatroom_popout']) && (!isset($_POST['is_popout']) || $_POST['is_popout'] == 'false')) {
     $options = array('attributes' => array('id' => 'chatroom-popout-link'));
-    $links[] = chatroom_chat_user_link('View in popout', 'view-in-popout', $options, FALSE, TRUE);
+    $links[] = chatroom_chat_user_link(t('View in popout'), 'view-in-popout', $options, FALSE, TRUE);
   }
 
   foreach (module_implements('chatroom_active_user_links') as $module) {
