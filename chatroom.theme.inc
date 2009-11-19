@@ -393,7 +393,6 @@ function theme_chatroom_chat_archive($node) {
   $html = '<p>' . t('Archived on !date.', array('!date' => format_date($node->chat->when_archived, 'medium'))) . '</p>';
   $html .= '<div id="chatroom-container-archive">';
   if ($messages = chatroom_chat_load_messages($node->nid)) {
-    $table_rows = array();
     foreach ($messages as $msg) {
       if ($message->uid) {
         $name = l($message->name, 'user/'. $message->uid);
@@ -402,24 +401,20 @@ function theme_chatroom_chat_archive($node) {
         $name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
       }
       if (empty($msg->recipient_uid)) {
-        $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
-        $row_html .= '<span class="chatroom-old-msg"><span class="header">' . "$name:</span>" . check_markup($msg->msg, $node->format, FALSE) . "</span>";
+        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small') . " $name: " . check_plain($msg->msg) . "</p>";
       }
       else if ($is_admin || $user->uid == $msg->uid || $user->uid == $msg->recipient_uid) {
-        $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
-        $row_html .= '<span class="chatroom-old-msg">';
-        $row_html .= '<span class="header">' . "$name ";
+        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small');
         if ($msg->uid == $user->uid && $recipient != $name) {
-          $row_html .= '<span class="chatroom-private">(privately to '. $recipient .')</span>:</span> ';
+          $row_html .= ' (privately to '. $recipient .')> ';
         }
         else {
-          $row_html .= '<span class="chatroom-private">(privately)</span>:</span> ';
+          $row_html .= ' (privately): ';
         }
-        $row_html .= $msg->msg . '</span>';
+        $row_html .= check_plain($msg->msg) . '</p>';
       }
-      $table_rows[] = array($row_html); 
+      $html .= "$row_html\n";
     }
-    $html .= theme('table', array(), $table_rows);
   }
   else {
     $html .= '<p>' . t('This chat contains no messages.') . '</p>';
