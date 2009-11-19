@@ -251,40 +251,6 @@ function theme_chatroom_latest_message($message) {
 }
 
 /**
- * Format the chat room listing.
- *
- * @ingroup themeable
- */
-function theme_chatroom_display($tree) {
-  global $user;
-  // chat room list, chats list, and 'add new chat' link
-
-  if (!empty($tree)) {
-    $output  = '<div id="chatroom">';
-    $output .= '<ul>';
-
-    if (user_access('create chat rooms')) {
-      $output .= '<li>'. l(t('Post a new chat room.'), "node/add/chatroom") .'</li>';
-    }
-    else if ($user->uid) {
-      //
-    }
-    else {
-      $output .= '<li>'. t('<a href="!login">Login</a> to post a new chat room.', array('!login' => url('user/login'))) .'</li>';
-    }
-    $output .= '</ul>';
-    $output .= theme('chatroom_list', $tree);
-    $output .= '</div>';
-  }
-  else {
-    drupal_set_title(t('No chat rooms defined'));
-    $output = '';
-  }
-
-  return $output;
-}
-
-/**
  * Format the chat room table.
  *
  * @ingroup themeable
@@ -299,7 +265,7 @@ function theme_chatroom_list($rooms) {
       $description .= ' <div class="name">'. l($room->title, "node/$room->nid") .'</div>';
 
       if ($room->body) {
-        $description .= ' <div class="description">'. $room->body ."</div>\n";
+        $description .= ' <div class="description">'. check_markup($room->body, $room->format, FALSE) ."</div>\n";
       }
       $description .= "</div>\n";
 
@@ -424,10 +390,15 @@ function theme_chatroom_chat_archive($node) {
   if ($messages = chatroom_chat_load_messages($node->nid)) {
     $table_rows = array();
     foreach ($messages as $msg) {
-      $name = isset($msg->name) ? $msg->name : variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
+      if ($message->uid) {
+        $name = l($message->name, 'user/'. $message->uid);
+      }
+      else {
+        $name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
+      }
       if (empty($msg->recipient_uid)) {
         $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
-        $row_html .= '<span class="chatroom-old-msg"><span class="header">' . "$name:</span>$msg->msg</span>";
+        $row_html .= '<span class="chatroom-old-msg"><span class="header">' . "$name:</span>" . check_markup($msg->msg, $node->format, FALSE) . "</span>";
       }
       else if ($is_admin || $user->uid == $msg->uid || $user->uid == $msg->recipient_uid) {
         $row_html = '<span class="chatroom-archive-date">'. format_date($msg->modified, 'small') .'</span>';
