@@ -467,7 +467,7 @@ function chatroom_uninstall() {
 
   $roles = db_query("SELECT * FROM {permission}");
   require_once dirname(__FILE__) . '/chatroom.module';
-  $chatroom_perms = chatroom_perms();
+  $chatroom_perms = chatroom_perm();
   while ($role = db_fetch_object($roles)) {
     $new_perms = array();
     foreach (explode(', ', $role->perm) as $perm) {
