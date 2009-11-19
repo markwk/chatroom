@@ -610,7 +610,7 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
     else {
       $content = theme('chatroom_chat_archive', $node);
       if (user_access('administer chat rooms')) {
-        $content .= drupal_get_form('chatroom_unarchive_chat_form', $node->nid);
+        $content .= drupal_get_form('chatroom_unarchive_chat_form', $node);
       }
     }
     $node->content['chatroom_chat_interface'] = array('#value' => $content);
@@ -623,6 +623,9 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
 
 /**
  * Gets a list of banned users for a given chat room.
+ *
+ * @param mixed $node 
+ * @return array
  */
 function chatroom_get_banned_users($node) {
   $banned_users = array();
@@ -639,18 +642,25 @@ function chatroom_get_banned_users($node) {
 
 /**
  * Unarchive old chat.
+ * 
+ * @param mixed $node 
+ * @return boolean
  */
-function chatroom_unarchive_chat($chat_id) {
-  $result = db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE nid = %d', $chat_id);
-  return $result;
+function chatroom_chat_unarchive_chat($node) {
+  cache_clear_all('chatroom_chat_list', 'cache');
+  db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE nid = %d', $node->nid);
+  return db_affected_rows();
 }
 
 /**
  * Archive a chat.
+ * 
+ * @param mixed $node 
+ * @return boolean
  */
-function chatroom_archive_chat($chat_id) {
-  $result = db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE nid = %d', time(), $chat_id);
-  return $result;
+function chatroom_chat_archive_chat($node) {
+  db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE nid = %d', time(), $node->nid);
+  return db_affected_rows();
 }
 
 /**
@@ -1913,5 +1923,29 @@ function chatroom_max_users_reached($node) {
     }
   }
   return TRUE;
+}
+
+/**
+ * Make the given chat private.
+ * 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_chat_make_chat_private($node) {
+  cache_clear_all('chatroom_chat_list', 'cache');
+  db_query("UPDATE {chatroom_chat} SET private = 1 WHERE nid = %d", $node->nid);
+  return db_affected_rows();
+}
+
+/**
+ * Make the given chat public.
+ * 
+ * @param mixed $node 
+ * @return boolean
+ */
+function chatroom_chat_make_chat_public($node) {
+  cache_clear_all('chatroom_chat_list', 'cache');
+  db_query("UPDATE {chatroom_chat} SET private = 0 WHERE nid = %d", $node->nid);
+  return db_affected_rows();
 }
 
