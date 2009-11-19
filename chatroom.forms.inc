@@ -482,14 +482,11 @@ function chatroom_create_chatroom_chat($chatroom, $values, $chat_user) {
  * Form to unarchived a chat.
  *
  * @param array $form_state
- * @param integer $chat_id
+ * @param integer $node
  * @return array
  */
-function chatroom_unarchive_chat_form($form_state, $chat_id) {
-  $form['chat_id'] = array(
-    '#type' => 'value',
-    '#value' => $chat_id,
-  );
+function chatroom_unarchive_chat_form(&$form_state, $node) {
+  $form_state['chat'] = $node;
   $form['unarchive'] = array(
     '#type' => 'submit',
     '#value' => t('Unarchive this chat'),
@@ -505,7 +502,8 @@ function chatroom_unarchive_chat_form($form_state, $chat_id) {
  * @return string
  */
 function chatroom_unarchive_chat_form_submit($form, &$form_state) {
-  chatroom_unarchive_chat($form_state['values']['chat_id']);
+  d::ffs($form_state['chat']);
+  chatroom_chat_unarchive_chat($form_state['chat']);
   cache_clear_all(TRUE, 'cache_block');
 }
 
@@ -517,7 +515,16 @@ function chatroom_unarchive_chat_form_submit($form, &$form_state) {
  * @return string
  */
 function chatroom_chat_management_form_submit($form, &$form_state) {
-  chatroom_archive_chat($form_state['chat']->nid);
+  $op = $form_state['values']['op'];
+  if ($op == t('Make chat private')) {
+    chatroom_chat_make_chat_private($form_state['chat']);
+  }
+  else if ($op == t('Make chat public')) {
+    chatroom_chat_make_chat_public($form_state['chat']);
+  }
+  else if ($op == t('Archive this chat')) {
+    chatroom_chat_archive_chat($form_state['chat']);
+  }
   cache_clear_all(TRUE, 'cache_block');
 }
 
@@ -558,6 +565,16 @@ function chatroom_chat_management_form(&$form_state, $node) {
       '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
       '#size' => 10,
       '#description' => t('Type in a username, then hit enter.'),
+    );
+    $form['chat_manager']['make_public'] = array(
+      '#type' => 'submit',
+      '#value' => t('Make chat public'),
+    );
+  }
+  else {
+    $form['chat_manager']['make_private'] = array(
+      '#type' => 'submit',
+      '#value' => t('Make chat private'),
     );
   }
   $form['chat_manager']['invite_user'] = array(
