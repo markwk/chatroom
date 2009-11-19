@@ -510,44 +510,25 @@ function chatroom_unarchive_chat_form_submit($form, &$form_state) {
 }
 
 /**
- * form for archived chat view of open chat to archive that chat
- *
- * @param array $form_state
- * @param integer $chat_id
- * @return array
- */
-function chatroom_archive_chat_form($form_state, $chat_id) {
-  $form['chat_id'] = array(
-    '#type' => 'value',
-    '#value' => $chat_id,
-  );
-  $form['delete'] = array(
-    '#type' => 'submit',
-    '#value' => t('Archive this chat'),
-  );
-  return $form;
-}
-
-/**
  * Archive an open chat.
  *
  * @param array $form_id
  * @param array $form_values
  * @return string
  */
-function chatroom_archive_chat_form_submit($form, &$form_state) {
-  chatroom_archive_chat($form_state['values']['chat_id']);
+function chatroom_chat_management_form_submit($form, &$form_state) {
+  chatroom_archive_chat($form_state['chat']->nid);
   cache_clear_all(TRUE, 'cache_block');
 }
 
 /**
- * Return a widget to manage a chat - make it private, send invites, etc.
- * 
+ * Return a widget to manage a chat - make it private, send invites, archive it.
+ *
  * @param mixed $form_state 
  * @param mixed $node 
  * @return array
  */
-function chatroom_chat_management_form($form_state, $node) {
+function chatroom_chat_management_form(&$form_state, $node) {
 
   $allowed_users_form = array();
   $settings = array(
@@ -556,33 +537,38 @@ function chatroom_chat_management_form($form_state, $node) {
     'userRemovePath' => 'chatroom/ajax/user/remove',
     'allowedUsers' => array(),
   );
+  drupal_add_js(drupal_get_path('module', 'chatroom') . '/chatroom.user.add.widget.js');
   foreach (chatroom_chat_get_allowed_users($node) as $allowed_user) {
     $settings['allowedUsers'][] = $allowed_user;
   }
-
-  drupal_add_js(drupal_get_path('module', 'chatroom') . '/chatroom.user.add.widget.js');
   drupal_add_js(array('chatroomChatForm' => $settings), 'setting');
 
-  $form['chat_users'] = array(
+  $form_state['chat'] = $node;
+
+  $form['chat_manager'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Chat users'),
+    '#title' => t('Manage this chat'),
     '#collapsible' => TRUE,
     '#collapsed' => !(isset($node->chat) && $node->chat->private),
   );
-  $form['chat_users']['add_user'] = array(
+  $form['chat_manager']['add_user'] = array(
     '#type' => 'textfield', 
     '#title' => t('Add a user to this chat'),
     '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
     '#size' => 10,
     '#description' => t('Type in a username, then hit enter.'),
   );
-  $form['chat_users']['invite_user'] = array(
+  $form['chat_manager']['invite_user'] = array(
     '#type' => 'textfield',
     '#title' => t('Invite a user to this chat'),
     '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
     '#size' => 10,
     '#size' => 10,
     '#description' => t('Type in a username, then hit enter.'),
+  );
+  $form['chat_manager']['archive'] = array(
+    '#type' => 'submit',
+    '#value' => t('Archive this chat'),
   );
   return $form;
 }
