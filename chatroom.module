@@ -266,6 +266,7 @@ function chatroom_insert($node) {
  * Implementation of hook_update().
  */
 function chatroom_update($node) {
+  d::ffs($node);
   cache_clear_all('chatroom_room_list', 'cache');
   $chatroom = array(
     'nid' => $node->nid,
@@ -499,6 +500,8 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
       $node->content['body']['#value'] = !empty($node->banned_message) ? $node->banned_message : t('You have been banned from %chatroom.', array('%chatroom' => $node->title));
     }
     else {
+      $is_admin = $node->uid == $user->uid || user_access('administer chat rooms');
+
       // if the user can create chats, show the form
       if (user_access('create chats')) {
         $node->content['add_chat'] = array(
@@ -509,41 +512,59 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
 
       // if there are some chats, build some tables to display them
       if (!empty($node->chatroom->chats)) {
+        $archived_count = 0;
+        $open_count = 0;
         foreach ($node->chatroom->chats as $chat) {
           if ($chat->when_archived) {
-            $rows['archived'][] = array(
+            $rows['archived'][$archived_count] = array(
               array('data' => l($chat->title, "node/$chat->nid")),
               array('data' => isset($chat->msg_count) ? $chat->msg_count : 0),
               array('data' => t('Archived on !date.', array('!date' => format_date($chat->when_archived, 'medium')))),
             );
+            if ($is_admin) {
+              $rows['archived'][$archived_count][] = theme('chatroom_chat_admin_buttons', $chat);
+            }
+            $archived_count++;
           }
           else {
-            $rows['open'][] = array(
+            $rows['open'][$open_count] = array(
               array('data' => l($chat->title, "node/$chat->nid")),
               array('data' => isset($chat->msg_count) ? $chat->msg_count : 0),
               array('data' => $chat->last_msg ? theme('chatroom_latest_message', $chat->last_msg) : ('No messages.')),
             );
+            if ($is_admin) {
+              $rows['open'][$open_count][] = theme('chatroom_chat_admin_buttons', $chat);
+            }
+            $open_count++;
           }
         }
-        if (!empty($rows['open'])) {
+        if ($open_count > 0) {
           $node->content['open_chats']['#weight'] = 2;
           $node->content['open_chats']['title'] = array(
             '#value' => '<h2>'. t('Open chats in this room') .'</h2>',
             '#weight' => 0,
           );
+          $headers = array(t('Chat name'), t('Message count'), t('Last message'));
+          if ($is_admin) {
+            $headers[] = t('Manage chat');
+          }
           $node->content['open_chats']['table'] = array(
-            '#value' => theme('table', array(t('Chat name'), t('Message count'), t('Last message')), $rows['open']),
+            '#value' => theme('table', $headers, $rows['open']),
             '#weight' => 1,
           );
         }
-        if (!empty($rows['archived'])) {
+        if ($archived_count > 0) {
           $node->content['archived_chats']['#weight'] = 3;
           $node->content['archived_chats']['header'] = array(
             '#value' => '<h2>'. t('Archived chats in this room') .'</h2>',
             '#weight' => 0,
           );
+          $headers = array(t('Chat name'), t('Message count'), t('When archived'));
+          if ($is_admin) {
+            $headers[] = t('Manage chat');
+          }
           $node->content['archived_chats']['table'] = array(
-            '#value' => theme('table', array(t('Chat name'), t('Message count'), t('When archived')), $rows['archived']),
+            '#value' => theme('table', $headers, $rows['archived']),
             '#weight' => 1,
           );
         }
@@ -653,6 +674,7 @@ function chatroom_chat_unarchive_chat($node) {
  * @return boolean
  */
 function chatroom_chat_archive_chat($node) {
+  cache_clear_all('chatroom_chat_list', 'cache');
   db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE nid = %d', time(), $node->nid);
   return db_affected_rows();
 }

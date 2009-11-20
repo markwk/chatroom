@@ -18,6 +18,9 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_chat_max_users' => array(
       'arguments' => array('node'),
     ),
+    'chatroom_chat_admin_buttons' => array(
+      'arguments' => array('chat'),
+    ),
     'chatroom_chat_user_link' => array(
       'arguments' => array('link'),
     ),
@@ -496,5 +499,15 @@ function theme_chatroom_chat_user_link($link) {
 function theme_chatroom_chat_max_users($node) {
   $msg = t('The threshold for maximum users has been reached for this chat, please try again in a few minutes.');
   return '<div id="chatroom-banned-msg">'. $msg .'</div>';
+}
+
+/**
+ * Theme chatroom chat admin buttons.
+ * 
+ * @param mixed $chat
+ * @return string
+ */
+function theme_chatroom_chat_admin_buttons($chat) {
+  return '<div class="chatroom-chat-admin-buttons">' . drupal_get_form('chatroom_chat_admin_buttons_form', $chat) . '</div>';
 }
 
