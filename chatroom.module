@@ -266,7 +266,6 @@ function chatroom_insert($node) {
  * Implementation of hook_update().
  */
 function chatroom_update($node) {
-  d::ffs($node);
   cache_clear_all('chatroom_room_list', 'cache');
   $chatroom = array(
     'nid' => $node->nid,
