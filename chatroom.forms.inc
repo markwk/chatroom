@@ -140,42 +140,6 @@ function chatroom_form(&$node, $form_state) {
       );
     }
   }
-  if (!empty($node->chatroom->chats)) {
-    foreach ($node->chatroom->chats as $chat) {
-      if ($chat->section != 'archives') {
-        $chats[$chat->ccid] = check_plain($chat->chatname);
-      }
-      else {
-        $closed_chats[$chat->ccid] = check_plain($chat->chatname);
-      }
-    }
-    if (!empty($chats)) {
-      $form['chatroom_chats'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Manage open chats'),
-        '#collapsible' => TRUE,
-        '#collapsed' => FALSE,
-      );
-      $form['chatroom_chats']['chat_list'] = array(
-        '#type' => 'checkboxes',
-        '#options' => $chats,
-        '#description' => t('Check the chats you would like to close'),
-      );
-    }
-    if (!empty($closed_chats)) {
-      $form['closed_chats'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Manage archived chats'),
-        '#collapsible' => TRUE,
-        '#collapsed' => FALSE,
-      );
-      $form['closed_chats']['closed_chat_list'] = array(
-        '#type' => 'checkboxes',
-        '#options' => $closed_chats,
-        '#description' => t('Check the chats you would like to delete'),
-      );
-    }
-  }
   return $form;
 }
 
@@ -589,5 +553,72 @@ function chatroom_chat_management_form(&$form_state, $node) {
     '#value' => t('Archive this chat'),
   );
   return $form;
+}
+
+/**
+ * Return a form to manage this chat from the chatroom view.
+ * 
+ * @param mixed $form_state 
+ * @param mixed $chat 
+ * @return array
+ */
+function chatroom_chat_admin_buttons_form(&$form_state, $chat) {
+  $form_state['chat'] = $chat;
+  if ($chat->when_archived) {
+    $form = array(
+      'unarchive' => array(
+        '#type' => 'submit',
+        '#value' => t('Unarchive'),
+      ),
+    );
+  }
+  else {
+    $form = array(
+      'archive' => array(
+        '#type' => 'submit',
+        '#value' => t('Archive'),
+      ),
+    );
+  }
+  $form['delete'] = array(
+    '#type' => 'submit',
+    '#value' => t('Delete'),
+  );
+  return $form;
+}
+
+/**
+ * Handle submission of chatroom chat admin button.
+ * 
+ * @param mixed $form 
+ * @param mixed $form_state 
+ * @return void
+ */
+function chatroom_chat_admin_buttons_form_submit($form, &$form_state) {
+  switch ($form_state['values']['op']) {
+    case t('Archive'):
+      if (chatroom_chat_archive_chat($form_state['chat'])) {
+        drupal_set_message(t("Chat '%chat' archived.", array('%chat' => $form_state['chat']->title)));
+      }
+      else {
+        drupal_set_message(t("There as an error archiving chat '%chat'.", array('%chat' => $form_state['chat']->title)));
+      }
+      break;
+
+    case t('Unarchive'):
+      if (chatroom_chat_unarchive_chat($form_state['chat'])) {
+        drupal_set_message(t("Chat '%chat' unarchived.", array('%chat' => $form_state['chat']->title)));
+      }
+      else {
+        drupal_set_message(t("There as an error unarchiving chat '%chat'.", array('%chat' => $form_state['chat']->title)));
+      }
+      break;
+
+    case t('Delete'):
+      // Yeah, who needs a return value anyway? Oh, and node_delete does a 
+      // drupal_set_message() for us.
+      node_delete($form_state['chat']->nid);
+      break;
+  }
 }
 

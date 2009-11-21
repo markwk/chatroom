@@ -18,6 +18,9 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_chat_max_users' => array(
       'arguments' => array('node'),
     ),
+    'chatroom_chat_admin_buttons' => array(
+      'arguments' => array('chat'),
+    ),
     'chatroom_chat_user_link' => array(
       'arguments' => array('link'),
     ),
@@ -393,25 +396,25 @@ function theme_chatroom_chat_archive($node) {
   $html = '<p>' . t('Archived on !date.', array('!date' => format_date($node->chat->when_archived, 'medium'))) . '</p>';
   $html .= '<div id="chatroom-container-archive">';
   if ($messages = chatroom_chat_load_messages($node->nid)) {
-    foreach ($messages as $msg) {
+    foreach ($messages as $message) {
       if ($message->uid) {
         $name = l($message->name, 'user/'. $message->uid);
       }
       else {
-        $name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $msg->guest_id;
+        $name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $message->guest_id;
       }
-      if (empty($msg->recipient_uid)) {
-        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small') . " $name: " . check_plain($msg->msg) . "</p>";
+      if (empty($message->recipient_uid)) {
+        $row_html = '<p class="chatroom-old-msg">' . format_date($message->modified, 'small') . " $name: " . check_plain($message->msg) . "</p>";
       }
-      else if ($is_admin || $user->uid == $msg->uid || $user->uid == $msg->recipient_uid) {
-        $row_html = '<p class="chatroom-old-msg">' . format_date($msg->modified, 'small');
-        if ($msg->uid == $user->uid && $recipient != $name) {
+      else if ($is_admin || $user->uid == $message->uid || $user->uid == $message->recipient_uid) {
+        $row_html = '<p class="chatroom-old-msg">' . format_date($message->modified, 'small');
+        if ($message->uid == $user->uid && $recipient != $name) {
           $row_html .= ' (privately to '. $recipient .')> ';
         }
         else {
           $row_html .= ' (privately): ';
         }
-        $row_html .= check_plain($msg->msg) . '</p>';
+        $row_html .= check_plain($message->msg) . '</p>';
       }
       $html .= "$row_html\n";
     }
@@ -496,5 +499,15 @@ function theme_chatroom_chat_user_link($link) {
 function theme_chatroom_chat_max_users($node) {
   $msg = t('The threshold for maximum users has been reached for this chat, please try again in a few minutes.');
   return '<div id="chatroom-banned-msg">'. $msg .'</div>';
+}
+
+/**
+ * Theme chatroom chat admin buttons.
+ * 
+ * @param mixed $chat
+ * @return string
+ */
+function theme_chatroom_chat_admin_buttons($chat) {
+  return '<div class="chatroom-chat-admin-buttons">' . drupal_get_form('chatroom_chat_admin_buttons_form', $chat) . '</div>';
 }
 
