@@ -12,16 +12,6 @@ require_once dirname(__FILE__) . '/chatroom.theme.inc';
 /**
  * Implementation of hook_help().
  */
-function chatroom_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#chatroom':
-      return '<p />';
-  }
-}
-
-/**
- * Implementation of hook_help().
- */
 function chatroom_init() {
   global $user;
   
@@ -43,7 +33,7 @@ function chatroom_chat_user_autocomplete($node, $string = '') {
 
   $matches = array();
   if ($string) {
-    $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%s%%')", $string, 0, 10);
+    $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%s%%') AND uid != %d", array($string, $user->uid), 0, 10);
     while ($chat_user = db_fetch_object($result)) {
       $matches[$chat_user->name] = check_plain($chat_user->name);
     }
