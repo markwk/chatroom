@@ -368,7 +368,7 @@ function chatroom_chat_insert($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'private' => $node->private,
+    'private' => isset($node->private) ? $node->private : 0,
     'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
@@ -390,7 +390,7 @@ function chatroom_chat_update($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'private' => $node->private,
+    'private' => isset($node->private) ? $node->private : 0,
     'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
