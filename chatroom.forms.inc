@@ -262,8 +262,8 @@ function chatroom_chat_form(&$node, $form_state) {
     '#required' => TRUE,
   );
   $form['chatroom_nid'] = array(
-    '#type' => 'hidde',
-    '#value' => $node->chatroom ? $node->chatroom->nid : 0,
+    '#type' => 'hidden',
+    '#value' => $node->chat->chatroom ? $node->chat->chatroom->nid : 0,
   );
   $form['body_filter']['body'] = array(
     '#type' => 'textarea',
