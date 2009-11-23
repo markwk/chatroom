@@ -482,6 +482,8 @@ function chatroom_chat_get_message_count($chat_id) {
  * Implementation of hook_view().
  */
 function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
+  global $user;
+
   $node = node_prepare($node);
   if (!$teaser && $page) {
     // if the user is banned, just tell them why
