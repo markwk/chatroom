@@ -22,6 +22,21 @@ Drupal.behaviors.chatroomUserWidget = function(context) {
   });
 }
 
+Drupal.behaviors.chatroomInviteWidget = function(context) {
+  $('#edit-invite-user').keypress(function (e) {
+    var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
+    if (key == 13) {
+      e.preventDefault();
+      e.stopPropagation();
+      var userName = $('#edit-invite-user').val();
+      if (userName) {
+        $('#edit-invite-user').val('');
+        Drupal.chatroom.userInvite(userName);
+      }
+    }
+  });
+}
+
 Drupal.chatroom.userAdd = function(userName) {
   $.ajax({
     type: 'POST',
@@ -57,22 +72,6 @@ Drupal.chatroom.userAddHandler = function(response, responseStatus) {
     Drupal.attachBehaviors('#chatroom-user-list');
   }
 };
-
-Drupal.behaviors.chatroomInviteWidget = function(context) {
-  $('#edit-invite-user').keypress(function (e) {
-    var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
-    if (key == 13) {
-      e.preventDefault();
-      e.stopPropagation();
-      var userName = $('#edit-invite-user').val();
-      if (userName) {
-        $('#edit-invite-user').val('');
-        Drupal.chatroom.userInvite(userName);
-      }
-    }
-    return false;
-  });
-}
 
 Drupal.chatroom.userInvite = function(userName) {
   $.ajax({
