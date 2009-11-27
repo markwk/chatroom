@@ -1575,7 +1575,9 @@ function chatroom_chat_user_has_access($node, $account) {
     return db_result(db_query($sql, $node->nid, $account->uid));
   }
   else {
-    return TRUE;
+    // If we get here, then make sure we're either the creator of the chat,
+    // or that its been published.
+    return $node->uid == $account->uid || $node->status == 1;
   }
 }
 
