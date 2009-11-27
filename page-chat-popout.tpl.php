@@ -7,14 +7,17 @@
     <?php print $styles ?>
     <?php print $scripts ?>
     <!--[if lt IE 7]>
-      <?php print phptemplate_get_ie_styles(); ?>
+      <?php if (function_exists('phptemplate_get_ie_styles')) print phptemplate_get_ie_styles(); ?>
     <![endif]-->
   </head>
-  <body<?php print phptemplate_body_class($left, $right); ?>>
-  <div id="content">
+  <body class="chatroom-popout<?php if (function_exists('phptemplate_body_class')) print ' ' . phptemplate_body_class($left, $right); ?>">
+  <div id="chatroom-popout-title">
+    <?php if ($show_messages && $messages): print $messages; endif; ?>
+    <?php if ($title): print '<h2'. ($tabs ? ' class="with-tabs"' : '') .'>'. $title .'</h2>'; endif; ?>
+  </div>
+  <div class="clear-block" id="content">
     <?php print $content ?>
   </div>
-<!-- /layout -->
   <?php print $closure ?>
   </body>
 </html>
