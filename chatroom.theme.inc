@@ -508,6 +508,6 @@ function theme_chatroom_chat_max_users($node) {
  * @return string
  */
 function theme_chatroom_chat_admin_buttons($chat) {
-  return '<div class="chatroom-chat-admin-buttons">' . drupal_get_form('chatroom_chat_admin_buttons_form', $chat) . '</div>';
+  return '<div class="chatroom-chat-admin-buttons">' . drupal_get_form('chatroom_chat_admin_buttons_form_' . $chat->nid, $chat) . '</div>';
 }
 

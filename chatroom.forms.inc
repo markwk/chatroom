@@ -9,7 +9,14 @@
 /**
  * Implementation of hook_forms()
  */
-function chatroom_forms() {
+function chatroom_forms($form_id, $args) {
+  // Look for the admin buttons form.
+  if (strpos($form_id, 'chatroom_chat_admin_buttons_form_') === 0) {
+    // Route to the right function.
+    $forms[$form_id] = array(
+      'callback' => 'chatroom_chat_admin_buttons_form',
+    );
+  }
   $forms['chatroom_chat_form'] = array(
     'callback' => 'chatroom_chat_interface',
   );
@@ -584,6 +591,9 @@ function chatroom_chat_admin_buttons_form(&$form_state, $chat) {
     '#type' => 'submit',
     '#value' => t('Delete'),
   );
+  $form['#submit'] = array(
+    'chatroom_chat_admin_buttons_form_submit',
+  );
   return $form;
 }
 
@@ -595,29 +605,30 @@ function chatroom_chat_admin_buttons_form(&$form_state, $chat) {
  * @return void
  */
 function chatroom_chat_admin_buttons_form_submit($form, &$form_state) {
+  $chat = $form_state['chat'];
   switch ($form_state['values']['op']) {
     case t('Archive'):
-      if (chatroom_chat_archive_chat($form_state['chat'])) {
-        drupal_set_message(t("Chat '%chat' archived.", array('%chat' => $form_state['chat']->title)));
+      if (chatroom_chat_archive_chat($chat)) {
+        drupal_set_message(t("Chat '%chat' archived.", array('%chat' => $chat->title)));
       }
       else {
-        drupal_set_message(t("There as an error archiving chat '%chat'.", array('%chat' => $form_state['chat']->title)));
+        drupal_set_message(t("There as an error archiving chat '%chat'.", array('%chat' => $chat->title)));
       }
       break;
 
     case t('Unarchive'):
-      if (chatroom_chat_unarchive_chat($form_state['chat'])) {
-        drupal_set_message(t("Chat '%chat' unarchived.", array('%chat' => $form_state['chat']->title)));
+      if (chatroom_chat_unarchive_chat($chat)) {
+        drupal_set_message(t("Chat '%chat' unarchived.", array('%chat' => $chat->title)));
       }
       else {
-        drupal_set_message(t("There as an error unarchiving chat '%chat'.", array('%chat' => $form_state['chat']->title)));
+        drupal_set_message(t("There as an error unarchiving chat '%chat'.", array('%chat' => $chat->title)));
       }
       break;
 
     case t('Delete'):
       // Yeah, who needs a return value anyway? Oh, and node_delete does a 
       // drupal_set_message() for us.
-      node_delete($form_state['chat']->nid);
+      node_delete($chat->nid);
       break;
   }
 }
