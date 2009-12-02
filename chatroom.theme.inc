@@ -198,7 +198,7 @@ function theme_chatroom_user_list($users, $node) {
   $user_links = chatroom_chat_get_user_links($node, $users);
   $active_user_links = chatroom_chat_get_active_user_links($node);
 
-  $html = '<div id="chatroom-use-list-wrapper"><ul id="chatroom-user-list">';
+  $html = '<div id="chatroom-user-list-wrapper"><ul id="chatroom-user-list">';
   $preset = FALSE;
   if (module_exists('imagecache') && $node->chat->imagecache_preset) {
     $preset = imagecache_preset_by_name($node->chat->imagecache_preset);
