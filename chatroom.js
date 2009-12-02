@@ -82,7 +82,7 @@ Drupal.chatroom.banUser = function(uid) {
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: { 
-      uid: uid,
+      uid: uid
     }
   });
 }
@@ -165,8 +165,8 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   }
 
   if (response.data.usersHtml) {
-    $('#chatroom-user-list').replaceWith(response.data.usersHtml);
-    Drupal.attachBehaviors('#chatroom-user-list');
+    $('#chatroom-user-list-wrapper').replaceWith(response.data.usersHtml);
+    Drupal.attachBehaviors('#chatroom-user-list-wrapper');
   }
 
   if (response.data.commandResponse) {
