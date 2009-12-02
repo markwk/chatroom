@@ -82,7 +82,7 @@ Drupal.chatroom.banUser = function(uid) {
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: { 
-      uid: uid,
+      uid: uid
     }
   });
 }
