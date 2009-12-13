@@ -1535,7 +1535,10 @@ function chatroom_chat_is_kicked_user($chat_user, $node) {
  * @return boolean
  */
 function chatroom_chat_is_banned_user($chat_user, $node) {
-  return array_key_exists($chat_user->uid, $node->chat->banned_list);
+  if ($node->chat && is_array($node->chat->banned_list)) {
+    return array_key_exists($chat_user->uid, $node->chat->banned_list);
+  }
+  return FALSE;
 }
 
 /**
