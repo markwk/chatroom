@@ -2,6 +2,7 @@
 // $Id$
 
 require_once dirname(__FILE__) . '/chatroom.forms.inc';
+require_once dirname(__FILE__) . '/chatroom.cache.inc';
 require_once dirname(__FILE__) . '/chatroom.theme.inc';
 
 /**
@@ -246,7 +247,7 @@ function chatroom_insert($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'profile_picture' => $node->profile_picture,
+    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom', $chatroom);
@@ -1050,6 +1051,17 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
     return;
   }
 
+  if (!$cached_chat_user = chatroom_get_cached_user()) {
+    $cached_chat_user = (object) array(
+      'uid' => $user->uid,
+      'allowed_chats' => array(),
+    );
+  }
+  if (!in_array($node->nid, $cached_chat_user->allowed_chats)) {
+    $cached_chat_user->allowed_chats[] = $node->nid;
+  }
+  chatroom_save_cached_user($cached_chat_user);
+
   $response['messages'] = array();
   if ($node->chat->when_archived) {
     $response['archived'] = $node->chat->when_archived;
@@ -1057,20 +1069,30 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
   }
   else {
     chatroom_update_last_seen_time($node, session_id()); 
-
+    
+    $message_cache = chatroom_get_cached_messages($node->nid);
+    $save_to_cache = FALSE;
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
-      if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
-        continue;
-      }
+      $save_to_cache = TRUE;
       $msg = new StdClass();
       $msg->html = theme('chatroom_message', $message, $node);
       $msg->text = strip_tags($message->msg);
       $msg->name = $message->name;
       $msg->cmid = $message->cmid;
       $msg->type = $message->msg_type;
+      $msg->uid = $message->uid;
+      $msg->recipient_uid = $message->recipient_uid;
+      $message_cache[$msg->cmid] = $msg;
+      if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
+        continue;
+      }
       $response['messages'][] = $msg;
       $latest_msg_id = $message->cmid;
     }
+    if ($save_to_cache) {
+      chatroom_save_cached_messages($node->nid, $message_cache);
+    } 
+
     if (isset($latest_msg_id)) {
       chatroom_chat_update_cache($node->nid, $latest_msg_id);
     }
