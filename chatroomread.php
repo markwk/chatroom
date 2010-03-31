@@ -16,6 +16,10 @@
  * First, we check to see if the last message seen in a given chat client-side
  * is older than the latest message in that chat server-side. 
  *
+ * Second, we check a message cache, and if we can get some messages from it,
+ * we send them, and exit. This is the real killer performance win from this 
+ * file for busy rooms.
+ *
  * Only if the chat being polled has messages newer than what the requesting
  * client has seen do we bootstrap Drupal. 
  */
