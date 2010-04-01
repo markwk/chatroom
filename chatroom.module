@@ -99,6 +99,22 @@ function chatroom_chat_get_user_invites($chat_user) {
 }
 
 /**
+ * Implementation of hook_db_rewrite_sql().
+ */
+function chatroom_db_rewrite_sql($query, $primary_table, $primary_field, $args) {
+  $clauses = array();
+  if ($primary_table == 'n' && $primary_field == 'nid') {
+    if (!user_access('access chats')) {
+      $clauses[] = "n.type <> 'chat'";
+    }
+    if (!user_access('access chat rooms')) {
+      $clauses[] = "n.type <> 'chatroom'";
+    }
+  }
+  return count($clauses) ? array('where' => implode(' OR ', $clauses)) : array();
+}
+
+/**
  * Implementation of hook_access().
  */
 function chatroom_chat_access($op, $node, $account) {
