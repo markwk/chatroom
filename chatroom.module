@@ -1854,12 +1854,12 @@ function chatroom_chat_ajax_user_ban($node) {
   }
 
   $result = array('messages' => array(), 'commandResponse' => new StdClass());
-  if (preg_match('/^chatroom_user_(\d)+$/', $_POST['uid'], $matches) && $user_to_ban = user_load($matches[1])) {
+  if (preg_match('/^chatroom_user_(\d+)$/', $_POST['uid'], $matches) && $user_to_ban = user_load($matches[1])) {
     chatroom_chat_ban_user($node, $user_to_ban, $user);
     $result['commandResponse']->msg = t("User %username banned from chat.", array('%username' => $user_to_ban->name));
     drupal_json(array('data' => $result));
   }
-  elseif (preg_match('/^chatroom_user_guest-(\d)+$/', $_POST['uid'], $matches)) {
+  elseif (preg_match('/^chatroom_user_guest-(\d+)$/', $_POST['uid'], $matches)) {
     // You can't really ban a guest, but anyway...
     chatroom_chat_kick_guest($node, $matches[1], $user);
     $result['commandResponse']->msg = t("Guestr %guest kicked out of chat.", array('%guest' => $matches[1]));
@@ -1884,12 +1884,12 @@ function chatroom_chat_ajax_user_kick($node) {
   }
 
   $result = array('messages' => array(), 'commandResponse' => new StdClass());
-  if (preg_match('/^chatroom_user_(\d)+$/', $_POST['uid'], $matches) && $user_to_kick = user_load($matches[1])) {
+  if (preg_match('/^chatroom_user_(\d+)$/', $_POST['uid'], $matches) && $user_to_kick = user_load($matches[1])) {
     chatroom_chat_kick_user($node, $user_to_kick, $user);
     $result['commandResponse']->msg = t("User %username kicked out of chat.", array('%username' => $user_to_kick->name));
     drupal_json(array('data' => $result));
   }
-  elseif (preg_match('/^chatroom_guest_(\d)+$/', $_POST['uid'], $matches)) {
+  elseif (preg_match('/^chatroom_guest_(\d+)$/', $_POST['uid'], $matches)) {
     chatroom_chat_kick_guest($node, $matches[1], $user);
     $result['commandResponse']->msg = t("Guestr %guest kicked out of chat.", array('%guest' => $matches[1]));
     drupal_json(array('data' => $result));
