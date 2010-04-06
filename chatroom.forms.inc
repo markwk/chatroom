@@ -261,6 +261,9 @@ function chatroom_admin_settings_validate($form, &$form_state) {
 function chatroom_chat_form(&$node, $form_state) {
   global $user;
 
+  // Load type definition.
+  $type = node_get_types('type', $node->type);
+
   $form['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Name'),
@@ -272,13 +275,15 @@ function chatroom_chat_form(&$node, $form_state) {
     '#type' => 'hidden',
     '#value' => $node->chat->chatroom ? $node->chat->chatroom->nid : 0,
   );
-  $form['body_filter']['body'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Description'),
-    '#default_value' => $node->body,
-    '#rows' => 3,
-    '#description' => t('Describe your chat so other people will know if they want to join.'),
-  );
+  if ($type->has_body) {
+    $form['body_filter']['body'] = array(
+      '#type' => 'textarea',
+      '#title' => t('Description'),
+      '#default_value' => $node->body,
+      '#rows' => 3,
+      '#description' => t('Describe your chat so other people will know if they want to join.'),
+    );
+  }
   $form['body_filter']['format'] = filter_form($node->format);
   $form['kicked_out_message'] = array(
     '#type' => 'textarea',
