@@ -11,7 +11,7 @@ function chatroom_get_cached_user() {
   if (!CHATROOM_APC_ENABLED) {
     return FALSE;
   }
-  $cache_id = variable_get('chatroom_cache_prefix', '') . '_user_' . $_COOKIE[session_name()];
+  $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_user_' . $_COOKIE[session_name()];
   return apc_fetch($cache_id);
 }
 
@@ -22,7 +22,7 @@ function chatroom_get_cached_messages($chat_id) {
   if (!CHATROOM_APC_ENABLED) {
     return FALSE;
   }
-  $cache_id = variable_get('chatroom_cache_prefix', '') . '_' . $chat_id;
+  $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_' . $chat_id;
   $cache = apc_fetch($cache_id);
   return $cache ? unserialize($cache) : array(); 
 }
@@ -34,7 +34,7 @@ function chatroom_save_cached_messages($chat_id, $cached_messages) {
   if (!CHATROOM_APC_ENABLED) {
     return FALSE;
   }
-  $cache_id = variable_get('chatroom_cache_prefix', '') . '_' . $chat_id;
+  $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_' . $chat_id;
   return apc_store($cache_id, serialize($cached_messages), variable_get('chatroom_cache_ttl', 3600));
 }
 
@@ -45,7 +45,7 @@ function chatroom_save_cached_user($cached_user) {
   if (!CHATROOM_APC_ENABLED) {
     return FALSE;
   }
-  $cache_id = variable_get('chatroom_cache_prefix', '') . '_user_' . $_COOKIE[session_name()];
+  $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_user_' . $_COOKIE[session_name()];
   return apc_store($cache_id, $cached_user, variable_get('chatroom_cache_ttl', 3600));
 }
 

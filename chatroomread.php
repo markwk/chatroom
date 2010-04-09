@@ -74,8 +74,7 @@ if (!$skip_cache) {
   }
   
   $chatroom_module_dir = variable_get('chatroom_module_dir', 'sites/all/modules/chatroom');
-  $chatroom_cache_backend = variable_get('chatroom_cache_backend', 'apc');
-  require_once dirname(__FILE__) . "/$chatroom_module_dir/chatroom.cache.$chatroom_cache_backend.inc";
+  require_once "./$chatroom_module_dir/chatroom.cache." . variable_get('chatroom_cache_backend', 'apc') . '.inc';
 
   if ($chat_user = chatroom_get_cached_user()) {
     if (in_array($chat_id, $chat_user->allowed_chats)) {
