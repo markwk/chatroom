@@ -91,14 +91,14 @@ function chatroom_form(&$node, $form_state) {
   $form['chat_settings']['poll_freq'] = array(
     '#type' => 'select',
     '#title' => t('Update frequency'),
-    '#default_value' => empty($node->chatroom->poll_freq) ? 1 : $node->chatroom->poll_freq / 1000,
+    '#default_value' => empty($node->chatroom->poll_freq) ? 1 : $node->chatroom->poll_freq,
     '#options' => drupal_map_assoc(range(1, 10)),
     '#description' => t('How many seconds between each request for updates from the server.'),
   );
   $form['chat_settings']['idle_freq'] = array(
     '#type' => 'select',
     '#title' => t('Idle time'),
-    '#default_value' => empty($node->chatroom->idle_freq) ? 60 : $node->chatroom->idle_freq / 1000,
+    '#default_value' => empty($node->chatroom->idle_freq) ? 60 : $node->chatroom->idle_freq,
     '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
@@ -322,7 +322,7 @@ function chatroom_chat_form(&$node, $form_state) {
   $form['chat_settings']['poll_freq'] = array(
     '#type' => 'select',
     '#title' => t('Update frequency'),
-    '#default_value' => isset($node->chat) ? $node->chat->poll_freq / 1000 : 1,
+    '#default_value' => isset($node->chat) ? $node->chat->poll_freq : 1,
     '#options' => drupal_map_assoc(range(1, 10)),
     '#description' => t('How many seconds between each request for updates from the server.'),
   );
@@ -335,7 +335,7 @@ function chatroom_chat_form(&$node, $form_state) {
   $form['chat_settings']['idle_freq'] = array(
     '#type' => 'select',
     '#title' => t('Idle time'),
-    '#default_value' => isset($node->chat) ? $node->chat->idle_freq / 1000 : 60,
+    '#default_value' => isset($node->chat) ? $node->chat->idle_freq : 60,
     '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
