@@ -19,7 +19,6 @@ function chatroom_get_cached_user() {
  */
 function chatroom_get_cached_messages($chat_id) {
   $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_' . $chat_id;
-  file_put_contents('/var/www/code/chatroom/logs/debug.log', print_r(cache_get($cache_id), TRUE) . "\n", FILE_APPEND);
   $cache = cache_get($cache_id);
   return $cache ? $cache : array(); 
 }
