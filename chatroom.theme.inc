@@ -159,7 +159,7 @@ function theme_chatroom_messages(array $messages, $node) {
  */
 function theme_chatroom_message($message, $node) {
   if ($message->uid) {
-    $username = l($message->name, 'user/'. $message->uid);
+    $username = theme('username', $message);
   }
   else {
     $username = $message->name;
