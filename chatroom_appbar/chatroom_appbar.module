@@ -1,0 +1,8 @@
+<?php
+
+function chatroom_appbar_appbar_region() {
+  return array(
+    'chatroom' => theme('appbar_alerts', 'foo'),
+  );
+}
+
