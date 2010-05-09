@@ -1,0 +1,526 @@
+# $Id$
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  chatroom.module,v 1.59.2.67 2007/10/05 19:37:34 darrenoh
+#  chatroom.install,v 1.23.2.16 2007/10/08 17:07:30 darrenoh
+#  chatroom.info,v 1.1.2.4 2007/06/28 12:09:20 darrenoh
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Chatroom 6.x-2.9\n"
+"POT-Creation-Date: 2007-10-09 22:14-0400\n"
+"PO-Revision-Date: 2010-05-07 10:30+0200\n"
+"Last-Translator: Simon Georges <simon.georges@alumni.enseeiht.fr>\n"
+"Language-Team: French Translation Team\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: chatroom.module:104;541;1508;1529 chatroom.install:198;340
+msgid "guest-"
+msgstr ""
+
+#: chatroom.module:50;248;1047
+msgid "Chat room"
+msgstr "Salon de discussion"
+
+#: chatroom.module:51
+msgid "Configure chat rooms."
+msgstr "Configurer les salons de discussion"
+
+#: chatroom.module:58
+msgid "Chat rooms"
+msgstr "Salons de discussion"
+
+#: chatroom.module:88
+msgid "Automatically archive old messages."
+msgstr "Archiver automatiquement les vieux messages."
+
+#: chatroom.module:89
+msgid "If there are a lot of old messages, archiving will improve chat performance."
+msgstr "Si il y de nombreux messages anciens, les archiver va améliorer les performances du salon."
+
+#: chatroom.module:94
+msgid "Chat room block update interval"
+msgstr "Fréquence de mise à jour du block des salons de discussion"
+
+#: chatroom.module:96
+msgid "Determines how often blocks should update active chat rooms, active chats, and on-line users."
+msgstr "Détermine à quelle fréquence les blocs doivent mettre à jour les salons de discussions, les discussions actives, et les utilisateurs connectés."
+
+#: chatroom.module:102
+msgid "Guest user prefix"
+msgstr "Préfixe pour les utilisateurs invités"
+
+#: chatroom.module:103
+msgid "Prefixed to guest ID to provide user name for anonymous users."
+msgstr "Préfixe à ajouter aux ID des invités pour fournir un nom aux utilisateurs anonymes."
+
+#: chatroom.module:109
+msgid "Chat date format"
+msgstr "Format de la date dans les discussions"
+
+#: chatroom.module:112
+msgid "Format for system time messages in chats. See the <a href=\"@url\">PHP manual</a> for available options. This format is currently set to display as <span>%date</span>."
+msgstr "Formate la date des messages systèmes dans les discussions. Voir le <a href=\"@url\">Manuel PHP</a> pour les options possibles. Ce format est actuellement positionné à <span>%date</span>."
+
+#: chatroom.module:117
+msgid "Smileys module support"
+msgstr "Support du module Smileys"
+
+#: chatroom.module:123
+msgid "Enable Smileys module support."
+msgstr "Active le support du module Smileys."
+
+#: chatroom.module:128
+msgid "Show smileys in text entry box."
+msgstr "Afficher les smileys dans la boite de saisie du texte."
+
+#: chatroom.module:135
+msgid "Chat alerts"
+msgstr "Alerte pendant les discussions"
+
+#: chatroom.module:141
+msgid "Enable chat alerts."
+msgstr ""
+
+#: chatroom.module:142
+msgid "Checking this box will allow users to turn on alerts for chat events."
+msgstr "Cocher cette case va permettre aux utilisateurs d'activer les alertes pendant les discussions."
+
+#: chatroom.module:147
+msgid "Turn alerts on by default."
+msgstr "Activer les alertes par défaut."
+
+#: chatroom.module:148
+msgid "Check this box if you want chats to open with alerts on."
+msgstr "Cochez cette case si vous souhaitez que les discussions soient initialisés avec les alertes activées."
+
+#: chatroom.module:154
+msgid "Use custom sounds for chat alerts."
+msgstr "Utiliser des sons personnalisés pour les alertes pendant les discussions."
+
+#: chatroom.module:155
+msgid "Check this box if you want to replace default chat alert sounds with your own MP3s."
+msgstr "Cochez cette case si vous voulez remplacer les sons par défaut avec vos propres MP3s."
+
+#: chatroom.module:169
+msgid "Custom new message sound"
+msgstr "Son \"nouveau message\" personnalisé"
+
+#: chatroom.module:170
+msgid "Replace the custom new message sound with a new MP3. !Listen to current file."
+msgstr "Remplacer le son \"nouveau message\" par un nouveau MP3. !Listen le fichier courant."
+
+#: chatroom.module:170;176
+msgid "Listen"
+msgstr "Ecouter"
+
+#: chatroom.module:170
+msgid "Replace the default new message sound with your own MP3."
+msgstr "Remplace le son \"nouveau message\" par défaut par votre propre MP3."
+
+#: chatroom.module:175
+msgid "Custom new user sound"
+msgstr "Son \"nouvel utilisateur\" personnalisé"
+
+#: chatroom.module:176
+msgid "Replace the custom new user sound with a new MP3. !Listen to current file."
+msgstr "Remplacer le son \"nouveau utilisateur\" par un nouveau MP3. !Listen le fichier courant."
+
+#: chatroom.module:176
+msgid "Replace the default new user sound with your own MP3."
+msgstr "Remplace le son \"nouvel utilisateur\" par défaut par votre propre MP3."
+
+#: chatroom.module:199
+msgid "New user sound must be an MP3 file."
+msgstr "Le son \"nouvel utilisateur\" doit être un fichier MP3."
+
+#: chatroom.module:204
+msgid "New message sound must be an MP3 file."
+msgstr "Le son \"nouveau message\" doit être un fichier MP3."
+
+#: chatroom.module:225
+msgid "The block update interval cannot be zero."
+msgstr "La fréquence de mise à jour du bloc ne peut être nulle."
+
+#: chatroom.module:228
+msgid "The block update interval cannot be negative."
+msgstr "La fréquence de mise à jour du bloc ne peut être négative."
+
+#: chatroom.module:232
+msgid "The block update interval must be a number."
+msgstr "La fréquence de mise à jour du bloc doit être un nombre."
+
+#: chatroom.module:250
+msgid "A chat room provides access to chats and chat archives."
+msgstr "Un salon de discussion permet l'accès à des discussions et des archives de discussions."
+
+#: chatroom.module:262
+msgid "Name"
+msgstr "Nom"
+
+#: chatroom.module:268
+msgid "Description"
+msgstr "Description"
+
+#: chatroom.module:271
+msgid "Describe your chat room so other people will know if they want to join."
+msgstr "Décrivez votre salon de discussion pour que les autres gens puissent décider de vous rejoindre."
+
+#: chatroom.module:276
+msgid "Chat room kicked out message"
+msgstr "Message d'expulsion d'un salon de discussion"
+
+#: chatroom.module:279
+msgid "This text will appear on the page kicked out users are sent to. Defaults to, \"You have been kicked out of %chat for misbehaving.\""
+msgstr "Le texte apparaitra sur la page sur laquelle sont redirigés les utilisateurs expulsés. Par défaut, \"Vous avez été expulsé(e) de %chat pour mauvais comportement.\""
+
+#: chatroom.module:279
+msgid "chat-name"
+msgstr ""
+
+#: chatroom.module:283
+msgid "Chat room banned message"
+msgstr "Message de banissement d'un salon de discussion"
+
+#: chatroom.module:286
+msgid "This text will appear on the page banned users are sent to. Defaults to, \"You have been banned from %chatroom.\""
+msgstr "Le texte apparaitra sur la page sur laquelle sont redirigés les utilisateurs bannis. Par défaut, \"Vous avez été banni(e) de %chatroom.\""
+
+#: chatroom.module:286
+msgid "chat-room"
+msgstr ""
+
+#: chatroom.module:291
+msgid "Manage banned users"
+msgstr "Gestion des utilisateurs bannis"
+
+#: chatroom.module:300
+msgid "Check the users you would like to unban"
+msgstr "Cochez les utilisateurs que vous souhaitez dé-bannir"
+
+#: chatroom.module:305
+msgid "Chat settings"
+msgstr "Paramètres de discussion"
+
+#: chatroom.module:310
+msgid "Update frequency"
+msgstr "Fréquence de mise à jour"
+
+#: chatroom.module:313
+msgid "How many seconds between each request for updates from the server."
+msgstr "Nombre de secondes entre chaque requête de mise à jour du serveur."
+
+#: chatroom.module:317
+msgid "Idle time"
+msgstr "Temps d'inactivité"
+
+#: chatroom.module:320
+msgid "How many seconds between each message before a last message time is shown in the chat."
+msgstr "Nombre de secondes entre chaque message avant qu'un message indiquant l'heure du dernier message soit affiché dans le salon."
+
+#: chatroom.module:328
+msgid "Old messages"
+msgstr "Anciens messages"
+
+#: chatroom.module:329
+msgid "How many old messages to show when entering a chat."
+msgstr "Nombre d'anciens messages à afficher à l'entrée dans une discussion."
+
+#: chatroom.module:345
+msgid "Manage open chats"
+msgstr "Gestion des discussions ouvertes"
+
+#: chatroom.module:352
+msgid "Check the chats you would like to close"
+msgstr "Cochez les discussions que vous souhaitez fermer"
+
+#: chatroom.module:358
+msgid "Manage archived chats"
+msgstr "Gestion des discussions archivées"
+
+#: chatroom.module:365
+msgid "Check the chats you would like to delete"
+msgstr "Cochez les discussions que vous souhaitez supprimer"
+
+#: chatroom.module:501;1500
+msgid "Archived on !date."
+msgstr "Archivé le !date."
+
+#: chatroom.module:509
+msgid "No messages"
+msgstr "Aucun message"
+
+#: chatroom.module:540
+msgid "Posted by <strong>!user</strong> on !date"
+msgstr "Posé par <strong>!user</strong> le !date"
+
+#: chatroom.module:581;1122
+msgid "You have been banned from %chatroom."
+msgstr "Vous avez été banni(e) de %chatroom."
+
+#: chatroom.module:604
+msgid "Open chats in this room"
+msgstr "Discussions ouvertes dans ce salon"
+
+#: chatroom.module:608;619;641
+msgid "Chat name"
+msgstr "Nom de la discussion"
+
+#: chatroom.module:608;619
+msgid "Message count"
+msgstr "Nombre de messages"
+
+#: chatroom.module:608;1047
+msgid "Last message"
+msgstr "Dernier message"
+
+#: chatroom.module:615
+msgid "Archived chats in this room"
+msgstr "Discussions archivées dans ce salon"
+
+#: chatroom.module:619
+msgid "When archived"
+msgstr ""
+
+#: chatroom.module:635
+msgid "Create a new chat"
+msgstr "Créer une nouvelle discussion"
+
+#: chatroom.module:644
+msgid "Enter the name for the chat"
+msgstr "Entrer un nom pour la nouvelle discussion"
+
+#: chatroom.module:652
+msgid "Create chat"
+msgstr "Créer une discussion"
+
+#: chatroom.module:665
+msgid "A chat called %name already exists."
+msgstr "Une discussion nommée %name existe déjà."
+
+#: chatroom.module:679
+msgid "There was an error creating your chat"
+msgstr "Une erreur est survenue à la création de la discussion"
+
+#: chatroom.module:713
+msgid "Chat Room: active chats"
+msgstr "Chat Room : discussions actives"
+
+#: chatroom.module:714
+msgid "Chat Room: active chat rooms"
+msgstr "Chat Room : salons de discussions actifs"
+
+#: chatroom.module:715
+msgid "Chat Room: chat on-line list"
+msgstr "Chat Room : liste des utilisateurs en ligne sur la discussion"
+
+#: chatroom.module:716
+msgid "Chat Room: site-wide on-line list"
+msgstr "Chat Room : liste des utilisateurs en ligne sur le site"
+
+#: chatroom.module:717
+msgid "Chat Room: chat commands"
+msgstr "Chat Room : commandes de discussion"
+
+#: chatroom.module:730
+msgid "chats"
+msgstr "discussions"
+
+#: chatroom.module:733
+msgid "chat rooms"
+msgstr "salons de discussion"
+
+#: chatroom.module:738
+msgid "Number of !items to display"
+msgstr "Nombre de !items à affiche"
+
+#: chatroom.module:787;789;790
+msgid "username"
+msgstr "nom d'utilisateur"
+
+#: chatroom.module:787;792
+msgid "message"
+msgstr "message"
+
+#: chatroom.module:797
+msgid "Chat commands"
+msgstr "Commandes de discussion"
+
+#: chatroom.module:814
+msgid "in"
+msgstr "dans"
+
+#: chatroom.module:818;976
+msgid "There are no active chats."
+msgstr "Il n'y a aucune discussion active."
+
+#: chatroom.module:823
+msgid "Active chats"
+msgstr "Discussions actives"
+
+#: chatroom.module:872;977
+msgid "There are no active chat rooms."
+msgstr "Il n'y a aucun salon de discussion actif."
+
+#: chatroom.module:882
+msgid "Active chat rooms"
+msgstr "Salons de discussions actifs"
+
+#: chatroom.module:902
+msgid "Who is on line in %chat"
+msgstr "Qui est en-ligne sur %chat"
+
+#: chatroom.module:914
+msgid "Alert me if new users enter."
+msgstr "Me prévenir à l'entrée d'un nouvel utilisateur."
+
+#: chatroom.module:936;975
+msgid "There are no other users on line."
+msgstr "Il n'y a aucun autre utilisateur connecté."
+
+#: chatroom.module:941
+msgid "On-line users"
+msgstr "Utilisateurs connectés"
+
+#: chatroom.module:1018
+msgid "Post a new chat room."
+msgstr "Créer un nouveau salon de discussion"
+
+#: chatroom.module:1024
+msgid "<a href=\"!login\">Login</a> to post a new chat room."
+msgstr "<a href=\"!login\">Identifiez-vous</a> pour créer un nouveau salon de discussion."
+
+#: chatroom.module:1031
+msgid "No chat rooms defined"
+msgstr "Aucun salon de discussion défini"
+
+#: chatroom.module:1047
+msgid "Chats"
+msgstr "Discussions"
+
+#: chatroom.module:1047
+msgid "Messages"
+msgstr "Messages"
+
+#: chatroom.module:1112
+msgid "You have been kicked out of %chat for misbehaving."
+msgstr "Vous avez été expulsé(e) de %chat pour mauvais comportement."
+
+#: chatroom.module:1167
+msgid "View old messages"
+msgstr "Voir les anciens messages"
+
+#: chatroom.module:1271
+msgid " has joined the chat"
+msgstr " a rejoint la discussion"
+
+#: chatroom.module:1272
+msgid " has left the chat"
+msgstr " a quitté la discussion"
+
+#: chatroom.module:1273
+msgid " is away"
+msgstr " est absent"
+
+#: chatroom.module:1274
+msgid " is back"
+msgstr " est revenu"
+
+#: chatroom.module:1341
+msgid "Type your message"
+msgstr "Entrez votre message"
+
+#: chatroom.module:1343
+msgid "Send"
+msgstr "Envoyer"
+
+#: chatroom.module:1347
+msgid "Show me as away."
+msgstr "M'indiquer \"absent\"."
+
+#: chatroom.module:1350
+msgid "Alert me if new messages are received."
+msgstr "Me prévenir si des nouveaux messages arrivent."
+
+#: chatroom.module:1425
+msgid "Delete this chat"
+msgstr "Supprimer cette discussion"
+
+#: chatroom.module:1456
+msgid "Archive this chat"
+msgstr "Archiver cette discussion"
+
+#: chatroom.module:1503
+msgid "Join !chat"
+msgstr "Rejoindre !chat"
+
+#: chatroom.module:1545
+msgid "This chat contains no messages."
+msgstr "Cette discussion ne contient aucune message."
+
+#: chatroom.module:38
+msgid "access chat rooms"
+msgstr "accéder aux salons de discussion"
+
+#: chatroom.module:38
+msgid "create chat rooms"
+msgstr "créer des salons de discussion"
+
+#: chatroom.module:38
+msgid "edit own chat rooms"
+msgstr "éditer mes propres salons de discussion"
+
+#: chatroom.module:38
+msgid "administer chats"
+msgstr "administrer les discussions"
+
+#: chatroom.module:38
+msgid "administer chat rooms"
+msgstr "administrer les salons de discussion"
+
+#: chatroom.module:38
+msgid "create chats"
+msgstr "créer des discussions"
+
+#: chatroom.module:0
+msgid "chatroom"
+msgstr ""
+
+#: chatroom.install:12 chatroom.info:0
+msgid "Chat Room"
+msgstr ""
+
+#: chatroom.install:13
+msgid "Your MySQL version is too low. Chat Room requires MySQL 4.1 or higher."
+msgstr "Votre version de MySQL est trop ancienne. Chat Room nécessite MySQL 4.1 ou supérieur."
+
+#: chatroom.install:179
+msgid "A database operation failed when setting up Chat Room."
+msgstr "Une opération de base de données à échoué à la configuration de Chat Room."
+
+#: chatroom.install:188
+msgid "Please fix these errors and attempt to enable Chat Room again."
+msgstr "Corrigez ces erreurs et essayez d'activer à nouveau Chat Room."
+
+#: chatroom.install:199
+msgid "Chat Room is ready to go."
+msgstr "Chat Room est prêt à fonctionner."
+
+#: chatroom.install:243
+msgid "Chat room tables have been dropped from the database."
+msgstr "Les tables Chat room ont été supprimées de la base de données."
+
+#: chatroom.install:256
+msgid "Chat room settings have been deleted."
+msgstr "Les réglages de Chat room ont été supprimés."
+
+#: chatroom.info:0
+msgid "Enables the creation of rooms that provide access to chats and chat archives."
+msgstr "Permet la création de salons donnant accès à des discussions et des archives de discussion."
+
