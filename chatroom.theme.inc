@@ -159,7 +159,7 @@ function theme_chatroom_messages(array $messages, $node) {
  */
 function theme_chatroom_message($message, $node) {
   if ($message->uid) {
-    $username = l($message->name, 'user/'. $message->uid);
+    $username = theme('username', $message);
   }
   else {
     $username = $message->name;
@@ -409,10 +409,10 @@ function theme_chatroom_chat_archive($node) {
       else if ($is_admin || $user->uid == $message->uid || $user->uid == $message->recipient_uid) {
         $row_html = '<p class="chatroom-old-msg">' . format_date($message->modified, 'small');
         if ($message->uid == $user->uid && $recipient != $name) {
-          $row_html .= ' (privately to '. $recipient .')> ';
+          $row_html .= '(' . t('privately to %recipient', array('%recipient' => $recipient)) . ')> ';
         }
         else {
-          $row_html .= ' (privately): ';
+          $row_html .= '(' . t('privately') . '):';
         }
         $row_html .= check_plain($message->msg) . '</p>';
       }

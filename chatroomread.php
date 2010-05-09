@@ -16,6 +16,10 @@
  * First, we check to see if the last message seen in a given chat client-side
  * is older than the latest message in that chat server-side. 
  *
+ * Second, we check a message cache, and if we can get some messages from it,
+ * we send them, and exit. This is the real killer performance win from this 
+ * file for busy rooms.
+ *
  * Only if the chat being polled has messages newer than what the requesting
  * client has seen do we bootstrap Drupal. 
  */
@@ -42,24 +46,54 @@ if (!isset($_POST['skip_cache'])) {
 }
 $skip_cache = $_POST['skip_cache'] == 1 ? TRUE : FALSE;
 
+// Bootstrap configuration to make sure we get the right
+// value from session_name() and some paths for caching.
+require_once './includes/bootstrap.inc';
+drupal_bootstrap(DRUPAL_BOOTSTRAP_CONFIGURATION);
+
 // We let the client signal that we should skip the cache. Right now we're 
 // using this to make sure users last-seen time is updated, and there may 
 // be more uses for it down the track.
-if (!$skip_cache && file_exists($chat_cache_file)) {
+if (!$skip_cache) {
+  
+  if (file_exists($chat_cache_file)) {
+    // Do a quick DoS check - we don't validate the path, so we have to make
+    // sure we're not reading arbitrarily big files into memory. Our cache file 
+    // should contain a single numeric id. So, if the file is bigger than 25 
+    // bytes, something is fishy, and we should just bail out.
+    $file_stats = stat($chat_cache_file);
+    if ($file_stats['size'] > 25) {
+      exit;
+    }
 
-  // Do a quick DoS check - we don't validate the path, so we have to make
-  // sure we're not reading arbitrarily big files into memory. Our cache file 
-  // should contain a single numeric id. So, if the file is bigger than 25 
-  // bytes, something is fishy, and we should just bail out.
-  $file_stats = stat($chat_cache_file);
-  if ($file_stats['size'] > 25) {
-    exit;
+    $server_latest_msg_id = trim(file_get_contents($chat_cache_file));
+    if ($server_latest_msg_id == $client_latest_msg_id) {
+      print json_encode(array('data' => array('cacheHit' => 1, 'messages' => array())));
+      exit;
+    }
   }
+  
+  $chatroom_module_dir = variable_get('chatroom_module_dir', 'sites/all/modules/chatroom');
+  require_once "./$chatroom_module_dir/chatroom.cache." . variable_get('chatroom_cache_backend', 'apc') . '.inc';
 
-  $server_latest_msg_id = trim(file_get_contents($chat_cache_file));
-  if ($server_latest_msg_id == $client_latest_msg_id) {
-    print json_encode(array('data' => array('cacheHit' => 1, 'messages' => array())));
-    exit;
+  if ($chat_user = chatroom_get_cached_user()) {
+    if (in_array($chat_id, $chat_user->allowed_chats)) {
+      if ($cached_messages = chatroom_get_cached_messages($chat_id)) {
+        $valid_cache_messages = array();
+        foreach ($cached_messages as $message) {     
+          if ($message->cmid > $client_latest_msg_id) {
+            if ($message->type == 'private_message' && $chat_user->uid != $message->recipient_uid) {
+              continue;
+            }
+            $valid_cache_messages[] = $message;
+          }
+        }
+        if ($valid_cache_messages) {
+          print json_encode(array('data' => array('cacheHit' => 1, 'messages' => $valid_cache_messages)));
+          exit;
+        }
+      }
+    }
   }
 }
 

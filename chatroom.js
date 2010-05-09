@@ -153,6 +153,9 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
       Drupal.settings.chatroom.latestMsgId = response.data.messages[i].cmid;
       $('#chatroom-board').append(response.data.messages[i].html);
       newMessage = response.data.messages[i];
+      if (response.data.messages[i].newDayHtml) {
+        $('#chatroom-board').append(response.data.messages[i].newDayHtml);
+      }
     }
   }
   if (newMessage) {

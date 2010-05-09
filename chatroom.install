@@ -632,8 +632,8 @@ function chatroom_update_6201() {
   }
 
   // Migrate banned list.
-  db_query("INSERT INTO {chatroom_ban_list} (uid, admin_uid, modified)
-              SELECT uid, admin_uid, modified
+  db_query("INSERT INTO {chatroom_ban_list} (nid, uid, admin_uid, modified)
+              SELECT nid, uid, admin_uid, modified
               FROM {chatroom_ban_list_old_version}");
 
   // We don't support some of the old blocks now.

@@ -62,7 +62,6 @@
 #chatroom-board p,
 #chatroom-container-archive p {
   margin:0;
-  width: 70em;
 }
 .chatroom-textentry-options table {
   border-collapse: separate;
