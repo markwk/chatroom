@@ -390,6 +390,7 @@ function chatroom_chat_insert($node) {
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom_chat', $chat);
+  chatroom_chat_update_cache($node->nid, 0);
 }
 
 /**
@@ -437,6 +438,8 @@ function chatroom_chat_delete(&$node) {
   db_query('DELETE FROM {chatroom_chat_online_list} WHERE ccid = %d', $node->nid);
   db_query('DELETE FROM {chatroom_chat_ban_list} WHERE nid = %d', $node->nid);
   db_query('DELETE FROM {chatroom_chat_kicked_list} WHERE nid = %d', $node->nid);
+  $cache_file = file_directory_temp() . '/chatroom.chat.' . $node->nid . '.cache';
+  unlink($cache_file);
 }
 
 /**
