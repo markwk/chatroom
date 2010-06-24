@@ -43,7 +43,7 @@ Drupal.behaviors.chatroom = function(context) {
   });
 
   $('#edit-chatroom-message-entry-box').keyup(function(e) { 
-    var messageText = $('#edit-chatroom-message-entry-box').val();
+    var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
     if (messageText && e.keyCode == 13 && !e.shiftKey && !e.ctrlKey) {
       Drupal.chatroom.postMessage(messageText);
       $('#edit-chatroom-message-entry-box').val('').focus();
@@ -55,7 +55,7 @@ Drupal.behaviors.chatroom = function(context) {
   $('#edit-chatroom-message-entry-submit').click(function (e) {
     e.preventDefault();
     e.stopPropagation();
-    var messageText = $('#edit-chatroom-message-entry-box').val();
+    var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
     if (messageText) {
       Drupal.chatroom.postMessage(messageText);
       $('#edit-chatroom-message-entry-box').val('').focus();
