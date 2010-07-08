@@ -419,14 +419,43 @@ function chatroom_schema() {
  * Implementation of hook_requirements().
  */
 function chatroom_requirements($phase) {
+  global $base_path;
+
   $requirements = array();
-  if ($GLOBALS['db_type'] == 'mysql' && version_compare(db_version(), '4.1') < 0) {
-    $t = get_t();
-    $requirements['chatroom'] = array(
-      'title' => $t('Chat Room'),
-      'value' => $t('Your MySQL version is too low. Chat Room requires MySQL 4.1 or higher.'),
-      'chatroom' => REQUIREMENT_ERROR,
-    );
+  if ($phase == 'install') {
+    if ($GLOBALS['db_type'] == 'mysql' && version_compare(db_version(), '4.1') < 0) {
+      $t = get_t();
+      $requirements['chatroom'] = array(
+        'title' => $t('Chat Room'),
+        'value' => $t('Your MySQL version is too low. Chat Room requires MySQL 4.1 or higher.'),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+  }
+  else if ($phase == 'runtime') {
+    // Check that chatroomread.php exists in the webroot.
+    // Webroot equals document root plus $base_dir
+    $where_chatroomread_should_be = $_SERVER['DOCUMENT_ROOT'] . $base_path . 'chatroomread.php';
+    if (!file_exists($where_chatroomread_should_be)) {
+      $requirements['chatroomread'] = array(
+        'title' => t('Chatroomread.php'),
+        'value' => t('Chatroom requires that the file "chatroomread.php" is copied from the 
+                      module directory to the webroot.'),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+
+    // Check that variable_get('chatroom_module_dir', 'sites/all/modules/chatroom')
+    // returns the right path to the module.
+    $chatroom_module_dir = variable_get('chatroom_module_dir', 'sites/all/modules/chatroom');
+    if (!is_dir($chatroom_module_dir) || !file_exists($chatroom_module_dir . '/chatroom.module')) {
+      $requirements['chatroomdir'] = array(
+        'title' => t('Chatroom module directory'),
+        'value' => t("Chatroom modules path is not set correctly. Please set \$conf['chatroom_module_dir'] in 
+                      your settings.php file to the path to your Chatroom installating directory."),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
   }
   return $requirements;
 }
