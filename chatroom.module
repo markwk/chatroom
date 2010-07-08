@@ -882,6 +882,7 @@ function chatroom_add_js($node) {
     'postMessagePath' => 'chatroom/chat/post/message',
     'banUserPath' => 'chatroom/ajax/user/ban',
     'kickUserPath' => 'chatroom/ajax/user/kick',
+    'removeUserPath' => 'chatroom/ajax/user/remove',
     'chatPath' => 'node/' . $node->nid,
 		'successiveCacheHits' => 0,
     'skipCacheCheckCount' => 5,
@@ -1691,12 +1692,26 @@ function chatroom_chat_ajax_user_remove($node) {
   global $user;
   
   // No point if we don't have a valid user.
-  if (!isset($_POST['uid']) || !$chat_user = user_load($_POST['uid'])) {
+  if (!isset($_POST['uid'])) {
+    return;
+  }
+  
+  if (is_numeric($_POST['uid'])) {
+    $uid = $_POST['uid'];
+  }
+  elseif (preg_match('/^chatroom_user_(\d+)$/', $_POST['uid'], $matches)
+    || preg_match('/^chatroom_user_guest-(\d+)$/', $_POST['uid'], $matches)) {
+    $uid = $matches[1];
+  }
+  
+  if (!$chat_user = user_load($uid)) {
     return;
   }
   
   if (chatroom_chat_user_remove($chat_user, $user, $node)) {
-    drupal_json(array('data' => array('userRemoved' => $chat_user->uid)));
+    $result['userRemoved'] = $chat_user->uid;
+    $result['commandResponse']->msg = t("User %username was removed from chat.", array('%username' => $chat_user->name));
+    drupal_json(array('data' => $result));
   }
 }
 
@@ -1760,6 +1775,12 @@ function chatroom_chat_save_invite($invitee, $inviter, $node) {
   if ($node->chat->private && !($node->uid == $inviter->uid || user_access('administer chats', $inviter))) {
     return FALSE;
   }
+  
+  // Make sure that the user can access the chat if its private.
+  if ($node->chat->private) {
+    $user_data = array('uid' => $invitee->uid, 'nid' => $node->nid);
+    drupal_write_record('chatroom_chat_user', $user_data);
+  }
 
   $user_data = array(
     'inviter_uid' => $inviter->uid, 
@@ -1813,7 +1834,7 @@ function chatroom_chat_get_user_links($node, $users) {
   $links[] = chatroom_chat_user_link(t('Ban user'), 'ban-user', array('attributes' => array('class' => 'chatroom-ban-user-link')));
   $links[] = chatroom_chat_user_link(t('Kick user'), 'kick-user', array('attributes' => array('class' => 'chatroom-kick-user-link')));
   if ($node->chat->private) {
-    $links[] = chatroom_chat_user_link(t('Remove user'), 'remove-user');
+    $links[] = chatroom_chat_user_link(t('Remove user'), 'remove-user', array('attributes' => array('class' => 'chatroom-remove-user-link')));
   }
 
   foreach (module_implements('chatroom_user_links') as $module) {
