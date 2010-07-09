@@ -326,17 +326,18 @@ function chatroom_load_chats($nid) {
   $chats = array();
   $cmids = array();
 
-  $sql = "SELECT cc.*, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.crid = %d";
   $result = db_query($sql, $nid);
   while ($chat = db_fetch_object($result)) {
     $chats[$chat->nid] = $chat;
+    $chats[$chat->nid]->allowed_uids = array($chat->uid);
   }
   
-  // Load the message count info.
   if (!empty($chats)) {
+    // Load the message count info.
     $ccids = array_keys($chats);
     $sql = "SELECT ccid, COUNT(*) msg_count, MAX(cmid) last_cmid
             FROM {chatroom_msg} 
@@ -347,6 +348,14 @@ function chatroom_load_chats($nid) {
       $chats[$count->ccid]->msg_count = $count->msg_count;
       $chats[$count->ccid]->last_cmid = $count->last_cmid;
       $cmids[] = $count->last_cmid;
+    }
+
+    // Load the allowed users for each chat.
+    $sql = "SELECT nid, uid
+            FROM {chatroom_chat_user} 
+            WHERE nidd IN (" . db_placeholders($ccids) . ")";
+    while ($allowed_user = db_fetch_object($result)) {
+      $chats[$allowed_user->nid]->allowed_uids = $allowed_user->uid;
     }
   }
 
@@ -526,6 +535,14 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
         $archived_count = 0;
         $open_count = 0;
         foreach ($node->chatroom->chats as $chat) {
+          if ($chat->private) {
+            if (in_array($user->uid, $chat->allowed_uids)) {
+              $chat->title .= ' (Private)';
+            }
+            else {
+              continue;
+            }
+          }
           if ($chat->when_archived) {
             $rows['archived'][$archived_count] = array(
               array('data' => l($chat->title, "node/$chat->nid")),
