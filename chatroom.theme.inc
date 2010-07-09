@@ -158,7 +158,7 @@ function theme_chatroom_messages(array $messages, $node) {
  * @return string
  */
 function theme_chatroom_message($message, $node) {
-  if ($message->uid) {
+  if ($message->uid && user_access('access user profiles')) {
     $username = theme('username', $message);
   }
   else {
