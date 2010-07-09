@@ -285,7 +285,7 @@ function chatroom_chat_form(&$node, $form_state) {
   $form['chatroom_nid'] = array(
     '#type' => 'hidden',
     '#value' => '',
-    '#value' => $node->chat->chatroom ? $node->chat->chatroom->nid : 0,
+    '#value' => isset($node->chat) && $node->chat->chatroom ? $node->chat->chatroom->nid : 0,
   );
   if ($type->has_body) {
     $form['body_filter']['body'] = array(
