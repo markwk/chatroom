@@ -1073,7 +1073,7 @@ function chatroom_is_banned_user($node) {
 function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_response = FALSE) {
   global $user;
 
-  if ($node->chat->private && $node->uid != $user->uid && !in_array($user->uid, $node->chat->allowed_uids)) {
+  if (!chatroom_chat_user_has_access($node, $user)) {
     drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
@@ -1155,7 +1155,7 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     exit;
   }
 
-  if ($node->chat->private && $node->uid != $user->uid && !in_array($user->uid, $node->chat->allowed_uids)) {
+  if (!chatroom_chat_user_has_access($node, $user)) {
     drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
@@ -1632,7 +1632,7 @@ function chatroom_get_popout_params($node) {
  * @return boolean
  */
 function chatroom_chat_user_has_access($node, $account) {
-  if ($node->chat->private && $node->uid != $account->uid && !user_access('administer chats')) {
+  if ($node->chat->private && $node->uid != $account->uid && !user_access('administer chats', $account)) {
     $sql = "SELECT uid FROM {chatroom_chat_user} WHERE nid = %d AND uid = %d";
     return db_result(db_query($sql, $node->nid, $account->uid));
   }
