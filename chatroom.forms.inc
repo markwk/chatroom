@@ -167,6 +167,13 @@ function chatroom_admin_settings() {
     '#description' => t('Determines how often blocks should update active chat rooms, active chats, and on-line users.'),
     '#size' => 2,
   );
+  $form['chatroom_online_list_timeout'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Chat room user online timeout length'),
+    '#default_value' => variable_get('chatroom_online_list_timeout', 10),
+    '#description' => t('In seconds, sets length of time since use was last seen in chat before being removed from chat user list'),
+    '#size' => 3,
+  );
   $form['chatroom_guest_user_prefix'] = array(
     '#type' => 'textfield',
     '#title' => t('Guest user prefix'),
@@ -253,6 +260,10 @@ function chatroom_admin_settings_validate($form, &$form_state) {
   else {
     form_set_error('chatroom_block_update_interval', t('The block update interval must be a number.'));
   }
+  $timeout = $form_state['values']['chatroom_online_list_timeout'];
+  if (!is_numeric($timeout) || $timeout < 10 || $timeout > 999) {
+    form_set_error('chatroom_online_list_timeout', t('The online timeout length must be a a valid number from 10 to 999.'));
+  }
 }
 
 /**
@@ -273,7 +284,8 @@ function chatroom_chat_form(&$node, $form_state) {
   );
   $form['chatroom_nid'] = array(
     '#type' => 'hidden',
-    '#value' => isset($node->chat, $node->chat->chatroom) ? $node->chat->chatroom->nid : 0,
+    '#value' => '',
+    '#value' => $node->chat->chatroom ? $node->chat->chatroom->nid : 0,
   );
   if ($type->has_body) {
     $form['body_filter']['body'] = array(
