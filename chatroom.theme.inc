@@ -15,6 +15,9 @@ function chatroom_theme($existing, $type, $theme, $path) {
   $page['theme paths'][] = drupal_get_path('module', 'chatroom');
   return array( 
     'page' => $page,
+    'chatroom_message_username' => array(
+      'arguments' => array('message', 'skip_permission_check'),
+    ),
     'chatroom_chat_max_users' => array(
       'arguments' => array('node'),
     ),
@@ -145,7 +148,7 @@ function theme_chatroom_block_chatrooms() {
 function theme_chatroom_messages(array $messages, $node) {
   $output = '';
   foreach($messages as $message) {
-    $output .= theme('chatroom_message', $message, $node);
+    $output .= chatroom_chat_get_themed_message($message, $node);
   }
   return $output;
 }
@@ -158,18 +161,7 @@ function theme_chatroom_messages(array $messages, $node) {
  * @return string
  */
 function theme_chatroom_message($message, $node) {
-  if ($message->uid && user_access('access user profiles')) {
-    $username = theme('username', $message);
-  }
-  else {
-    $username = $message->name;
-  }
-  $class = "chatroom-msg new-message" . ($message->msg_type == 'private_message' ? ' chatroom-private' : '');
-  $output = '<div class="' . $class . '">';
-  $output .= '(' . format_date($message->modified, 'custom', variable_get('chatroom_msg_date_format', 'H:i:s')) . ') <strong>' . $username . ':</strong> ';
-  $output .= check_markup($message->msg, $node->format, FALSE);
-  $output .= '</div>';
-  return $output;
+  return check_markup($message->msg, $node->format, FALSE);
 }
 
 /**
@@ -331,7 +323,7 @@ function theme_chatroom_chat($node) {
   $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
   foreach ($node->chat->latest_messages as $message) {
-    $output .= theme('chatroom_message', $message, $node);
+    $output .= chatroom_chat_get_themed_message($message, $node);
   }
   $output .= '</div></div>';
   $output .= theme('chatroom_buttons', $node);
@@ -509,5 +501,21 @@ function theme_chatroom_chat_max_users($node) {
  */
 function theme_chatroom_chat_admin_buttons($chat) {
   return '<div class="chatroom-chat-admin-buttons">' . drupal_get_form('chatroom_chat_admin_buttons_form_' . $chat->nid, $chat) . '</div>';
+}
+
+/**
+ * Format a username in a chatroom message.
+ * 
+ * @param mixed $message 
+ * @param mixed $skip_permission_check
+ * @return string
+ */
+function theme_chatroom_message_username($message, $skip_permission_check = FALSE) {
+  if ($skip_permission_check || user_access('access user profiles')) {
+    return l($message->name, 'user/'. $message->uid, array('attributes' => array('title' => t('View user profile.'))));
+  }
+  else {
+    return check_plain($message->name);
+  }
 }
 

@@ -21,6 +21,9 @@ function chatroom_init() {
       chatroom_chat_notify_user_of_invites($user, $invites);
     }
   }
+  $user->is_chat_admin = $user->uid == 1 || user_access('administer chats');
+  $user->can_access_user_profiles = user_access('access user profiles');
+  $user->chat_timezone_offset = chatroom_get_user_timezone_offset();
 }
 
 /**
@@ -1092,6 +1095,9 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
     $cached_chat_user = (object) array(
       'uid' => $user->uid,
       'allowed_chats' => array(),
+      'is_chat_admin' => $user->is_chat_admin,
+      'can_access_user_profiles' => $user->can_access_user_profiles,
+      'chat_timezone_offset' => $user->chat_timezone_offset,
     );
   }
   if (!in_array($node->nid, $cached_chat_user->allowed_chats)) {
@@ -1112,14 +1118,26 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
       $save_to_cache = TRUE;
       $msg = new StdClass();
-      $msg->html = theme('chatroom_message', $message, $node);
+      $msg->html = chatroom_chat_get_themed_message($message, $node);
       $msg->text = strip_tags($message->msg);
       $msg->name = $message->name;
       $msg->cmid = $message->cmid;
       $msg->type = $message->msg_type;
       $msg->uid = $message->uid;
+      $msg->modified = $message->modified;
+      $msg->date_format = variable_get('chatroom_msg_date_format', 'H:i:s');
+      $msg->public_css_class = variable_get('chatroom_msg_public_class', 'chatroom-msg');
+      $msg->private_css_class = variable_get('chatroom_msg_private_class', 'chatroom-private');
+      $msg->themed_username = theme('chatroom_message_username', $message, TRUE);
+      $msg->themed_message = theme('chatroom_message', $message, $node);
       $msg->recipient_uid = $message->recipient_uid;
+      $msg->viewed_uid = $user->uid;
+
+      // Store everything in the cache, we'll run an access check when we pull
+      // the messages out.
       $message_cache[$msg->cmid] = $msg;
+
+      // Don't send private messages to anyone accept the intended recipient.
       if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
         continue;
       }
@@ -1140,6 +1158,31 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
     }
   }
   drupal_json(array('data' => $response));
+}
+
+/**
+ * Wrapper around theme('chatroom_message').
+ * 
+ * @param mixed $message 
+ * @param mixed $node 
+ */
+function chatroom_chat_get_themed_message($message, $node) {
+  if ($message->uid && user_access('access user profiles')) {
+    $username = theme('chatroom_message_username', $message);
+  }
+  else {
+    $username = $message->name;
+  }
+  $public_css_class = variable_get('chatroom_msg_public_class', 'chatroom-msg');
+  $private_css_class = variable_get('chatroom_msg_private_class', 'chatroom-private');
+  $class = "new-message $public_css_class" . ($message->msg_type == 'private_message' ? " $private_css_class" : '');
+  $output = '<div class="' . $class . '">';
+  $date = new DateTime('now', new DateTimeZone('UTC'));
+  $date->setTimestamp($message->modified + chatroom_get_user_timezone_offset());
+  $output .= '(' . $date->format(variable_get('chatroom_msg_date_format', 'H:i:s')) . ') <strong>' . $username . ':</strong> ';
+  $output .= theme('chatroom_message', $message, $node);
+  $output .= "</div>";
+  return $output;
 }
 
 /**
@@ -1169,7 +1212,7 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     print drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
-
+  $date = new DateTime('now', new DateTimeZone('UTC'));
   $message = array(
     'ccid' => $node->chat->nid, 
     'uid' => $user->uid, 
@@ -1177,7 +1220,7 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     'sid' => session_id(), 
     'msg_type' => chatroom_chat_get_message_type($_POST['message']),
     'recipient_uid' => 0, 
-    'modified' => time(),
+    'modified' => $date->getTimestamp(),
   );
   if ($message['msg_type'] == 'command') {
     $result = chatroom_chat_call_command($message, $node);
@@ -1186,6 +1229,19 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     $result = chatroom_chat_save_message($message, $node);
   }
   chatroom_chat_get_latest_messages($node, $last_msg_id, $result);
+}
+
+/**
+ * Return the current user's offset from UTC.
+ */
+function chatroom_get_user_timezone_offset() {
+  global $user;
+
+  $offset = variable_get('date_default_timezone', 0);
+  if (variable_get('configurable_timezones', TRUE)) {
+    $offset = $user->timezone;
+  }
+  return $offset;
 }
 
 /**
