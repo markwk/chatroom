@@ -130,9 +130,6 @@ function chatroom_theme_cached_message($message, $chat_user) {
     $message->html = '<div class="' . $class . '">';
     $message->html .= '(' . $date->format($message->date_format) . ') <strong>' . $username . ':</strong> ';
     $message->html .= $message->themed_message;
-    if (variable_get('chatroom_debug', TRUE)) {
-      $message->html .= '-- served from cache --';
-    }
     $message->html .= "</div>";
   }
   return $message;
