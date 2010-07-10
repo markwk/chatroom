@@ -113,16 +113,26 @@ require_once './index.php';
  */
 function chatroom_theme_cached_message($message, $chat_user) {
   // Only need to make adjustments if this message is being viewed by a
-  // different user than now than when it was cached.
+  // different user now than when it was cached.
   if ($message->viewed_uid != $chat_user->uid) {
+    // We can't look up whether the current user can see user profiles, so we
+    // check the value stored in the cached user object.
     $username = $chat_user->can_access_user_profiles ? $message->themed_username : $message->name;
-    $class = "new-message $message->public_css_class" . ($message->msg_type == 'private_message' ? " $message->private_css_class" : '');
-    $date = new DateTime('now', new DateTimeZone('UTC'));
-    $date->setTimestamp($message->modified + $chat_user->chat_timezone_offset);
 
+    // We can't look up the css classes, so we use the values stored in the 
+    // message when it was cached.
+    $class = "new-message $message->public_css_class" . ($message->type == 'private_message' ? " $message->private_css_class" : '');
+    if (variable_get('chatroom_debug', FALSE)) {
+      $class .= ' chatroom-message-cache-hit';
+    }
+
+    $date = new DateTime('@' . ($message->modified + $chat_user->chat_timezone_offset));
     $message->html = '<div class="' . $class . '">';
     $message->html .= '(' . $date->format($message->date_format) . ') <strong>' . $username . ':</strong> ';
     $message->html .= $message->themed_message;
+    if (variable_get('chatroom_debug', TRUE)) {
+      $message->html .= '-- served from cache --';
+    }
     $message->html .= "</div>";
   }
   return $message;
