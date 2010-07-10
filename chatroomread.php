@@ -77,7 +77,7 @@ if (!$skip_cache) {
   require_once "./$chatroom_module_dir/chatroom.cache." . variable_get('chatroom_cache_backend', 'apc') . '.inc';
 
   if ($chat_user = chatroom_get_cached_user()) {
-    if (in_array($chat_id, $chat_user->allowed_chats)) {
+    if ($chat_user->is_chat_admin || in_array($chat_id, $chat_user->allowed_chats)) {
       if ($cached_messages = chatroom_get_cached_messages($chat_id)) {
         $valid_cache_messages = array();
         foreach ($cached_messages as $message) {     
@@ -85,7 +85,7 @@ if (!$skip_cache) {
             if ($message->type == 'private_message' && $chat_user->uid != $message->recipient_uid) {
               continue;
             }
-            $valid_cache_messages[] = $message;
+            $valid_cache_messages[] = chatroom_theme_cached_message($message, $chat_user);
           }
         }
         if ($valid_cache_messages) {
@@ -100,4 +100,31 @@ if (!$skip_cache) {
 // Make this look like a normal request to Drupal, then execute index.php.
 $_GET['q'] = "chatroom/chat/get/latest/messages/$chat_id/$client_latest_msg_id";
 require_once './index.php';
+
+/**
+ * Theme a cached message.
+ * 
+ * We need to do this because when the message was first built and themed, it
+ * could have been for a different user than the one that will pull it out of
+ * the cache. So, things like timezone and the username link need to be
+ * adjusted.
+ *
+ * @param mixed $message 
+ */
+function chatroom_theme_cached_message($message, $chat_user) {
+  // Only need to make adjustments if this message is being viewed by a
+  // different user than now than when it was cached.
+  if ($message->viewed_uid != $chat_user->uid) {
+    $username = $chat_user->can_access_user_profiles ? $message->themed_username : $message->name;
+    $class = "new-message $message->public_css_class" . ($message->msg_type == 'private_message' ? " $message->private_css_class" : '');
+    $date = new DateTime('now', new DateTimeZone('UTC'));
+    $date->setTimestamp($message->modified + $chat_user->chat_timezone_offset);
+
+    $message->html = '<div class="' . $class . '">';
+    $message->html .= '(' . $date->format($message->date_format) . ') <strong>' . $username . ':</strong> ';
+    $message->html .= $message->themed_message;
+    $message->html .= "</div>";
+  }
+  return $message;
+}
 
