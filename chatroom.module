@@ -1280,7 +1280,7 @@ function chatroom_get_user_timezone_offset() {
   global $user;
 
   $offset = variable_get('date_default_timezone', 0);
-  if (variable_get('configurable_timezones', TRUE)) {
+  if (variable_get('configurable_timezones', TRUE) && isset($user->timezone)) {
     $offset = $user->timezone;
   }
   return $offset;
