@@ -49,3 +49,14 @@ function chatroom_save_cached_user($cached_user) {
   return apc_store($cache_id, $cached_user, variable_get('chatroom_cache_ttl', 3600));
 }
 
+/**
+ * Delete the user stored under the given $session_id.
+ */
+function chatroom_delete_cached_user($session_id) {
+  if (!CHATROOM_APC_ENABLED) {
+    return FALSE;
+  }
+  $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_user_' . $session_id;
+  return apc_delete($cache_id);
+}
+

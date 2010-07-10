@@ -11,7 +11,31 @@ require_once dirname(__FILE__) . '/chatroom.theme.inc';
  */
 
 /**
- * Implementation of hook_help().
+ * Implementation of hook_user().
+ */
+function chatroom_user($op, &$edit, &$account, $category = NULL) {
+  switch ($op) {
+    case 'update':
+    case 'delete':
+      chatroom_clear_cached_user($account);
+      break;
+  }
+}
+
+/**
+ * Clear any cache entries for the given $account.
+ * 
+ * @param mixed $account 
+ */
+function chatroom_clear_cached_user(StdClass $account) {
+  $result = db_query("SELECT sid FROM {sessions} WHERE uid = %d", $account->uid);
+  while ($sid = db_result($result)) {
+    chatroom_delete_cached_user($sid);
+  }
+}
+
+/**
+ * Implementation of hook_init().
  */
 function chatroom_init() {
   global $user;
@@ -1177,12 +1201,31 @@ function chatroom_chat_get_themed_message($message, $node) {
   $private_css_class = variable_get('chatroom_msg_private_class', 'chatroom-private');
   $class = "new-message $public_css_class" . ($message->msg_type == 'private_message' ? " $private_css_class" : '');
   $output = '<div class="' . $class . '">';
-  $date = new DateTime('now', new DateTimeZone('UTC'));
-  $date->setTimestamp($message->modified + chatroom_get_user_timezone_offset());
-  $output .= '(' . $date->format(variable_get('chatroom_msg_date_format', 'H:i:s')) . ') <strong>' . $username . ':</strong> ';
+  $output .= '(' . chatroom_get_message_time_string($message->modified) . ') <strong>' . $username . ':</strong> ';
   $output .= theme('chatroom_message', $message, $node);
   $output .= "</div>";
   return $output;
+}
+
+/**
+ * Get the time string for a message from a UTC timestamp. 
+ * 
+ * @param mixed $timestamp 
+ * @return string
+ */
+function chatroom_get_message_time_string($timestamp) {
+  $date = new DateTime('@' . ($timestamp + chatroom_get_user_timezone_offset()));
+  return $date->format(variable_get('chatroom_msg_date_format', 'H:i:s'));
+}
+
+/**
+ * Return a UTC timestamp.
+ * 
+ * @return int timestamp
+ */
+function chatroom_get_utc_timestamp() {
+  $date = new DateTime('now', new DateTimeZone('UTC'));
+  return $date->format('U');
 }
 
 /**
@@ -1212,7 +1255,6 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     print drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
-  $date = new DateTime('now', new DateTimeZone('UTC'));
   $message = array(
     'ccid' => $node->chat->nid, 
     'uid' => $user->uid, 
@@ -1220,7 +1262,7 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     'sid' => session_id(), 
     'msg_type' => chatroom_chat_get_message_type($_POST['message']),
     'recipient_uid' => 0, 
-    'modified' => $date->getTimestamp(),
+    'modified' => chatroom_get_utc_timestamp(),
   );
   if ($message['msg_type'] == 'command') {
     $result = chatroom_chat_call_command($message, $node);
