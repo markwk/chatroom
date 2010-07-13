@@ -434,8 +434,7 @@ function chatroom_requirements($phase) {
   }
   else if ($phase == 'runtime') {
     // Check that chatroomread.php exists in the webroot.
-    // Webroot equals document root plus $base_dir
-    $where_chatroomread_should_be = $_SERVER['DOCUMENT_ROOT'] . $base_path . 'chatroomread.php';
+    $where_chatroomread_should_be = dirname($_SERVER['SCRIPT_FILENAME']) . '/chatroomread.php';
     if (!file_exists($where_chatroomread_should_be)) {
       $requirements['chatroomread'] = array(
         'title' => t('Chatroomread.php'),
