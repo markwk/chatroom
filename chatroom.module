@@ -283,13 +283,13 @@ function chatroom_insert($node) {
   cache_clear_all('chatroom_room_list', 'cache');
   $chatroom = array(
     'nid' => $node->nid,
-    'poll_freq' => $node->poll_freq,
-    'idle_freq' => $node->idle_freq,
-    'max_users' => $node->max_users,
-    'kicked_out_message' => $node->kicked_out_message,
-    'banned_message' => $node->banned_message,
+    'poll_freq' => isset($node->poll_freq) ? $node->poll_freq : 1,
+    'idle_freq' => isset($node->idle_freq) ? $node->idle_freq : 20,
+    'max_users' => isset($node->max_users) ? $node->max_users : 0,
+    'kicked_out_message' => isset($node->kicked_out_message) ? $node->kicked_out_message : '',
+    'banned_message' => isset($node->banned_message) ? $node->banned_message : '',
     'module' => isset($node->module) ? $node->module : 'chatroom',
-    'previous_messages_display_count' => $node->previous_messages_display_count,
+    'previous_messages_display_count' => isset($node->previous_messages_display_count) ? $node->previous_messages_display_count : 20,
     'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
@@ -310,7 +310,7 @@ function chatroom_update($node) {
     'banned_message' => $node->banned_message,
     'module' => isset($node->module) ? $node->module : 'chatroom',
     'previous_messages_display_count' => $node->previous_messages_display_count,
-    'profile_picture' => $node->profile_picture,
+    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom', $chatroom, 'nid');
