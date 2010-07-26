@@ -71,6 +71,7 @@ if (!$skip_cache) {
       print json_encode(array('data' => array('cacheHit' => 1, 'messages' => array())));
       exit;
     }
+    unset($server_latest_msg_id);
   }
   
   $chatroom_module_dir = variable_get('chatroom_module_dir', 'sites/all/modules/chatroom');
