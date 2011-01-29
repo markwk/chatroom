@@ -1214,7 +1214,9 @@ function chatroom_chat_get_themed_message($message, $node) {
  * @return string
  */
 function chatroom_get_message_time_string($timestamp) {
-  $date = new DateTime('@' . ($timestamp + chatroom_get_user_timezone_offset()));
+  $offset_in_hours = chatroom_get_user_timezone_offset() / 60 / 60;
+  $offset_in_hours = $offset_in_hours >= 0 ? '+' . $offset_in_hours : $offset_in_hours;
+  $date = new DateTime('@' . ($timestamp + chatroom_get_user_timezone_offset()), new DateTimeZone('Etc/GMT' . $offset_in_hours));
   return $date->format(variable_get('chatroom_msg_date_format', 'H:i:s'));
 }
 

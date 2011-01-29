@@ -127,7 +127,9 @@ function chatroom_theme_cached_message($message, $chat_user) {
       $class .= ' chatroom-message-cache-hit';
     }
 
-    $date = new DateTime('@' . ($message->modified + $chat_user->chat_timezone_offset));
+    $offset_in_hours = $chat_user->chat_timezone_offset / 60 / 60;
+    $offset_in_hours = $offset_in_hours >= 0 ? '+' . $offset_in_hours : $offset_in_hours;
+    $date = new DateTime('@' . ($message->modified + $chat_user->chat_timezone_offset), new DateTimeZone('Etc/GMT' . $offset_in_hours));
     $message->html = '<div class="' . $class . '">';
     $message->html .= '(' . $date->format($message->date_format) . ') <strong>' . $username . ':</strong> ';
     $message->html .= $message->themed_message;
