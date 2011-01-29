@@ -7,7 +7,7 @@ define('CHATROOM_APC_ENABLED', function_exists('apc_fetch'));
 /**
  * Get a cached user object.
  */
-function chatroom_get_cached_user() { 
+function chatroom_get_cached_user() {
   if (!CHATROOM_APC_ENABLED) {
     return FALSE;
   }
@@ -24,7 +24,7 @@ function chatroom_get_cached_messages($chat_id) {
   }
   $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_' . $chat_id;
   $cache = apc_fetch($cache_id);
-  return $cache ? unserialize($cache) : array(); 
+  return $cache ? unserialize($cache) : array();
 }
 
 /**
@@ -41,7 +41,7 @@ function chatroom_save_cached_messages($chat_id, $cached_messages) {
 /**
  * Save a user object to the cache.
  */
-function chatroom_save_cached_user($cached_user) { 
+function chatroom_save_cached_user($cached_user) {
   if (!CHATROOM_APC_ENABLED) {
     return FALSE;
   }

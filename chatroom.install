@@ -438,7 +438,7 @@ function chatroom_requirements($phase) {
     if (!file_exists($where_chatroomread_should_be)) {
       $requirements['chatroomread'] = array(
         'title' => t('Chatroomread.php'),
-        'value' => t('Chatroom requires that the file "chatroomread.php" is copied from the 
+        'value' => t('Chatroom requires that the file "chatroomread.php" is copied from the
                       module directory to the webroot.'),
         'severity' => REQUIREMENT_ERROR,
       );
@@ -450,7 +450,7 @@ function chatroom_requirements($phase) {
     if (!is_dir($chatroom_module_dir) || !file_exists($chatroom_module_dir . '/chatroom.module')) {
       $requirements['chatroomdir'] = array(
         'title' => t('Chatroom module directory'),
-        'value' => t("Chatroom modules path is not set correctly. Please set \$conf['chatroom_module_dir'] in 
+        'value' => t("Chatroom modules path is not set correctly. Please set \$conf['chatroom_module_dir'] in
                       your settings.php file to the path to your Chatroom installating directory."),
         'severity' => REQUIREMENT_ERROR,
       );
@@ -602,10 +602,10 @@ function chatroom_update_6201() {
 
   // Rename the old tables and leave the data as is.
   $old_tables = array(
-    'chatroom', 
-    'chatroom_ban_list', 
-    'chatroom_chat', 
-    'chatroom_msg', 
+    'chatroom',
+    'chatroom_ban_list',
+    'chatroom_chat',
+    'chatroom_msg',
     'chatroom_online_list',
   );
   foreach ($old_tables as $old_table_name) {
@@ -650,7 +650,7 @@ function chatroom_update_6201() {
       db_query("UPDATE {chatroom_chat} SET when_archived = %d WHERE nid = %d", $old_chat->when_archived, $chat_old_new_map[$old_chat->ccid]->nid);
     }
   }
-  
+
   // Migrate messages.
   db_query("INSERT INTO {chatroom_msg} (cmid, ccid, uid, msg_type, msg, sid, recipient_uid, modified)
               SELECT cmid, ccid, uid, msg_type, msg, sid, recipient, modified

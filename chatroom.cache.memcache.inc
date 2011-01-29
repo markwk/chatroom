@@ -9,7 +9,7 @@ require_once variable_get('cache_inc', FALSE);
 /**
  * Get a cached user object.
  */
-function chatroom_get_cached_user() { 
+function chatroom_get_cached_user() {
   $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_user_' . $_COOKIE[session_name()];
   return cache_get($cache_id);
 }
@@ -20,7 +20,7 @@ function chatroom_get_cached_user() {
 function chatroom_get_cached_messages($chat_id) {
   $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_' . $chat_id;
   $cache = cache_get($cache_id);
-  return $cache ? $cache : array(); 
+  return $cache ? $cache : array();
 }
 
 /**
@@ -34,7 +34,7 @@ function chatroom_save_cached_messages($chat_id, $cached_messages) {
 /**
  * Save a user object to the cache.
  */
-function chatroom_save_cached_user($cached_user) { 
+function chatroom_save_cached_user($cached_user) {
   $cache_id = variable_get('chatroom_cache_prefix', 'chatroom_cache_prefix') . '_user_' . $_COOKIE[session_name()];
   return cache_set($cache_id, $cached_user, variable_get('chatroom_cache_ttl', 3600));
 }

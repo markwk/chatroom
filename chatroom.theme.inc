@@ -13,7 +13,7 @@ function chatroom_theme($existing, $type, $theme, $path) {
   // Add the path to our module folder so we can pick up popout template.
   $page = $existing['page'];
   $page['theme paths'][] = drupal_get_path('module', 'chatroom');
-  return array( 
+  return array(
     'page' => $page,
     'chatroom_message_username' => array(
       'arguments' => array('message', 'skip_permission_check'),
@@ -155,9 +155,9 @@ function theme_chatroom_messages(array $messages, $node) {
 
 /**
  * Format a single message for display.
- * 
- * @param mixed $message 
- * @param mixed $node 
+ *
+ * @param mixed $message
+ * @param mixed $node
  * @return string
  */
 function theme_chatroom_message($message, $node) {
@@ -166,9 +166,9 @@ function theme_chatroom_message($message, $node) {
 
 /**
  * Format a single system message for display.
- * 
- * @param mixed $message 
- * @param mixed $node 
+ *
+ * @param mixed $message
+ * @param mixed $node
  * @return string
  */
 function theme_chatroom_system_message($message, $node) {
@@ -177,15 +177,15 @@ function theme_chatroom_system_message($message, $node) {
 
 /**
  * Format the list of users in a chatroom.
- * 
- * @param mixed $users 
- * @param mixed $node 
+ *
+ * @param mixed $users
+ * @param mixed $node
  * @return string
  */
 function theme_chatroom_user_list($users, $node) {
   global $user;
   $is_admin = $user->uid == $node->uid || user_access('administer chats');
-  
+
   // Get the links to be shown after the user name.
   $user_links = chatroom_chat_get_user_links($node, $users);
   $active_user_links = chatroom_chat_get_active_user_links($node);
@@ -205,7 +205,7 @@ function theme_chatroom_user_list($users, $node) {
         $chat_user->picture = theme('imagecache', $preset['presetname'], $chat_user->picture, $alt, $alt);
         $html .= $chat_user->picture . theme('username', $chat_user);
       }
-      else { 
+      else {
         $html .= theme('user_picture', $chat_user);
       }
     }
@@ -317,7 +317,7 @@ function theme_chatroom_chat_banned_user($node) {
  */
 function theme_chatroom_chat($node) {
   global $user;
-  
+
   $output = '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
   $output .= theme('chatroom_user_list', $node->chat->users, $node);
   $output .= '<div id="chatroom-board-container">';
@@ -335,8 +335,8 @@ function theme_chatroom_chat($node) {
 
 /**
  * Theme the make private button.
- * 
- * @param mixed $node 
+ *
+ * @param mixed $node
  * @return string
  */
 function theme_chatroom_chat_make_private_button($node) {
@@ -345,9 +345,9 @@ function theme_chatroom_chat_make_private_button($node) {
 
 /**
  * Form fields for chatroom text entry.
- * 
- * @param mixed $form_state 
- * @param mixed $node 
+ *
+ * @param mixed $form_state
+ * @param mixed $node
  * @return array
  */
 function chatroom_chat_buttons($form_state, $node) {
@@ -382,7 +382,7 @@ function theme_chatroom_buttons($node) {
  */
 function theme_chatroom_chat_archive($node) {
   global $user;
-  
+
   $is_admin = user_access('administer chats') || user_access('administer chat rooms');
 
   $html = '<p>' . t('Archived on !date.', array('!date' => format_date($node->chat->when_archived, 'medium'))) . '</p>';
@@ -432,7 +432,7 @@ function chatroom_preprocess_page(&$vars) {
 
 /**
  * Theme the teaser for a chat node.
- * 
+ *
  * @param mixed $node
  * @return string
  */
@@ -462,7 +462,7 @@ function theme_chatroom_chat_teaser($node) {
 
 /**
  * Theme the teaser for a chatroom node.
- * 
+ *
  * @param mixed $node
  * @return string
  */
@@ -475,8 +475,8 @@ function theme_chatroom_teaser($node) {
 
 /**
  * Theme a chatroom user list link.
- * 
- * @param mixed $link 
+ *
+ * @param mixed $link
  * @return string
  */
 function theme_chatroom_chat_user_link($link) {
@@ -495,7 +495,7 @@ function theme_chatroom_chat_max_users($node) {
 
 /**
  * Theme chatroom chat admin buttons.
- * 
+ *
  * @param mixed $chat
  * @return string
  */
@@ -505,8 +505,8 @@ function theme_chatroom_chat_admin_buttons($chat) {
 
 /**
  * Format a username in a chatroom message.
- * 
- * @param mixed $message 
+ *
+ * @param mixed $message
  * @param mixed $skip_permission_check
  * @return string
  */

@@ -141,7 +141,7 @@ function chatroom_form(&$node, $form_state) {
       $form['chatroom_profile_picture_support']['imagecache_preset'] = array(
         '#type' => 'select',
         '#title' => t('Profile picture preset'),
-        '#default_value' => $node->chatroom->imagecache_preset, 
+        '#default_value' => $node->chatroom->imagecache_preset,
         '#options' => $presets,
         '#description' => t("This will set the picture size."),
       );
@@ -391,7 +391,7 @@ function chatroom_chat_form(&$node, $form_state) {
       $form['chatroom_profile_picture_support']['imagecache_preset'] = array(
         '#type' => 'select',
         '#title' => t('Profile picture preset'),
-        '#default_value' => $node->chat->imagecache_preset, 
+        '#default_value' => $node->chat->imagecache_preset,
         '#options' => $presets,
         '#description' => t("This will set the picture size."),
       );
@@ -439,9 +439,9 @@ function chatroom_create_chat_form_submit($form, &$form_state) {
 
 /**
  * Create a chat that belongs in a chatroom.
- * 
- * @param mixed $chatroom 
- * @param mixed $values 
+ *
+ * @param mixed $chatroom
+ * @param mixed $values
  * @access public
  * @return StdClass
  */
@@ -455,8 +455,8 @@ function chatroom_create_chatroom_chat($chatroom, $values, $chat_user) {
   $node->idle_freq = $chatroom->chatroom->idle_freq;
   $node->poll_freq = $chatroom->chatroom->poll_freq;
   $node->kicked_out_message = $chatroom->chatroom->kicked_out_message;
-  $node->banned_message = $chatroom->chatroom->banned_message; 
-  $node->max_users = $chatroom->chatroom->max_users; 
+  $node->banned_message = $chatroom->chatroom->banned_message;
+  $node->max_users = $chatroom->chatroom->max_users;
   $node->previous_messages_display_count = $chatroom->chatroom->previous_messages_display_count;
   $node->when_archived = isset($data->when_archived) ? $data->when_archived : NULL;
   $node->comment = isset($data->comment) ? $data->comment : COMMENT_NODE_DISABLED;
@@ -518,8 +518,8 @@ function chatroom_chat_management_form_submit($form, &$form_state) {
 /**
  * Return a widget to manage a chat - make it private, send invites, archive it.
  *
- * @param mixed $form_state 
- * @param mixed $node 
+ * @param mixed $form_state
+ * @param mixed $node
  * @return array
  */
 function chatroom_chat_management_form(&$form_state, $node) {
@@ -547,7 +547,7 @@ function chatroom_chat_management_form(&$form_state, $node) {
   );
   if ($node->chat->private) {
     $form['chat_manager']['add_user'] = array(
-      '#type' => 'textfield', 
+      '#type' => 'textfield',
       '#title' => t('Add a user to this chat'),
       '#autocomplete_path' => "chatroom/chat/user/autocomplete/$node->nid",
       '#size' => 10,
@@ -581,9 +581,9 @@ function chatroom_chat_management_form(&$form_state, $node) {
 
 /**
  * Return a form to manage this chat from the chatroom view.
- * 
- * @param mixed $form_state 
- * @param mixed $chat 
+ *
+ * @param mixed $form_state
+ * @param mixed $chat
  * @return array
  */
 function chatroom_chat_admin_buttons_form(&$form_state, $chat) {
@@ -616,9 +616,9 @@ function chatroom_chat_admin_buttons_form(&$form_state, $chat) {
 
 /**
  * Handle submission of chatroom chat admin button.
- * 
- * @param mixed $form 
- * @param mixed $form_state 
+ *
+ * @param mixed $form
+ * @param mixed $form_state
  * @return void
  */
 function chatroom_chat_admin_buttons_form_submit($form, &$form_state) {
@@ -643,7 +643,7 @@ function chatroom_chat_admin_buttons_form_submit($form, &$form_state) {
       break;
 
     case t('Delete'):
-      // Yeah, who needs a return value anyway? Oh, and node_delete does a 
+      // Yeah, who needs a return value anyway? Oh, and node_delete does a
       // drupal_set_message() for us.
       node_delete($chat->nid);
       break;

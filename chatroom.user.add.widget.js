@@ -43,7 +43,7 @@ Drupal.chatroom.userAdd = function(userName) {
     url: Drupal.settings.basePath + Drupal.settings.chatroomChatForm.userAddPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.userAddHandler,
-    data: { user_name: userName } 
+    data: { user_name: userName }
   });
 };
 
@@ -53,7 +53,7 @@ Drupal.chatroom.userRemove = function(uid) {
     url: Drupal.settings.basePath + Drupal.settings.chatroomChatForm.userRemovePath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.userRemoveHandler,
-    data: { uid: uid } 
+    data: { uid: uid }
   });
 };
 
@@ -79,7 +79,7 @@ Drupal.chatroom.userInvite = function(userName) {
     url: Drupal.settings.basePath + Drupal.settings.chatroomChatForm.userInvitePath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.userInviteHandler,
-    data: { user_name: userName } 
+    data: { user_name: userName }
   });
 };
 
@@ -90,5 +90,5 @@ Drupal.chatroom.userInviteHandler = function(response, responseStatus) {
   }
 };
 
-// vi:ai:expandtab:sw=2 ts=2 
+// vi:ai:expandtab:sw=2 ts=2
 

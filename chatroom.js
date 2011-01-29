@@ -38,11 +38,11 @@ Drupal.behaviors.chatroom = function(context) {
   $("#chatroom-popout-link").click(function (e) {
     e.preventDefault();
     e.stopPropagation();
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' + 
+    url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' +
     window.open(Drupal.settings.basePath + 'node/' + Drupal.settings.chatroom.chatId + '?chatroom_popout=true', '', Drupal.settings.chatroom.popoutParams);
   });
 
-  $('#edit-chatroom-message-entry-box').keyup(function(e) { 
+  $('#edit-chatroom-message-entry-box').keyup(function(e) {
     var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
     if (messageText && e.keyCode == 13 && !e.shiftKey && !e.ctrlKey) {
       Drupal.chatroom.postMessage(messageText);
@@ -87,7 +87,7 @@ Drupal.chatroom.banUser = function(uid) {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { 
+    data: {
       uid: uid
     }
   });
@@ -99,7 +99,7 @@ Drupal.chatroom.kickUser = function(uid) {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.kickUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { 
+    data: {
       uid: uid,
       is_popout: Drupal.settings.chatroom.isPopout
     }
@@ -112,7 +112,7 @@ Drupal.chatroom.removeUser = function(uid) {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.removeUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { 
+    data: {
       uid: uid,
       is_popout: Drupal.settings.chatroom.isPopout
     }
@@ -124,20 +124,20 @@ Drupal.chatroom.poll = function() {
   if (Drupal.settings.chatroom.successiveCacheHits > Drupal.settings.chatroom.skipCacheCheckCount) {
     skipCacheCheck = 1;
   }
-  
+
   $.ajax({
     type: 'POST',
     url: Drupal.settings.basePath + 'chatroomread.php',
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
-      latest_msg_id: Drupal.settings.chatroom.latestMsgId, 
-      chat_cache_directory: Drupal.settings.chatroom.cacheDirectory, 
+      latest_msg_id: Drupal.settings.chatroom.latestMsgId,
+      chat_cache_directory: Drupal.settings.chatroom.cacheDirectory,
       chat_id: Drupal.settings.chatroom.chatId,
       skip_cache: skipCacheCheck,
       is_popout: Drupal.settings.chatroom.isPopout,
       successive_cache_hits: Drupal.settings.chatroom.successiveCacheHits
-    } 
+    }
   });
 }
 
@@ -165,8 +165,8 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
 
   if (response.data.messages) {
     var newMessage = false;
-    for (var i = 0; i < response.data.messages.length; i++) {   
-      // Poll requests can pass each other over the wire, so we can't rely on 
+    for (var i = 0; i < response.data.messages.length; i++) {
+      // Poll requests can pass each other over the wire, so we can't rely on
       // getting a given message once only, so only add if we haven't already
       // done so.
       if (response.data.messages[i].cmid > Drupal.settings.chatroom.latestMsgId) {
@@ -217,7 +217,7 @@ Drupal.chatroom.postMessage = function(message) {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { message: message } 
+    data: { message: message }
   })
 }
 
@@ -230,5 +230,5 @@ Drupal.chatroom.warnNewMsgLoop = function() {
   }
 }
 
-// vi:ai:expandtab:sw=2 ts=2 
+// vi:ai:expandtab:sw=2 ts=2
 
