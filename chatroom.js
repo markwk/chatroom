@@ -225,7 +225,12 @@ Drupal.chatroom.postMessage = function(message, anonName) {
     url: Drupal.settings.basePath + Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { message: message, anonName: anonName }
+    data: {
+      message: message,
+      anonName: anonName,
+      formToken: $('#edit-chatroom-chat-buttons-form-token').val(),
+      formId: $('#edit-chatroom-chat-buttons').val()
+    }
   })
 }
 

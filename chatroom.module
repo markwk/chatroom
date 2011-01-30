@@ -1239,6 +1239,16 @@ function chatroom_get_utc_timestamp() {
 /**
  * Posted messages are handled here.
  *
+ * @return boolean
+ */
+function chatroom_check_token($token, $form_id) {
+  drupal_set_message("$token vs " . drupal_get_token($form_id));
+  return $token == drupal_get_token($form_id);
+}
+
+/**
+ * Posted messages are handled here.
+ *
  * @return void
  */
 function chatroom_chat_post_message($node, $last_msg_id) {
@@ -1246,6 +1256,10 @@ function chatroom_chat_post_message($node, $last_msg_id) {
 
   // Check we have a message posted.
   if (!isset($_POST['message'])) {
+    exit;
+  }
+
+  if (!chatroom_check_token($_POST['formToken'], $_POST['formId'])) {
     exit;
   }
 
@@ -1778,6 +1792,10 @@ function chatroom_chat_get_allowed_users($node) {
 function chatroom_chat_ajax_user_add($node) {
   global $user;
 
+  if (!chatroom_check_token($_POST['formToken'], $_POST['formId'])) {
+    exit;
+  }
+
   // No point if this chat is not private.
   if (!$node->chat->private) {
     return;
@@ -1814,6 +1832,10 @@ function chatroom_chat_ajax_user_add($node) {
  */
 function chatroom_chat_ajax_user_remove($node) {
   global $user;
+
+  if (!chatroom_check_token($_POST['formToken'], $_POST['formId'])) {
+    exit;
+  }
 
   // No point if we don't have a valid user.
   if (!isset($_POST['uid'])) {
@@ -1874,6 +1896,10 @@ function chatroom_chat_user_remove($user_to_be_removed, $user_doing_the_removing
  */
 function chatroom_chat_ajax_user_invite($node) {
   global $user;
+
+  if (!chatroom_check_token($_POST['formToken'], $_POST['formId'])) {
+    exit;
+  }
 
   // No point if we don't have a valid user.
   if (!isset($_POST['user_name']) || !$chat_user = user_load(array('name' => $_POST['user_name']))) {
@@ -2010,6 +2036,10 @@ function chatroom_chat_get_active_user_links($node) {
 function chatroom_chat_ajax_user_ban($node) {
   global $user;
 
+  if (!chatroom_check_token($_POST['formToken'], $_POST['formId'])) {
+    exit;
+  }
+
   if (!isset($_POST['uid'])) {
     return;
   }
@@ -2039,6 +2069,10 @@ function chatroom_chat_ajax_user_ban($node) {
  */
 function chatroom_chat_ajax_user_kick($node) {
   global $user;
+
+  if (!chatroom_check_token($_POST['formToken'], $_POST['formId'])) {
+    exit;
+  }
 
   if (!isset($_POST['uid'])) {
     return;
