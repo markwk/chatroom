@@ -1242,7 +1242,6 @@ function chatroom_get_utc_timestamp() {
  * @return boolean
  */
 function chatroom_check_token($token, $form_id) {
-  drupal_set_message("$token vs " . drupal_get_token($form_id));
   return $token == drupal_get_token($form_id);
 }
 

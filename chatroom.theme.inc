@@ -359,6 +359,11 @@ function chatroom_chat_buttons($form_state, $node) {
       '#size' => 20,
       '#maxlength' => 256,
     );
+    $form['form_token'] = array(
+      '#type' => 'hidden',
+      '#value' => drupal_get_token('chatroom_chat_buttons'),
+      '#id' => 'edit-chatroom-chat-buttons-form-token',
+    );
   }
   $form['chatroom_message_entry_box'] = array(
     '#type' => 'textarea',
