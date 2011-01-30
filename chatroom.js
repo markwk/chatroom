@@ -44,8 +44,12 @@ Drupal.behaviors.chatroom = function(context) {
 
   $('#edit-chatroom-message-entry-box').keyup(function(e) {
     var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
+    var anonNameText = '';
+    if ($('#edit-chatroom-anon-name').length) {
+      anonNameText = $('#edit-chatroom-anon-name').val().replace(/^\s+|\s+$/g, '');
+    }
     if (messageText && e.keyCode == 13 && !e.shiftKey && !e.ctrlKey) {
-      Drupal.chatroom.postMessage(messageText);
+      Drupal.chatroom.postMessage(messageText, anonNameText);
       $('#edit-chatroom-message-entry-box').val('').focus();
     }
     else {
@@ -56,8 +60,12 @@ Drupal.behaviors.chatroom = function(context) {
     e.preventDefault();
     e.stopPropagation();
     var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
+    var anonNameText = '';
+    if ($('#edit-chatroom-anon-name').length) {
+      anonNameText = $('#edit-chatroom-anon-name').val().replace(/^\s+|\s+$/g, '');
+    }
     if (messageText) {
-      Drupal.chatroom.postMessage(messageText);
+      Drupal.chatroom.postMessage(messageText, anonNameText);
       $('#edit-chatroom-message-entry-box').val('').focus();
     }
   });
@@ -211,13 +219,13 @@ Drupal.chatroom.scrollToLatestMessage = function() {
   $('.new-message').removeClass('new-message');
 }
 
-Drupal.chatroom.postMessage = function(message) {
+Drupal.chatroom.postMessage = function(message, anonName) {
   $.ajax({
     type: 'POST',
     url: Drupal.settings.basePath + Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
-    data: { message: message }
+    data: { message: message, anonName: anonName }
   })
 }
 

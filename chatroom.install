@@ -305,9 +305,15 @@ function chatroom_schema() {
         'type' => 'text',
         'size' => 'big',
       ),
+      'anon_name' => array(
+        'type' => 'varchar',
+        'length' => '256',
+        'not null' => TRUE,
+      ),
       'sid' => array(
         'type' => 'varchar',
         'length' => '64',
+        'default' => '',
         'not null' => TRUE,
       ),
       'recipient_uid' => array(
@@ -667,6 +673,22 @@ function chatroom_update_6201() {
   // We don't support some of the old blocks now.
   db_query("DELETE FROM {blocks} WHERE module = 'chatroom' AND delta IN (2, 3)");
 
+  return $ret;
+}
+
+/**
+ * Add anon column.
+ */
+function chatroom_update_6203() {
+  $ret = array();
+  if (!db_column_exists('chatroom_msg', 'anon_name')) {
+    $schema = array(
+      'type' => 'varchar',
+      'length' => '256',
+      'not null' => TRUE,
+    );
+    db_add_field($ret, 'chatroom_msg', 'anon_name', $schema);
+  }
   return $ret;
 }
 

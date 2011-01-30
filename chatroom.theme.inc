@@ -351,6 +351,15 @@ function theme_chatroom_chat_make_private_button($node) {
  * @return array
  */
 function chatroom_chat_buttons($form_state, $node) {
+  global $user;
+  if (!$user->uid && variable_get('chatroom_allow_anon_name', TRUE)) {
+    $form['chatroom_anon_name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Enter your name'),
+      '#size' => 20,
+      '#maxlength' => 256,
+    );
+  }
   $form['chatroom_message_entry_box'] = array(
     '#type' => 'textarea',
     '#title' => t('Enter your message text here'),

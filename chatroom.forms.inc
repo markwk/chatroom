@@ -195,6 +195,12 @@ function chatroom_admin_settings() {
     '#default_value' => variable_get('chatroom_chat_date_format', '* \S\e\n\t \a\t G:i'),
     '#description' => t('Format for system time messages in chats. See the <a href="@url">PHP manual</a> for available options. This format is currently set to display as <span>%date</span>.', array('@url' => 'http://php.net/manual/function.date.php', '%date' => format_date(time(), 'custom', variable_get('chatroom_chat_date_format', '* \S\e\n\t \a\t G:i')))),
   );
+  $form['chatroom_allow_anon_name'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Provide a name field for anonymous users?'),
+    '#description' => t('Like other chat type services, this adds a name textfield for anonymous users.'),
+    '#default_value' => variable_get('chatroom_allow_anon_name', TRUE),
+  );
   if (module_exists('smileys')) {
     $form['chatroom_smileys_support'] = array(
       '#type' => 'fieldset',

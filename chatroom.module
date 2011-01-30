@@ -1011,10 +1011,11 @@ function chatroom_chat_load_messages_helper($sql, $args) {
   $result = db_query($sql, $args);
   $messages = array();
   $guest_sids = array();
+  $guest_prefix = variable_get('chatroom_guest_user_prefix', t('guest-'));
+  $allow_anon_names = variable_get('chatroom_allow_anon_name', TRUE);
   while ($message = db_fetch_object($result)) {
     if ($message->uid == 0 && !in_array($message->sid, $guest_sids)) {
       $guest_sids[] = $message->sid;
-      $message->name = variable_get('chatroom_guest_user_prefix', t('guest-'));
     }
     $messages[$message->cmid] = $message;
   }
@@ -1025,8 +1026,13 @@ function chatroom_chat_load_messages_helper($sql, $args) {
     while ($guest = db_fetch_object($result)) {
       foreach ($messages as $message) {
         if ($message->sid == $guest->sid) {
+          if ($message->anon_name && $allow_anon_names) {
+            $messages[$message->cmid]->name = $message->anon_name . ' <span class="anon-label">(' . $guest_prefix . $guest->guest_id . ')</span>';
+          }
+          else {
+            $messages[$message->cmid]->name = $guest_prefix . $guest->guest_id;
+          }
           $messages[$message->cmid]->guest_id = $guest->guest_id;
-          $messages[$message->cmid]->name .= $guest->guest_id;
         }
       }
     }
@@ -1265,6 +1271,7 @@ function chatroom_chat_post_message($node, $last_msg_id) {
     'msg_type' => chatroom_chat_get_message_type($_POST['message']),
     'recipient_uid' => 0,
     'modified' => chatroom_get_utc_timestamp(),
+    'anon_name' => isset($_POST['anonName']) ? $_POST['anonName'] : '',
   );
   if ($message['msg_type'] == 'command') {
     $result = chatroom_chat_call_command($message, $node);
