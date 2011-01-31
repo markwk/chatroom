@@ -526,7 +526,17 @@ function theme_chatroom_chat_admin_buttons($chat) {
  */
 function theme_chatroom_message_username($message, $skip_permission_check = FALSE) {
   if ($skip_permission_check || user_access('access user profiles')) {
-    return l($message->name, 'user/'. $message->uid, array('attributes' => array('title' => t('View user profile.'))));
+    if ($message->uid > 0) {
+      return l($message->name, 'user/'. $message->uid, array('attributes' => array('title' => t('View user profile.'))));
+    }
+    else {
+      if ($message->anon_name) {
+        return check_plain($message->anon_name) . ' <span class="anon-label">(' . variable_get('chatroom_guest_user_prefix', t('guest-')) . $message->guest_id . ')</span>';
+      }
+      else {
+        return check_plain($message->name);
+      }
+    }
   }
   else {
     return check_plain($message->name);

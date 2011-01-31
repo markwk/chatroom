@@ -22,6 +22,11 @@
  *
  * Only if the chat being polled has messages newer than what the requesting
  * client has seen do we bootstrap Drupal.
+ *
+ * This module doesn't use the full Form API in general because it would make
+ * the chats too slow. Form token handling is implemented manually by the
+ * module to deal with security issues related to handling $_POST data
+ * directly.
  */
 
 // We need the $latest_msg_id, $chat_id and $chat_cache_file to check the
