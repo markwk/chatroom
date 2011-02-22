@@ -246,6 +246,55 @@ function chatroom_admin_settings() {
     '#default_value' => variable_get('chatroom_alerts', FALSE) && variable_get('chatroom_custom_sounds', FALSE),
     '#disabled' => !variable_get('chatroom_alerts', FALSE),
   );
+
+  $form['chatroom_desk']  = array(
+    '#type' => 'fieldset',
+    '#title' => t('Chatroom "desk" options'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['chatroom_desk']['chatroom_desk_nid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Chatroom node ID to use for desk mode.'),
+    '#description' => t('Desk mode creates private chats inside a chat room. Leave blank to disable.'),
+    '#default_value' => variable_get('chatroom_desk_nid', ''),
+  );
+
+  $roles = user_roles();
+  foreach ($roles as $rid => $role) {
+    $options[$rid] = check_plain($role);
+  }
+
+  $form['chatroom_desk']['chatroom_desk_staff_rids'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Staff roles'),
+    '#description' => t('Mark which roles are considered to be "staff" for your desk.'),
+    '#options' => $options,
+    '#default_value' => variable_get('chatroom_desk_staff_rids', array()),
+  );
+
+  $form['chatroom_desk']['chatroom_desk_seconds_online'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Auto-close desk when staff are inactive'),
+    '#default_value' => variable_get('chatroom_desk_minutes_online', 15),
+    '#description' => t('Desk will change to a closed state after the staff member has been idle for the minutes indicated.')
+  );
+
+  $form['chatroom_desk']['chatroom_desk_open_message'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Desk open message'),
+    '#default_value' => variable_get('chatroom_desk_open_message', ''),
+    '#description' => t('A message to show when staff are active on the site.')
+  );
+
+  $form['chatroom_desk']['chatroom_desk_closed_message'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Desk closed message'),
+    '#default_value' => variable_get('chatroom_desk_closed_message', 'Our help desk is closed, please try again later.'),
+    '#description' => t('A message to show when staff are not active on the site.')
+  );
+
   return system_settings_form($form);
 }
 
@@ -269,6 +318,11 @@ function chatroom_admin_settings_validate($form, &$form_state) {
   $timeout = $form_state['values']['chatroom_online_list_timeout'];
   if (!is_numeric($timeout) || $timeout < 10 || $timeout > 999) {
     form_set_error('chatroom_online_list_timeout', t('The online timeout length must be a a valid number from 10 to 999.'));
+  }
+  // Validate that the entered desk node is indeed a chatroom.
+  $chatroom_desk_node = node_load($form_state['values']['chatroom_desk_nid']);
+  if (empty($chatroom_desk_node->type) || $chatroom_desk_node->type != 'chatroom') {
+    form_set_error('chatroom_desk_nid', t('The chatroom desk node id must be for a chatroom'));
   }
 }
 
@@ -656,3 +710,74 @@ function chatroom_chat_admin_buttons_form_submit($form, &$form_state) {
   }
 }
 
+
+/**
+ * Return a form to open a chat desk.
+ * @param $form_state
+ */
+function chatroom_desk_open_form($form_state) {
+  $form = array();
+  if (!user_access('access chat rooms') || !user_access('use chat desk')) {
+    // If this is an anonymous user, show them the feature and give them a call to action.
+    global $user;
+    if (!$user->uid) {
+      $form['chatroom_chatdesk']['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Chat with staff'),
+        '#disabled' => TRUE,
+      );
+
+      $destination = drupal_get_destination();
+      if (array_key_exists(DRUPAL_AUTHENTICATED_RID, user_roles(TRUE, 'use chat desk')) && variable_get('user_register', 1)) {
+          // Users can register themselves.
+          $help = t('<a href="@login">Login</a> or <a href="@register">register</a> to chat', array('@login' => url('user/login', array('query' => $destination)), '@register' => url('user/register', array('query' => $destination))));
+      }
+      else {
+        // Only admins can add new users, no public registration.
+        $help = t('<a href="@login">Login</a> to chat', array('@login' => url('user/login', array('query' => $destination))));
+      }
+      $form['chatroom_chatdesk']['help'] = array(
+        '#value' => '<p>'. $help .'</p>'
+      );
+    }
+  }
+  else {
+    $form['chatroom_chatdesk']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Chat with staff'),
+    );
+  }
+
+  return $form;
+}
+
+
+function chatroom_desk_open_form_submit($form, &$form_state) {
+
+  // Load the chatroom and ensure it exists and this user can access it.
+  $chatroom = node_load(variable_get('chatroom_desk_nid', ''));
+  if (empty($chatroom->nid) || !node_access('view', $chatroom)) {
+    drupal_set_message(t("Contact your site administrator to configure the chat desk."));
+    return;
+  }
+
+  // Set a unique title and create the chatroom.
+  global $user;
+  $i = 0;
+  do {
+    $i++;
+    $name = t('Question from @name - @number', array('@name' => $user->name, '@number' => $i));
+    $nid = db_result(db_query("SELECT nid FROM {node} WHERE title = '%s' AND type = 'chat'", $name));
+  } while(!empty($nid));
+
+  $values['chat_name'] = $name;
+  $values = (object) $values;
+
+  $chat = chatroom_create_chatroom_chat($chatroom, $values, $user);
+  db_query("UPDATE {chatroom_chat} SET private = 1 WHERE nid = %d", $chat->nid);
+  cache_clear_all('chatroom_chat_list', 'cache');
+
+  $_REQUEST['destination'] = 'node/'. $chat->nid;
+
+  return;
+}

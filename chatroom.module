@@ -187,7 +187,7 @@ function chatroom_access($op, $node, $account) {
  * Implementation of hook_perm().
  */
 function chatroom_perm() {
-  return array('access chats', 'access chat rooms', 'create chat rooms', 'edit own chats', 'edit own chat rooms', 'administer chats', 'administer chat rooms', 'create chats');
+  return array('access chats', 'access chat rooms', 'create chat rooms', 'edit own chats', 'edit own chat rooms', 'administer chats', 'administer chat rooms', 'create chats', 'use chat desk', 'staff chat desk');
 }
 
 /**
@@ -380,7 +380,7 @@ function chatroom_load_chats($nid) {
     // Load the allowed users for each chat.
     $sql = "SELECT nid, uid
             FROM {chatroom_chat_user}
-            WHERE nidd IN (" . db_placeholders($ccids) . ")";
+            WHERE nid IN (" . db_placeholders($ccids) . ")";
     while ($allowed_user = db_fetch_object($result)) {
       $chats[$allowed_user->nid]->allowed_uids = $allowed_user->uid;
     }
@@ -563,7 +563,7 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
         $open_count = 0;
         foreach ($node->chatroom->chats as $chat) {
           if ($chat->private) {
-            if (in_array($user->uid, $chat->allowed_uids)) {
+            if (in_array($user->uid, $chat->allowed_uids) || chatroom_staff_chat_access($user, $chat)) {
               $chat->title .= ' (Private)';
             }
             else {
@@ -738,7 +738,8 @@ function chatroom_chat_archive_chat($node) {
  * Implementation of hook_block().
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
-  $block_name = $delta == 0 ? 'chats' : ($delta == 1 ? 'chatrooms' : '');
+  $block_name = $delta === 0 ? 'chats' : ($delta === 1 ? 'chatrooms' : $delta);
+
   switch ($op) {
     case 'list':
       $blocks[0] = array(
@@ -751,6 +752,17 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
         'cache' => BLOCK_CACHE_GLOBAL,
         'visibility' => 0,
       );
+      $blocks['chatroom_desk'] = array(
+        'info' => t('Chat room: show user desk controls'),
+        'cache' => BLOCK_NO_CACHE,
+        'visibility' => 0,
+      );
+      $blocks['chatroom_desk_staff'] = array(
+        'info' => t('Chat room: show staff desk controls'),
+        'cache' => BLOCK_NO_CACHE,
+        'visibility' => 0,
+      );
+
       return $blocks;
 
     case 'configure':
@@ -782,10 +794,23 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
           if (user_access('access chats')) {
             return theme('chatroom_block_chats');
           }
-
         case 'chatrooms':
           if (user_access('access chat rooms')) {
             return theme('chatroom_block_chatrooms');
+          }
+        case 'chatroom_desk':
+          // Control the visibility of this block with block settings.
+          // The button will be disabled if they don't have permission to use it.
+          $open_message = filter_xss_admin(variable_get('chatroom_desk_open_message', ''));
+          $closed_message = filter_xss_admin(variable_get('chatroom_desk_closed_message', 'Our help desk is closed, please try again later.'));
+          $staff = chatroom_get_staff_on_duty();
+          return theme('chatroom_desk', $open_message, $closed_message, $staff);
+
+        case 'chatroom_desk_staff':
+          // For staff, show the currently active chatrooms.
+          if (user_access('access chat rooms') && user_access('staff chat desk')) {
+            $rooms = chatroom_get_open_desk_rooms();
+            return theme('chatroom_desk_staff', $rooms);
           }
       }
       break;
@@ -1752,7 +1777,13 @@ function chatroom_get_popout_params($node) {
  * @return boolean
  */
 function chatroom_chat_user_has_access($node, $account) {
-  if ($node->chat->private && $node->uid != $account->uid && !user_access('administer chats', $account)) {
+  if ($node->chat->private && $node->uid != $account->uid) {
+    if (user_access('administer chats', $account)) {
+      return TRUE;
+    }
+    if (chatroom_staff_chat_access($account, $node->chat)) {
+      return TRUE;
+    }
     $sql = "SELECT uid FROM {chatroom_chat_user} WHERE nid = %d AND uid = %d";
     return db_result(db_query($sql, $node->nid, $account->uid));
   }
@@ -2141,5 +2172,101 @@ function chatroom_chat_make_chat_public($node) {
   db_query("UPDATE {chatroom_chat} SET private = 0 WHERE nid = %d", $node->nid);
   cache_clear_all('chatroom_chat_list', 'cache');
   return db_affected_rows();
+}
+
+/**
+ * Returns an array of "desk" staff who are online.
+ *
+ * @return array of usernames keyed on uid
+ */
+function chatroom_get_staff_on_duty() {
+  $staff = array();
+  $rids = array_filter(variable_get('chatroom_desk_staff_rids', array()));
+  if (!empty($rids)) {
+
+    $interval = time() - (variable_get('chatroom_desk_minutes_online', 15) * 60);
+
+    $args = array_merge(array($interval), $rids);
+    $staffers = db_query('SELECT DISTINCT u.uid, u.name FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid INNER JOIN {users_roles} ur ON s.uid = ur.uid WHERE s.timestamp >= %d AND s.uid > 0 AND ur.rid in ('. db_placeholders($rids) .') ORDER BY s.timestamp DESC', $args);
+
+    while ($record = db_fetch_object($staffers)) {
+      $staff[$record->uid] = check_plain($record->name);
+    }
+  }
+  return $staff;
+}
+
+/**
+ * Finds open chats in the room that is marked as the help desk.
+ *
+ * @return an array of chats.
+ */
+function chatroom_get_open_desk_rooms() {
+  $rooms = array();
+  $chat_desk = node_load(variable_get('chatroom_desk_nid', ''));
+  if (!empty($chat_desk->nid)) {
+
+    foreach ($chat_desk->chatroom->chats as $chat) {
+      if (empty($chat->when_archived)) {
+        $rooms[] = $chat;
+      }
+    }
+  }
+  return $rooms;
+}
+
+/**
+ * Provide a list of open chats for this user.
+ *
+ * @param integer $uid
+ * @return array of chats.
+ */
+function chatroom_get_users_active_chats($uid = NULL) {
+  if (empty($uid)) {
+    global $user;
+    $uid = $user->uid;
+  }
+  $chats = array();
+
+  $results = db_query("SELECT n.nid FROM {node} n INNER JOIN {chatroom_chat} cc ON n.nid = cc.nid
+                    WHERE when_archived IS NULL AND type = 'chat' AND uid = %d", $uid);
+  while ($chat = db_fetch_object($results)) {
+
+    $chats[] = chatroom_load_chat($chat->nid);
+  }
+  return $chats;
+}
+
+/**
+ * Loads a chat by the nid of the chat (not the chatroom).
+ *
+ * @param integer $nid
+ * @return object chat data.
+ */
+function chatroom_load_chat($nid) {
+
+  $sql = "SELECT cc.*, n.uid, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
+          FROM {chatroom_chat} cc
+          INNER JOIN {node} n ON n.nid = cc.nid
+          WHERE cc.nid = %d";
+  $result = db_query($sql, $nid);
+  $chat = db_fetch_object($result);
+  // TODO: Shouldn't this include people who are invited as well?
+  $chat->allowed_uids = chatroom_chat_load_allowed_uids((object)(array('nid' => $nid)));
+
+  return $chat;
+}
+
+/**
+ * Check if the account is staff, and the chat is a desk chat.
+ */
+function chatroom_staff_chat_access($account, $chat) {
+  if (user_access('administer chats', $account)) {
+    return TRUE;
+  }
+  if ($chat->crid && $chat->crid == variable_get('chatroom_desk_nid', 0)) {
+    return array_intersect(variable_get('chatroom_desk_staff_rids', array()), array_keys($account->roles));
+  }
+  return FALSE;
 }
 

@@ -45,6 +45,12 @@ function chatroom_theme($existing, $type, $theme, $path) {
     'chatroom_block_chatrooms' => array(
       'arguments' => array(),
     ),
+    'chatroom_desk' => array(
+      'arguments' => array('open_message', 'closed_message', 'staff'),
+    ),
+    'chatroom_desk_staff' => array(
+      'arguments' => array('rooms'),
+    ),
     'chatroom_message' => array(
       'arguments' => array('message', 'node'),
     ),
@@ -137,6 +143,72 @@ function theme_chatroom_block_chatrooms() {
   return array(
     'content' => $content,
     'subject' => t('Active chat rooms'),
+  );
+}
+
+/**
+ * Provide a block helpful to users who want to chat with the help desk.
+ * @param string $open_message
+ * @param string $closed_message
+ * @param array $staff
+ * @return string
+ * @ingroup themeable
+ */
+function theme_chatroom_desk($open_message, $closed_message, $staff){
+  global $user;
+  if ($user->uid && (!user_access('access chat rooms') || !user_access('use chat desk'))) {
+
+    // If they are logged in and not allowed to chat, nothing to see.
+    return array(
+      'content' => '',
+      'subject' => '',
+    );
+  }
+  // Show the message
+  if (empty($staff)) {
+    $content = '<div class="chatroom_desk_closed">'. $closed_message .'</div>';
+  }
+  else {
+    $content = '<div class="chatroom_desk_open">'. $open_message .'</div>';
+    $users_chats = chatroom_get_users_active_chats();
+    if (empty($users_chats)) {
+      $content .= drupal_get_form('chatroom_desk_open_form');
+    }
+    else {
+      $content .= "<p>". t('Your current chat:') ."</p>";
+      foreach ($users_chats as $chat) {
+        $items[] = l($chat->title, 'node/'. $chat->nid);
+      }
+      $content .= theme('item_list', $items);
+    }
+  }
+  return array(
+    'content' => $content,
+    'subject' => t('Live Chat Desk'),
+  );
+}
+
+/**
+ * Return a block useful for for help desk staff.
+ * @return string
+ *
+ * @ingroup themeable
+ */
+function theme_chatroom_desk_staff($rooms){
+  // Show the message.
+  if (empty($rooms)) {
+    $content = '<div class="chatroom_desk_empty">'. t('There are no active help desk chatrooms.') .'</div>';
+  }
+  else {
+    $content = '<div class="chatroom_desk_active">'. t('There are active help desk chatrooms.') .'</div>';
+    foreach ($rooms as $chat) {
+      $items[] = l($chat->title, 'node/'. $chat->nid);
+    }
+    $content .= theme('item_list', $items);
+  }
+  return array(
+    'content' => $content,
+    'subject' => t('Active chat desk rooms'),
   );
 }
 
