@@ -1,5 +1,4 @@
 # translation of chatroom.pot to it.po
-# $Id$
 # LANGUAGE translation of Drupal ()
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from file:

@@ -1,4 +1,3 @@
-$Id$
 
 Chat Room allows users to talk together in real time. Users enter chat rooms
 which can have multiple chats. Permissions can be set to restrict who can

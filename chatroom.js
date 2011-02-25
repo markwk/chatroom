@@ -1,4 +1,3 @@
-// $Id$
 
 /**
  * Client-side functionality for chatroom.module.
