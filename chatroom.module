@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 require_once dirname(__FILE__) . '/chatroom.forms.inc';
 require_once dirname(__FILE__) . '/chatroom.cache.' . variable_get('chatroom_cache_backend', 'apc') . '.inc';

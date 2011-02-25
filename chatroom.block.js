@@ -1,4 +1,3 @@
-// $Id$
 
 Drupal.chatroom = Drupal.chatroom || {};
 Drupal.chatroom.block = Drupal.chatroom.block || {};
