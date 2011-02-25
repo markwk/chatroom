@@ -1,4 +1,3 @@
-// $Id$
 
 Drupal.behaviors.chatroomUserWidget = function(context) {
   $('#edit-add-user').keypress(function (e) {
