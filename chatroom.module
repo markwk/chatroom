@@ -448,6 +448,30 @@ function chatroom_chat_update($node) {
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom_chat', $chat, 'nid');
+
+  // Unban any users selected to be unbanned.
+  $uids = array();
+  if (!empty($node->unban_list)) {
+    $uids = array_diff($node->unban_list, array(0));
+  }
+  if (!empty($uids)) {
+    chatroom_chat_unban_multiple($node->nid, $uids);
+  }
+}
+
+/**
+ * Unban one or more users from a chat.
+ *
+ * @param $nid
+ *   The nid of the node the users have been banned from.
+ * @param $uids
+ *   An array of user IDs.
+ */
+function chatroom_chat_unban_multiple($nid, $uids) {
+  foreach ($uids as $uid) {
+    db_query("DELETE FROM {chatroom_chat_ban_list} WHERE uid = %d", $uid);
+  }
+  cache_clear_all('chatroom_chat_ban_list_' . $nid, 'cache');
 }
 
 /**

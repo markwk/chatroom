@@ -39,6 +39,7 @@ function chatroom_forms($form_id, $args) {
  */
 function chatroom_form(&$node, $form_state) {
   global $user;
+
   $form['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Name'),
@@ -370,14 +371,14 @@ function chatroom_chat_form(&$node, $form_state) {
     '#rows' => 3,
     '#description' => t('This text will appear on the page banned users are sent to. Defaults to, "You have been banned from %chatroom."', array('%chatroom' => t('chat-room'))),
   );
-  if (!empty($node->banned_users)) {
+  if (!empty($node->chat->banned_list)) {
     $form['chatroom_banned_users'] = array(
       '#type' => 'fieldset',
       '#title' => t('Manage banned users'),
       '#collapsible' => TRUE,
     );
-    foreach ($node->banned_users as $banned_user) {
-      $banned_users[$banned_user->uid] = check_plain($banned_user->name);
+    foreach ($node->chat->banned_list as $banned_user) {
+      $banned_users[$banned_user->uid] = check_plain(user_load($banned_user->uid)->name);
     }
     $form['chatroom_banned_users']['unban_list'] = array(
       '#type' => 'checkboxes',
@@ -491,6 +492,7 @@ function chatroom_create_chat_form(&$form_state, $room) {
  */
 function chatroom_create_chat_form_submit($form, &$form_state) {
   global $user;
+
   $chatroom = $form_state['chatroom'];
   $values = (object) $form_state['values'];
   return chatroom_create_chatroom_chat($chatroom, $values, $user);
@@ -582,7 +584,6 @@ function chatroom_chat_management_form_submit($form, &$form_state) {
  * @return array
  */
 function chatroom_chat_management_form(&$form_state, $node) {
-
   $allowed_users_form = array();
   $settings = array(
     'userAddPath' => 'chatroom/ajax/user/add',
@@ -715,10 +716,11 @@ function chatroom_chat_admin_buttons_form_submit($form, &$form_state) {
  * @param $form_state
  */
 function chatroom_desk_open_form($form_state) {
+  global $user;
+
   $form = array();
   if (!user_access('access chat rooms') || !user_access('use chat desk')) {
     // If this is an anonymous user, show them the feature and give them a call to action.
-    global $user;
     if (!$user->uid) {
       $form['chatroom_chatdesk']['submit'] = array(
         '#type' => 'submit',
@@ -728,8 +730,8 @@ function chatroom_desk_open_form($form_state) {
 
       $destination = drupal_get_destination();
       if (array_key_exists(DRUPAL_AUTHENTICATED_RID, user_roles(TRUE, 'use chat desk')) && variable_get('user_register', 1)) {
-          // Users can register themselves.
-          $help = t('<a href="@login">Login</a> or <a href="@register">register</a> to chat', array('@login' => url('user/login', array('query' => $destination)), '@register' => url('user/register', array('query' => $destination))));
+        // Users can register themselves.
+        $help = t('<a href="@login">Login</a> or <a href="@register">register</a> to chat', array('@login' => url('user/login', array('query' => $destination)), '@register' => url('user/register', array('query' => $destination))));
       }
       else {
         // Only admins can add new users, no public registration.
@@ -746,12 +748,11 @@ function chatroom_desk_open_form($form_state) {
       '#value' => t('Chat with staff'),
     );
   }
-
   return $form;
 }
 
-
 function chatroom_desk_open_form_submit($form, &$form_state) {
+  global $user;
 
   // Load the chatroom and ensure it exists and this user can access it.
   $chatroom = node_load(variable_get('chatroom_desk_nid', ''));
@@ -761,7 +762,6 @@ function chatroom_desk_open_form_submit($form, &$form_state) {
   }
 
   // Set a unique title and create the chatroom.
-  global $user;
   $i = 0;
   do {
     $i++;
@@ -780,3 +780,4 @@ function chatroom_desk_open_form_submit($form, &$form_state) {
 
   return;
 }
+
