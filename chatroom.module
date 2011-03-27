@@ -1393,7 +1393,7 @@ function chatroom_chat_command_api($command, $node) {
 function chatroom_command_ban_user($command, $node) {
   global $user;
   if ($user_to_ban = chatroom_get_user_from_command_arg($command->args[0])) {
-    if (chatroom_ban_user($node, $user_to_ban, $user)) {
+    if (chatroom_chat_ban_user($node, $user_to_ban, $user)) {
       $params = array(
         '!banned_username' => $user_to_ban->name,
         '!chat' => $node->title,
