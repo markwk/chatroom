@@ -95,7 +95,9 @@ Drupal.chatroom.banUser = function(uid) {
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
-      uid: uid
+      uid: uid,
+      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formId: 'chatroom_chat_management_form'
     }
   });
 }
@@ -108,6 +110,8 @@ Drupal.chatroom.kickUser = function(uid) {
     success: Drupal.chatroom.pollHandler,
     data: {
       uid: uid,
+      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formId: 'chatroom_chat_management_form',
       is_popout: Drupal.settings.chatroom.isPopout
     }
   });
@@ -121,7 +125,9 @@ Drupal.chatroom.removeUser = function(uid) {
     success: Drupal.chatroom.pollHandler,
     data: {
       uid: uid,
-      is_popout: Drupal.settings.chatroom.isPopout
+      is_popout: Drupal.settings.chatroom.isPopout,
+      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formId: 'chatroom_chat_management_form'
     }
   });
 }
