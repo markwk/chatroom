@@ -241,7 +241,7 @@ Drupal.chatroom.postMessage = function(message, anonName) {
 
 Drupal.chatroom.warnNewMsgLoop = function() {
   if (document.title == Drupal.settings.chatroom.pageTitle) {
-    document.title = Drupal.settings.chatroom.newMsg.name + ' says: ' + Drupal.settings.chatroom.newMsg.text;
+    document.title = Drupal.settings.chatroom.newMsg.name_stripped + ' says: ' + Drupal.settings.chatroom.newMsg.text;
   }
   else {
     document.title = Drupal.settings.chatroom.pageTitle;

@@ -1202,6 +1202,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
       $msg->html = chatroom_chat_get_themed_message($message, $node);
       $msg->text = strip_tags($message->msg);
       $msg->name = $message->name;
+      $msg->name_stripped = strip_tags($message->name);
       $msg->cmid = $message->cmid;
       $msg->type = $message->msg_type;
       $msg->uid = $message->uid;
