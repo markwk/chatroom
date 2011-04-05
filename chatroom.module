@@ -352,14 +352,17 @@ function chatroom_load_chats($nid) {
   $chats = array();
   $cmids = array();
 
-  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 AS msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.crid = %d";
   $result = db_query($sql, $nid);
   while ($chat = db_fetch_object($result)) {
+    $chat->allowed_uids = array($chat->uid);
+    $chat->last_msg = NULL;
+    $chat->last_cmid = 0;
+    $chat->msg_count = 0;
     $chats[$chat->nid] = $chat;
-    $chats[$chat->nid]->allowed_uids = array($chat->uid);
   }
 
   if (!empty($chats)) {
