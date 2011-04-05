@@ -352,7 +352,7 @@ function chatroom_load_chats($nid) {
   $chats = array();
   $cmids = array();
 
-  $sql = "SELECT cc.*, n.uid, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 msg_count, NULL last_msg
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.crid = %d";
@@ -1017,7 +1017,7 @@ function chatroom_add_js($node) {
  * @return array $messages
 */
 function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
-  $sql = "SELECT cm.*, u.name, 0 guest_id
+  $sql = "SELECT cm.*, u.name, 0 AS guest_id
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
           WHERE cm.ccid = %d
@@ -1038,7 +1038,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
  * @return array
  */
 function chatroom_chat_load_latest_messages($node) {
-  $sql = "SELECT cm.*, u.name, 0 guest_id
+  $sql = "SELECT cm.*, u.name, 0 AS guest_id
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
           WHERE cm.ccid = %d
@@ -2268,7 +2268,7 @@ function chatroom_get_users_active_chats($uid = NULL) {
  */
 function chatroom_load_chat($nid) {
 
-  $sql = "SELECT cc.*, n.uid, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 msg_count, NULL last_msg
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.nid = %d";
