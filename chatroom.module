@@ -1165,7 +1165,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
   }
 
   if (chatroom_chat_is_kicked_user($user, $node)) {
-    print drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
 
@@ -1316,12 +1316,12 @@ function chatroom_chat_post_message($node, $last_msg_id) {
   }
 
  if (chatroom_chat_is_banned_user($user, $node)) {
-    print drupal_json(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
+    drupal_json(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
     return;
   }
 
   if (chatroom_chat_is_kicked_user($user, $node)) {
-    print drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
   $message = array(
