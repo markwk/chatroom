@@ -352,7 +352,7 @@ function chatroom_load_chats($nid) {
   $chats = array();
   $cmids = array();
 
-  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 AS msg_count, NULL last_msg
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.crid = %d";
@@ -2254,7 +2254,6 @@ function chatroom_get_users_active_chats($uid = NULL) {
   $results = db_query("SELECT n.nid FROM {node} n INNER JOIN {chatroom_chat} cc ON n.nid = cc.nid
                     WHERE when_archived IS NULL AND type = 'chat' AND uid = %d", $uid);
   while ($chat = db_fetch_object($results)) {
-
     $chats[] = chatroom_load_chat($chat->nid);
   }
   return $chats;
@@ -2267,8 +2266,7 @@ function chatroom_get_users_active_chats($uid = NULL) {
  * @return object chat data.
  */
 function chatroom_load_chat($nid) {
-
-  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 AS msg_count, NULL last_msg
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.nid = %d";
@@ -2276,7 +2274,6 @@ function chatroom_load_chat($nid) {
   $chat = db_fetch_object($result);
   // TODO: Shouldn't this include people who are invited as well?
   $chat->allowed_uids = chatroom_chat_load_allowed_uids((object)(array('nid' => $nid)));
-
   return $chat;
 }
 
