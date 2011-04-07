@@ -33,27 +33,29 @@
 if (!isset($_POST['latest_msg_id']) || !preg_match('/^\d+$/', $_POST['latest_msg_id'])) {
   exit;
 }
-$client_latest_msg_id = $_POST['latest_msg_id'];
 
 if (!isset($_POST['chat_id']) || !preg_match('/^\d+$/', $_POST['chat_id'])) {
   exit;
 }
-$chat_id = $_POST['chat_id'];
 
 if (!isset($_POST['chat_cache_directory']) || !is_dir($_POST['chat_cache_directory'])) {
   exit;
 }
-$chat_cache_file = $_POST['chat_cache_directory'] . '/chatroom.chat.' . $chat_id . '.cache';
 
 if (!isset($_POST['skip_cache'])) {
   exit;
 }
-$skip_cache = $_POST['skip_cache'] == 1 ? TRUE : FALSE;
 
 // Bootstrap configuration to make sure we get the right
 // value from session_name() and some paths for caching.
 require_once './includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_CONFIGURATION);
+
+// Do this after the bootstrap so we don't loose these variables.
+$client_latest_msg_id = $_POST['latest_msg_id'];
+$chat_id = $_POST['chat_id'];
+$chat_cache_file = $_POST['chat_cache_directory'] . '/chatroom.chat.' . $chat_id . '.cache';
+$skip_cache = $_POST['skip_cache'] == 1 ? TRUE : FALSE;
 
 // We let the client signal that we should skip the cache. Right now we're
 // using this to make sure users last-seen time is updated, and there may

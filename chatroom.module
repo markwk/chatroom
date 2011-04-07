@@ -352,14 +352,17 @@ function chatroom_load_chats($nid) {
   $chats = array();
   $cmids = array();
 
-  $sql = "SELECT cc.*, n.uid, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.crid = %d";
   $result = db_query($sql, $nid);
   while ($chat = db_fetch_object($result)) {
+    $chat->allowed_uids = array($chat->uid);
+    $chat->last_msg = NULL;
+    $chat->last_cmid = 0;
+    $chat->msg_count = 0;
     $chats[$chat->nid] = $chat;
-    $chats[$chat->nid]->allowed_uids = array($chat->uid);
   }
 
   if (!empty($chats)) {
@@ -448,6 +451,30 @@ function chatroom_chat_update($node) {
     'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
   );
   drupal_write_record('chatroom_chat', $chat, 'nid');
+
+  // Unban any users selected to be unbanned.
+  $uids = array();
+  if (!empty($node->unban_list)) {
+    $uids = array_diff($node->unban_list, array(0));
+  }
+  if (!empty($uids)) {
+    chatroom_chat_unban_multiple($node->nid, $uids);
+  }
+}
+
+/**
+ * Unban one or more users from a chat.
+ *
+ * @param $nid
+ *   The nid of the node the users have been banned from.
+ * @param $uids
+ *   An array of user IDs.
+ */
+function chatroom_chat_unban_multiple($nid, $uids) {
+  foreach ($uids as $uid) {
+    db_query("DELETE FROM {chatroom_chat_ban_list} WHERE uid = %d", $uid);
+  }
+  cache_clear_all('chatroom_chat_ban_list_' . $nid, 'cache');
 }
 
 /**
@@ -993,7 +1020,7 @@ function chatroom_add_js($node) {
  * @return array $messages
 */
 function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
-  $sql = "SELECT cm.*, u.name, 0 guest_id
+  $sql = "SELECT cm.*, u.name, 0 AS guest_id
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
           WHERE cm.ccid = %d
@@ -1014,7 +1041,7 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
  * @return array
  */
 function chatroom_chat_load_latest_messages($node) {
-  $sql = "SELECT cm.*, u.name, 0 guest_id
+  $sql = "SELECT cm.*, u.name, 0 AS guest_id
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
           WHERE cm.ccid = %d
@@ -1141,7 +1168,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
   }
 
   if (chatroom_chat_is_kicked_user($user, $node)) {
-    print drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
 
@@ -1175,6 +1202,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
       $msg->html = chatroom_chat_get_themed_message($message, $node);
       $msg->text = strip_tags($message->msg);
       $msg->name = $message->name;
+      $msg->name_stripped = strip_tags($message->name);
       $msg->cmid = $message->cmid;
       $msg->type = $message->msg_type;
       $msg->uid = $message->uid;
@@ -1292,12 +1320,12 @@ function chatroom_chat_post_message($node, $last_msg_id) {
   }
 
  if (chatroom_chat_is_banned_user($user, $node)) {
-    print drupal_json(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
+    drupal_json(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
     return;
   }
 
   if (chatroom_chat_is_kicked_user($user, $node)) {
-    print drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
     return;
   }
   $message = array(
@@ -1393,7 +1421,7 @@ function chatroom_chat_command_api($command, $node) {
 function chatroom_command_ban_user($command, $node) {
   global $user;
   if ($user_to_ban = chatroom_get_user_from_command_arg($command->args[0])) {
-    if (chatroom_ban_user($node, $user_to_ban, $user)) {
+    if (chatroom_chat_ban_user($node, $user_to_ban, $user)) {
       $params = array(
         '!banned_username' => $user_to_ban->name,
         '!chat' => $node->title,
@@ -2230,7 +2258,6 @@ function chatroom_get_users_active_chats($uid = NULL) {
   $results = db_query("SELECT n.nid FROM {node} n INNER JOIN {chatroom_chat} cc ON n.nid = cc.nid
                     WHERE when_archived IS NULL AND type = 'chat' AND uid = %d", $uid);
   while ($chat = db_fetch_object($results)) {
-
     $chats[] = chatroom_load_chat($chat->nid);
   }
   return $chats;
@@ -2243,8 +2270,7 @@ function chatroom_get_users_active_chats($uid = NULL) {
  * @return object chat data.
  */
 function chatroom_load_chat($nid) {
-
-  $sql = "SELECT cc.*, n.uid, n.title, 0 last_cmid, 0 msg_count, NULL last_msg
+  $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 AS msg_count, NULL last_msg
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
           WHERE cc.nid = %d";
@@ -2252,7 +2278,6 @@ function chatroom_load_chat($nid) {
   $chat = db_fetch_object($result);
   // TODO: Shouldn't this include people who are invited as well?
   $chat->allowed_uids = chatroom_chat_load_allowed_uids((object)(array('nid' => $nid)));
-
   return $chat;
 }
 

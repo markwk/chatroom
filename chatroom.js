@@ -95,7 +95,9 @@ Drupal.chatroom.banUser = function(uid) {
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
-      uid: uid
+      uid: uid,
+      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formId: 'chatroom_chat_management_form'
     }
   });
 }
@@ -108,6 +110,8 @@ Drupal.chatroom.kickUser = function(uid) {
     success: Drupal.chatroom.pollHandler,
     data: {
       uid: uid,
+      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formId: 'chatroom_chat_management_form',
       is_popout: Drupal.settings.chatroom.isPopout
     }
   });
@@ -121,7 +125,9 @@ Drupal.chatroom.removeUser = function(uid) {
     success: Drupal.chatroom.pollHandler,
     data: {
       uid: uid,
-      is_popout: Drupal.settings.chatroom.isPopout
+      is_popout: Drupal.settings.chatroom.isPopout,
+      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formId: 'chatroom_chat_management_form'
     }
   });
 }
@@ -235,7 +241,7 @@ Drupal.chatroom.postMessage = function(message, anonName) {
 
 Drupal.chatroom.warnNewMsgLoop = function() {
   if (document.title == Drupal.settings.chatroom.pageTitle) {
-    document.title = Drupal.settings.chatroom.newMsg.name + ' says: ' + Drupal.settings.chatroom.newMsg.text;
+    document.title = Drupal.settings.chatroom.newMsg.name_stripped + ' says: ' + Drupal.settings.chatroom.newMsg.text;
   }
   else {
     document.title = Drupal.settings.chatroom.pageTitle;
