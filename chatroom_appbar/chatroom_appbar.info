@@ -1,8 +1,0 @@
-name = Chat Room Appbar integration
-package = Chat
-description = Integrates Chatroom module with the Appbar module
-core = 6.x
-dependencies[] = appbar
-dependencies[] = chatroom
-
-
