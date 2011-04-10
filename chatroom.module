@@ -1496,6 +1496,7 @@ function chatroom_chat_kick_guest($node, $guest_id, $chat_admin_user) {
     $kick_data = array(
       'sid' => $guest->sid,
       'nid' => $node->nid,
+      'uid' => 0,
       'admin_uid' => $chat_admin_user->uid,
       'modified' => time(),
     );
@@ -1563,6 +1564,7 @@ function chatroom_chat_kick_user($node, $user_to_kick, $chat_admin_user) {
   }
   if (user_access('administer chats', $chat_admin_user) || $node->uid == $chat_admin_user->uid) {
     $kick_data = array(
+      'sid' => '',
       'nid' => $node->nid,
       'uid' => $user_to_kick->uid,
       'admin_uid' => $chat_admin_user->uid,
