@@ -186,7 +186,38 @@ function chatroom_access($op, $node, $account) {
  * Implements hook_perm().
  */
 function chatroom_permission() {
-  return array('access chats', 'access chat rooms', 'create chat rooms', 'edit own chats', 'edit own chat rooms', 'administer chats', 'administer chat rooms', 'create chats', 'use chat desk', 'staff chat desk');
+  return array(
+    'access chats' => array(
+      'title' => t('Access chats'),
+    ),
+    'access chat rooms' => array(
+      'title' => t('Access chat rooms'),
+    ),
+    'create chat rooms' => array(
+      'title' => t('Create chat rooms'),
+    ),
+    'edit own chats' => array(
+      'title' => t('Edit own chats'),
+    ),
+    'edit own chat rooms' => array(
+      'title' => t('Edit own chat rooms'),
+    ),
+    'administer chats' => array(
+      'title' => t('Administer chats'),
+    ),
+    'administer chat rooms' => array(
+      'title' => t('Administer chat rooms'),
+    ),
+    'create chats' => array(
+      'title' => t('Create chats'),
+    ),
+    'use chat desk' => array(
+      'title' => t('Use chat desk'),
+    ),
+    'staff chat desk' => array(
+      'title' => t('Staff chat desk'),
+    ),
+  );
 }
 
 /**
