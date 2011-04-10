@@ -254,6 +254,14 @@ function chatroom_menu() {
     'access arguments' => array('access chat rooms'),
     'type' => MENU_CALLBACK,
   );
+
+  $items['admin/config/chatroom'] = array(
+    'title' => 'Chat room',
+    'description' => t('Configure global settings for chat rooms and chats.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('chatroom_admin_settings'),
+    'access arguments' => array('administer chat rooms'),
+  );
   return $items;
 }
 
