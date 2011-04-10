@@ -35,10 +35,17 @@ function chatroom_forms($form_id, $args) {
 }
 
 /**
+ * Implements chatroom_prepare().
+ */
+function chatroom_prepare() {
+}
+
+/**
  * Implementation of hook_form().
  */
 function chatroom_form(&$node, $form_state) {
   global $user;
+  drupal_set_message(print_r($node, TRUE));
 
   $form['title'] = array(
     '#type' => 'textfield',
@@ -333,7 +340,7 @@ function chatroom_chat_form(&$node, $form_state) {
   global $user;
 
   // Load type definition.
-  $type = node_get_types('type', $node->type);
+  $type = node_type_get_type($node);
 
   $form['title'] = array(
     '#type' => 'textfield',
@@ -347,16 +354,6 @@ function chatroom_chat_form(&$node, $form_state) {
     '#value' => '',
     '#value' => isset($node->chat) && $node->chat->chatroom ? $node->chat->chatroom->nid : 0,
   );
-  if ($type->has_body) {
-    $form['body_filter']['body'] = array(
-      '#type' => 'textarea',
-      '#title' => t('Description'),
-      '#default_value' => $node->body,
-      '#rows' => 3,
-      '#description' => t('Describe your chat so other people will know if they want to join.'),
-    );
-  }
-  $form['body_filter']['format'] = filter_form($node->format);
   $form['kicked_out_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat kicked out message'),
@@ -429,34 +426,6 @@ function chatroom_chat_form(&$node, $form_state) {
     '#default_value' => isset($node->chat) ? $node->chat->previous_messages_display_count : 20,
     '#options' => drupal_map_assoc($previous_msg_range),
   );
-  if (variable_get('user_pictures', FALSE)) {
-    $form['chatroom_profile_picture_support'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('User profile picture support'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-    );
-    $form['chatroom_profile_picture_support']['profile_picture'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('User profile picture.'),
-      '#description' => t('Enable User profile picture for chatroom.'),
-      '#default_value' => isset($node->chat) ? $node->chat->profile_picture : '',
-      '#disabled' => !variable_get('user_pictures', FALSE),
-    );
-    if (module_exists('imagecache')) {
-      $presets = array('');
-      foreach (imagecache_presets() as $preset) {
-        $presets[$preset['presetname']] = check_plain($preset['presetname']);
-      }
-      $form['chatroom_profile_picture_support']['imagecache_preset'] = array(
-        '#type' => 'select',
-        '#title' => t('Profile picture preset'),
-        '#default_value' => $node->chat->imagecache_preset,
-        '#options' => $presets,
-        '#description' => t("This will set the picture size."),
-      );
-    }
-  }
   return $form;
 }
 

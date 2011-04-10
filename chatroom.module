@@ -29,8 +29,9 @@ function chatroom_user_delete($account) {
  * @param mixed $account
  */
 function chatroom_clear_cached_user(StdClass $account) {
-  $result = db_query("SELECT sid FROM {sessions} WHERE uid = %d", $account->uid);
-  while ($sid = db_result($result)) {
+  $sids = db_query("SELECT sid FROM {sessions} WHERE uid = :uid", array(':uid' => $account->uid))
+    ->fetchCol();
+  foreach ($sids as $sid) {
     chatroom_delete_cached_user($sid);
   }
 }
@@ -62,12 +63,17 @@ function chatroom_chat_user_autocomplete($node, $string = '') {
 
   $matches = array();
   if ($string) {
-    $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%s%%') AND uid != %d", array($string, $user->uid), 0, 10);
-    while ($chat_user = db_fetch_object($result)) {
+    $sql = "SELECT name 
+            FROM {users} 
+            WHERE LOWER(name) LIKE LOWER(':string%') 
+            AND uid != :uid
+            LIMIT 10";
+    $result = db_query($sql, array(':string' => $string, ':uid' => $user->uid))->fetchAll(PDO::FETCH_OBJ);
+    foreach ($result as $chat_user) {
       $matches[$chat_user->name] = check_plain($chat_user->name);
     }
   }
-  drupal_json($matches);
+  drupal_json_output($matches);
 }
 
 /**
@@ -114,32 +120,15 @@ function chatroom_chat_get_user_invites($chat_user) {
           FROM {chatroom_chat_invite} cci
           INNER JOIN {node} n ON n.nid = cci.nid
           INNER JOIN {users} u ON u.uid = cci.inviter_uid
-          WHERE cci.invitee_uid = %d
+          WHERE cci.invitee_uid = :uid
           AND cci.accepted = 0
           AND cci.notified = 0";
-  $result = db_query($sql, $chat_user->uid);
-
+  $result = db_query($sql, array(':uid' => $chat_user->uid))->fetchAll(PDO::FETCH_OBJ);
   $invites = array();
-  while ($invite = db_fetch_object($result)) {
+  foreach ($result as $invite) {
     $invites[$invite->cciid] = $invite;
   }
   return $invites;
-}
-
-/**
- * Implements hook_db_rewrite_sql().
- */
-function chatroom_db_rewrite_sql($query, $primary_table, $primary_field, $args) {
-  $clauses = array();
-  if ($primary_table == 'n' && $primary_field == 'nid') {
-    if (!user_access('access chats')) {
-      $clauses[] = "n.type <> 'chat'";
-    }
-    if (!user_access('access chat rooms')) {
-      $clauses[] = "n.type <> 'chatroom'";
-    }
-  }
-  return count($clauses) ? array('where' => implode(' OR ', $clauses)) : array();
 }
 
 /**
@@ -305,12 +294,12 @@ function chatroom_node_info() {
   return array(
     'chatroom' => array(
       'name' => t('Chat room'),
-      'module' => 'chatroom',
+      'base' => 'chatroom',
       'description' => t('A chat room provides access to chats and chat archives.'),
     ),
     'chat' => array(
       'name' => t('Chat'),
-      'module' => 'chatroom_chat',
+      'base' => 'chatroom_chat',
       'description' => t('A chat provides the chat interface.'),
     ),
   );
@@ -548,18 +537,18 @@ function chatroom_chat_delete(&$node) {
 /**
  * Implements hook_load().
  */
-function chatroom_chat_load($node) {
-  $chat = new StdClass();
-  if ($chat->chat = db_fetch_object(db_query("SELECT * FROM {chatroom_chat} WHERE nid = %d", $node->nid))) {
-    $chat->chat->chatroom = $chat->chat->crid ? node_load($chat->chat->crid) : FALSE;
-    $chat->chat->latest_msg = chatroom_chat_get_latest_message($node->nid);
-    $chat->chat->msg_count = chatroom_chat_get_message_count($node->nid);
-    $chat->chat->banned_list = chatroom_chat_get_banned_list($node);
-    $chat->chat->kicked_list = chatroom_chat_get_kicked_list($node);
-    if ($chat->chat->private) {
-      $chat->chat->allowed_uids = chatroom_chat_load_allowed_uids($node);
+function chatroom_chat_load($nodes) {
+  $nid = key($nodes);
+  if ($chat = db_query("SELECT * FROM {chatroom_chat} WHERE nid = :nid", array(':nid' => $nid))->fetchObject()) {
+    $chat->chatroom = $chat->crid ? node_load($chat->crid) : FALSE;
+    $chat->latest_msg = chatroom_chat_get_latest_message($nid);
+    $chat->msg_count = chatroom_chat_get_message_count($nid);
+    $chat->banned_list = chatroom_chat_get_banned_list($nodes[$nid]);
+    $chat->kicked_list = chatroom_chat_get_kicked_list($nodes[$nid]);
+    if ($chat->private) {
+      $chat->allowed_uids = chatroom_chat_load_allowed_uids($nodes[$nid]);
     }
-    return $chat;
+    $nodes[$nid]->chat = $chat;
   }
 }
 
@@ -581,24 +570,24 @@ function chatroom_chat_load_allowed_uids($node) {
 /**
  * Get the latest message id for a given chat.
  *
- * @param mixed $chat_id
+ * @param mixed $ccid
  */
-function chatroom_chat_get_latest_message($chat_id) {
+function chatroom_chat_get_latest_message($ccid) {
   $sql = "SELECT cm.*, u.name
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
-          WHERE ccid = %d
+          WHERE ccid = :ccid
           ORDER BY cmid
           DESC LIMIT 1";
-  return db_fetch_object(db_query($sql, $chat_id));
+  return db_query($sql, array(':ccid' => $ccid))->fetchObject();
 }
 
 /**
  * Get the message count for a chat.
  */
-function chatroom_chat_get_message_count($chat_id) {
-  $sql = "SELECT COUNT(*) FROM {chatroom_msg} WHERE ccid = %d";
-  return db_result(db_query($sql, $chat_id));
+function chatroom_chat_get_message_count($ccid) {
+  $sql = 'SELECT COUNT(*) FROM {chatroom_msg} WHERE ccid = :ccid';
+  return db_query($sql, array(':ccid' => $ccid))->fetchField();
 }
 
 /**
@@ -607,7 +596,6 @@ function chatroom_chat_get_message_count($chat_id) {
 function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
   global $user;
 
-  $node = node_prepare($node);
   if (!$teaser && $page) {
     // if the user is banned, just tell them why
     if (chatroom_is_banned_user($node)) {
@@ -702,11 +690,10 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
 /**
  * Implements hook_view().
  */
-function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
+function chatroom_chat_view($node, $view_mode) {
   global $user;
 
-  $node = node_prepare($node);
-  if (!$teaser && $page) {
+  if ($view_mode == 'full' && node_is_page($node)) {
 
     if (chatroom_chat_is_banned_user($user, $node)) {
       drupal_goto("chatroom/access-denied/$node->nid/banned");
@@ -726,7 +713,7 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
 
     if (!isset($node->chat->when_archived)) {
       if (chatroom_max_users_reached($node)) {
-        $content = theme('chatroom_chat_max_users', $node);
+        $content = theme('chatroom_chat_max_users', array('node' => $node));
       }
       else {
         if (!chatroom_chat_register_user($node)) {
@@ -741,11 +728,11 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
           }
           $node->chat->latest_messages[] = $message;
         }
-        $content = theme('chatroom_chat', $node);
+        $content = theme('chatroom_chat', array('node' => $node));
       }
     }
     else {
-      $content = theme('chatroom_chat_archive', $node);
+      $content = theme('chatroom_chat_archive', array('node' => $node));
       if (user_access('administer chat rooms')) {
         $content .= drupal_get_form('chatroom_unarchive_chat_form', $node);
       }
@@ -753,7 +740,7 @@ function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
     $node->content['chatroom_chat_interface'] = array('#value' => $content);
   }
   else {
-    $node->content['teaser'] = array('#value' => theme('chatroom_chat_teaser', $node));
+    $node->content['teaser'] = array('#value' => theme('chatroom_chat_teaser', array('node' => $node)));
   }
   return $node;
 }
@@ -971,8 +958,8 @@ function chatroom_chat_accept_invite($node, $chat_user) {
  * @return boolean
  */
 function chatroom_chat_user_has_invite($node, $chat_user) {
-  $sql = "SELECT nid FROM {chatroom_chat_invite} WHERE invitee_uid = %d AND nid = %d";
-  return db_result(db_query($sql, $chat_user->uid, $node->nid));
+  $sql = "SELECT nid FROM {chatroom_chat_invite} WHERE invitee_uid = :uid AND nid = :nid";
+  return db_query($sql, array(':uid' => $chat_user->uid, ':nid' => $node->nid))->fetchField();
 }
 
 /**
@@ -982,22 +969,21 @@ function chatroom_chat_register_user($node) {
   global $user;
 
   $session_id = session_id();
-  if (!db_result(db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = %d AND sid = '%s'", $node->nid, $session_id))) {
-
+  $params = array(':ccid' => $node->nid, ':sid' => $session_id);
+  if (!db_query("SELECT sid FROM {chatroom_chat_online_list} WHERE ccid = :ccid AND sid = :sid", $params)->fetchField()) {
     if (chatroom_chat_user_has_invite($node, $user)) {
       chatroom_chat_accept_invite($node, $user);
     }
-
-    $params = array($node->nid, $user->uid, $session_id, time());
+    $params = array(':nid' => $node->nid, ':uid' => $user->uid, ':sid' => $session_id, ':last_seen_time' => time());
     if ($user->uid) {
-      $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, last_seen_time) VALUES (%d, %d, '%s', %d)";
+      $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, last_seen_time) VALUES (:nid, :uid, :sid, :last_seen_time)";
     }
     else {
       $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, guest_id, last_seen_time)
-                SELECT %d, %d, '%s', COALESCE(MAX(guest_id) + 1, 1), %d
+                SELECT :nid, :uid, ':sid', COALESCE(MAX(guest_id) + 1, 1), :last_seen_time
                 FROM {chatroom_chat_online_list}
-                WHERE ccid = %d";
-      $params[] = $node->nid;
+                WHERE ccid = :nid2";
+      $params[':nid2'] = $node->nid;
     }
     return db_query($sql, $params);
   }
@@ -1064,13 +1050,13 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
   $sql = "SELECT cm.*, u.name, 0 AS guest_id
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
-          WHERE cm.ccid = %d
-          AND cm.cmid > %d
+          WHERE cm.ccid = :ccid
+          AND cm.cmid > :cmid
           ORDER BY cm.cmid ASC";
-  $args = array($chat_id, $last_cmid);
+  $args = array(':ccid' => $chat_id, ':cmid' => $last_cmid);
   if ($limit) {
-    $sql .= ' LIMIT %d';
-    $args[] = $limit;
+    $sql .= ' LIMIT :limit';
+    $args[':limit'] = $limit;
   }
   return chatroom_chat_load_messages_helper($sql, $args);
 }
@@ -1085,10 +1071,10 @@ function chatroom_chat_load_latest_messages($node) {
   $sql = "SELECT cm.*, u.name, 0 AS guest_id
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
-          WHERE cm.ccid = %d
+          WHERE cm.ccid = :ccid 
           ORDER BY cm.cmid DESC
-          LIMIT %d";
-  $messages = chatroom_chat_load_messages_helper($sql, array($node->nid, $node->chat->previous_messages_display_count));
+          LIMIT :limit";
+  $messages = chatroom_chat_load_messages_helper($sql, array(':ccid' => $node->nid, ':limit' => $node->chat->previous_messages_display_count));
   return array_reverse($messages, TRUE);
 }
 
@@ -1141,17 +1127,21 @@ function chatroom_load_online_users($chat) {
   $sql = "SELECT col.*, u.name, u.picture
           FROM {chatroom_chat_online_list} col
           LEFT JOIN {users} u ON u.uid = col.uid
-          WHERE col.ccid = %d
-          AND col.last_seen_time >= %d
+          WHERE col.ccid = :ccid
+          AND col.last_seen_time >= :last_seen_time
           ORDER BY u.name ASC";
-  $sql = db_rewrite_sql($sql, 'col', 'sid', array('chatroom_chat_online_list' => TRUE));
-  $result = db_query($sql, $chat->nid, time() - variable_get('chatroom_online_list_timeout', 10));
-  $chat_users = array();
+  $params = array(
+    ':ccid' => $chat->nid, 
+    ':last_seen_time' => time() - variable_get('chatroom_online_list_timeout', 10)
+  );
+  $result = db_query($sql, $params)->fetchAll(PDO::FETCH_OBJ);
+
   // Keep track of logged in users because its possible that a user could be
   // watching a chat from multiple browsers, therefore multiple sid's, and
   // we don't want to list them twice.
   $logged_in_users = array();
-  while ($chat_user = db_fetch_object($result)) {
+  $chat_users = array();
+  foreach ($result as $chat_user) {
     if ($chat_user->uid == 0) {
       $chat_user->name = variable_get('chatroom_guest_user_prefix', t('guest-')) . $chat_user->guest_id;
     }
@@ -1291,7 +1281,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
  */
 function chatroom_chat_get_themed_message($message, $node) {
   if ($message->uid && user_access('access user profiles')) {
-    $username = theme('chatroom_message_username', $message);
+    $username = theme('chatroom_message_username', array('message' => $message, 'skip_permission_check' => FALSE));
   }
   else {
     $username = $message->name;
@@ -1301,7 +1291,7 @@ function chatroom_chat_get_themed_message($message, $node) {
   $class = "new-message $public_css_class" . ($message->msg_type == 'private_message' ? " $private_css_class" : '');
   $output = '<div class="' . $class . '">';
   $output .= '(' . chatroom_get_message_time_string($message->modified) . ') <strong>' . $username . ':</strong> ';
-  $output .= theme('chatroom_message', $message, $node);
+  $output .= theme('chatroom_message', array('message' => $message, 'node' => $node));
   $output .= "</div>";
   return $output;
 }
@@ -1733,9 +1723,9 @@ function chatroom_chat_get_message_type($message) {
  */
 function chatroom_update_last_seen_time($node, $session_id) {
   $sql = "UPDATE {chatroom_chat_online_list}
-          SET last_seen_time = %d
-          WHERE ccid = %d AND sid = '%s'";
-  db_query($sql, time(), $node->nid, $session_id);
+          SET last_seen_time = :last_seen_time
+          WHERE ccid = :ccid AND sid = :sid";
+  db_query($sql, array(':last_seen_time' => time(), ':ccid' => $node->nid, ':sid' => $session_id));
 }
 
 /**
@@ -1750,10 +1740,13 @@ function chatroom_chat_get_kicked_list($node) {
     $kicked_list = $cache->data;
   }
   else {
-    $sql = "SELECT * FROM {chatroom_chat_kicked_list} WHERE nid = %d AND modified > %d";
-    $params = array($node->nid, time() - variable_get('chatroom_kicked_period', 60 * 5));
-    $result = db_query($sql, $params);
-    while ($kick = db_fetch_object($result)) {
+    $sql = "SELECT * FROM {chatroom_chat_kicked_list} WHERE nid = :nid AND modified > :modified";
+    $params = array(
+      ':nid' => $node->nid, 
+      ':modified' => time() - variable_get('chatroom_kicked_period', 60 * 5)
+    );
+    $result = db_query($sql, $params)->fetchAll(PDO::FETCH_OBJ);
+    foreach ($result as $kick) {
       $kicked_list[$kick->uid ? $kick->uid : $kick->sid] = $kick;
     }
     cache_set('chatroom_chat_kicked_list_' . $node->nid, $kicked_list);
@@ -1773,8 +1766,8 @@ function chatroom_chat_get_banned_list($node) {
     $banned_list = $cache->data;
   }
   else {
-    $result = db_query("SELECT * FROM {chatroom_chat_ban_list} WHERE nid = %d", $node->nid);
-    while ($ban = db_fetch_object($result)) {
+    $result = db_query("SELECT * FROM {chatroom_chat_ban_list} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAll(PDO::FETCH_OBJ);
+    foreach ($result as $ban) {
       $banned_list[$ban->uid] = $ban;
     }
     cache_set('chatroom_chat_ban_list_' . $node->nid, $banned_list);
@@ -2296,11 +2289,16 @@ function chatroom_get_users_active_chats($uid = NULL) {
     global $user;
     $uid = $user->uid;
   }
-  $chats = array();
 
-  $results = db_query("SELECT n.nid FROM {node} n INNER JOIN {chatroom_chat} cc ON n.nid = cc.nid
-                    WHERE when_archived IS NULL AND type = 'chat' AND uid = %d", $uid);
-  while ($chat = db_fetch_object($results)) {
+  $sql = "SELECT n.nid 
+          FROM {node} n 
+          INNER JOIN {chatroom_chat} cc ON n.nid = cc.nid
+          WHERE when_archived IS NULL 
+          AND type = 'chat' 
+          AND uid = :uid";
+  $result = db_query($sql, array(':uid' => $uid))->fetchAll(PDO::FETCH_OBJ);
+  $chats = array();
+  foreach ($result as $chat) {
     $chats[] = chatroom_load_chat($chat->nid);
   }
   return $chats;
@@ -2316,9 +2314,8 @@ function chatroom_load_chat($nid) {
   $sql = "SELECT cc.*, n.uid, n.title, 0 AS last_cmid, 0 AS msg_count, NULL last_msg
           FROM {chatroom_chat} cc
           INNER JOIN {node} n ON n.nid = cc.nid
-          WHERE cc.nid = %d";
-  $result = db_query($sql, $nid);
-  $chat = db_fetch_object($result);
+          WHERE cc.nid = :nid";
+  $chat = db_query($sql, array(':nid' => $nid))->fetchObject();
   // TODO: Shouldn't this include people who are invited as well?
   $chat->allowed_uids = chatroom_chat_load_allowed_uids((object)(array('nid' => $nid)));
   return $chat;
