@@ -10,7 +10,7 @@ require_once dirname(__FILE__) . '/chatroom.theme.inc';
  */
 
 /**
- * Implementation of hook_user().
+ * Implements hook_user().
  */
 function chatroom_user($op, &$edit, &$account, $category = NULL) {
   switch ($op) {
@@ -34,7 +34,7 @@ function chatroom_clear_cached_user(StdClass $account) {
 }
 
 /**
- * Implementation of hook_init().
+ * Implements hook_init().
  */
 function chatroom_init() {
   global $user;
@@ -85,7 +85,7 @@ function chatroom_chat_notify_user_of_invites($chat_user, $invites) {
 }
 
 /**
- * Implementation of hook_chatroom_chat_invites_notify().
+ * Implements hook_chatroom_chat_invites_notify().
  *
  * @param mixed $chat_user
  * @param mixed $invites
@@ -125,7 +125,7 @@ function chatroom_chat_get_user_invites($chat_user) {
 }
 
 /**
- * Implementation of hook_db_rewrite_sql().
+ * Implements hook_db_rewrite_sql().
  */
 function chatroom_db_rewrite_sql($query, $primary_table, $primary_field, $args) {
   $clauses = array();
@@ -141,7 +141,7 @@ function chatroom_db_rewrite_sql($query, $primary_table, $primary_field, $args) 
 }
 
 /**
- * Implementation of hook_access().
+ * Implements hook_access().
  */
 function chatroom_chat_access($op, $node, $account) {
   if (user_access('administer chats', $account)) {
@@ -162,7 +162,7 @@ function chatroom_chat_access($op, $node, $account) {
 }
 
 /**
- * Implementation of hook_access().
+ * Implements hook_access().
  */
 function chatroom_access($op, $node, $account) {
   if (user_access('administer chat rooms', $account)) {
@@ -183,14 +183,14 @@ function chatroom_access($op, $node, $account) {
 }
 
 /**
- * Implementation of hook_perm().
+ * Implements hook_perm().
  */
-function chatroom_perm() {
+function chatroom_permission() {
   return array('access chats', 'access chat rooms', 'create chat rooms', 'edit own chats', 'edit own chat rooms', 'administer chats', 'administer chat rooms', 'create chats', 'use chat desk', 'staff chat desk');
 }
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function chatroom_menu() {
   $items['chatroom/chat/user/autocomplete/%node'] = array(
@@ -266,7 +266,7 @@ function chatroom_menu() {
 }
 
 /**
- * Implementation of hook_node_info().
+ * Implements hook_node_info().
  */
 function chatroom_node_info() {
   return array(
@@ -284,7 +284,7 @@ function chatroom_node_info() {
 }
 
 /**
- * Implementation of hook_insert().
+ * Implements hook_insert().
  */
 function chatroom_insert($node) {
   cache_clear_all('chatroom_room_list', 'cache');
@@ -304,7 +304,7 @@ function chatroom_insert($node) {
 }
 
 /**
- * Implementation of hook_update().
+ * Implements hook_update().
  */
 function chatroom_update($node) {
   cache_clear_all('chatroom_room_list', 'cache');
@@ -324,7 +324,7 @@ function chatroom_update($node) {
 }
 
 /**
- * Implementation of hook_delete().
+ * Implements hook_delete().
  */
 function chatroom_delete(&$node) {
   cache_clear_all('chatroom_room_list', 'cache');
@@ -339,7 +339,7 @@ function chatroom_delete(&$node) {
 }
 
 /**
- * Implementation of hook_load().
+ * Implements hook_load().
  */
 function chatroom_load($node) {
   $room = new StdClass();
@@ -417,7 +417,7 @@ function chatroom_load_chats($nid) {
  * Chatroom chat node hook functions.
  */
 /**
- * Implementation of hook_insert().
+ * Implements hook_insert().
  */
 function chatroom_chat_insert($node) {
   cache_clear_all('chatroom_chat_list', 'cache');
@@ -440,7 +440,7 @@ function chatroom_chat_insert($node) {
 }
 
 /**
- * Implementation of hook_update().
+ * Implements hook_update().
  */
 function chatroom_chat_update($node) {
   cache_clear_all('chatroom_chat_list', 'cache');
@@ -500,7 +500,7 @@ function chatroom_chat_set_user_list($node) {
 }
 
 /**
- * Implementation of hook_delete().
+ * Implements hook_delete().
  */
 function chatroom_chat_delete(&$node) {
   cache_clear_all('chatroom_chat_list', 'cache');
@@ -513,7 +513,7 @@ function chatroom_chat_delete(&$node) {
 }
 
 /**
- * Implementation of hook_load().
+ * Implements hook_load().
  */
 function chatroom_chat_load($node) {
   $chat = new StdClass();
@@ -569,7 +569,7 @@ function chatroom_chat_get_message_count($chat_id) {
 }
 
 /**
- * Implementation of hook_view().
+ * Implements hook_view().
  */
 function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
   global $user;
@@ -667,7 +667,7 @@ function chatroom_view($node, $teaser = FALSE, $page = FALSE) {
 }
 
 /**
- * Implementation of hook_view().
+ * Implements hook_view().
  */
 function chatroom_chat_view($node, $teaser = FALSE, $page = FALSE) {
   global $user;
@@ -769,7 +769,7 @@ function chatroom_chat_archive_chat($node) {
 }
 
 /**
- * Implementation of hook_block().
+ * Implements hook_block().
  */
 function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
   $block_name = $delta === 0 ? 'chats' : ($delta === 1 ? 'chatrooms' : $delta);
@@ -1389,7 +1389,7 @@ function chatroom_chat_save_message($message, $node) {
 }
 
 /**
- * Implementation of hook_chat_commands().
+ * Implements hook_chat_commands().
  */
 function chatroom_chat_commands() {
   return array(
@@ -1406,7 +1406,7 @@ function chatroom_chat_commands() {
 }
 
 /**
- * Implementation of hook_chat_command_api().
+ * Implements hook_chat_command_api().
  *
  * This hook allows other modules to react to commands defined by other
  * modules. This hook is only fired after the module that defines the
