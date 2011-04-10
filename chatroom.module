@@ -10,15 +10,17 @@ require_once dirname(__FILE__) . '/chatroom.theme.inc';
  */
 
 /**
- * Implements hook_user().
+ * Implements hook_user_update().
  */
-function chatroom_user($op, &$edit, &$account, $category = NULL) {
-  switch ($op) {
-    case 'update':
-    case 'delete':
-      chatroom_clear_cached_user($account);
-      break;
-  }
+function chatroom_user_update(&$edit, $account, $category = NULL) {
+  chatroom_clear_cached_user($account);
+}
+
+/**
+ * Implements hook_user_delete().
+ */
+function chatroom_user_delete($account) {
+  chatroom_clear_cached_user($account);
 }
 
 /**
