@@ -1862,8 +1862,8 @@ function chatroom_chat_user_has_access($node, $account) {
     if (chatroom_staff_chat_access($account, $node->chat)) {
       return TRUE;
     }
-    $sql = "SELECT uid FROM {chatroom_chat_user} WHERE nid = %d AND uid = %d";
-    return db_result(db_query($sql, $node->nid, $account->uid));
+    $sql = "SELECT uid FROM {chatroom_chat_user} WHERE nid = :nid AND uid = :uid";
+    return db_query($sql, array(':nid' => $node->nid, ':uid' => $account->uid))->fetchField();
   }
   else {
     // If we get here, then make sure we're either the creator of the chat,
