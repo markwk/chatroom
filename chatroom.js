@@ -3,6 +3,9 @@
 
 Drupal.chatroom = Drupal.chatroom || {'initialised' : false};
 
+/**
+ * Add behaviours to chatroom elements.
+ */
 Drupal.behaviors.chatroom = {
   attach: function (context, settings) {
     if (!Drupal.chatroom.initialised) {
@@ -31,66 +34,60 @@ Drupal.behaviors.chatroom = {
       Drupal.settings.chatroom.isPopout = opener == undefined ? 'false' : 'true';
       Drupal.chatroom.initialised = true;
     }
+    $("#chatroom-popout-link").click(function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' +
+      window.open(Drupal.settings.basePath + 'node/' + Drupal.settings.chatroom.chatId + '?chatroom_popout=true', '', Drupal.settings.chatroom.popoutParams);
+    });
+
+    $('#edit-chatroom-message-entry-box').keyup(function(e) {
+      var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
+      var anonNameText = '';
+      if ($('#edit-chatroom-anon-name').length) {
+        anonNameText = $('#edit-chatroom-anon-name').val().replace(/^\s+|\s+$/g, '');
+      }
+      if (messageText && e.keyCode == 13 && !e.shiftKey && !e.ctrlKey) {
+        Drupal.chatroom.postMessage(messageText, anonNameText);
+        $('#edit-chatroom-message-entry-box').val('').focus();
+      }
+      else {
+        return true;
+      }
+    });
+    $('#edit-chatroom-message-entry-submit').click(function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
+      var anonNameText = '';
+      if ($('#edit-chatroom-anon-name').length) {
+        anonNameText = $('#edit-chatroom-anon-name').val().replace(/^\s+|\s+$/g, '');
+      }
+      if (messageText) {
+        Drupal.chatroom.postMessage(messageText, anonNameText);
+        $('#edit-chatroom-message-entry-box').val('').focus();
+      }
+    });
+
+    $('.chatroom-kick-user-link').click(function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      Drupal.chatroom.kickUser(e.target.parentNode.id);
+    });
+
+    $('.chatroom-ban-user-link').click(function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      Drupal.chatroom.banUser(e.target.parentNode.id);
+    });
+
+    $('.chatroom-remove-user-link').click(function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      Drupal.chatroom.removeUser(e.target.parentNode.id);
+    });
   }
 };
-
-/**
- * Add behaviours to chatroom elements.
- */
-Drupal.behaviors.chatroom = function(context) {
-  $("#chatroom-popout-link").click(function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' +
-    window.open(Drupal.settings.basePath + 'node/' + Drupal.settings.chatroom.chatId + '?chatroom_popout=true', '', Drupal.settings.chatroom.popoutParams);
-  });
-
-  $('#edit-chatroom-message-entry-box').keyup(function(e) {
-    var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
-    var anonNameText = '';
-    if ($('#edit-chatroom-anon-name').length) {
-      anonNameText = $('#edit-chatroom-anon-name').val().replace(/^\s+|\s+$/g, '');
-    }
-    if (messageText && e.keyCode == 13 && !e.shiftKey && !e.ctrlKey) {
-      Drupal.chatroom.postMessage(messageText, anonNameText);
-      $('#edit-chatroom-message-entry-box').val('').focus();
-    }
-    else {
-      return true;
-    }
-  });
-  $('#edit-chatroom-message-entry-submit').click(function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
-    var anonNameText = '';
-    if ($('#edit-chatroom-anon-name').length) {
-      anonNameText = $('#edit-chatroom-anon-name').val().replace(/^\s+|\s+$/g, '');
-    }
-    if (messageText) {
-      Drupal.chatroom.postMessage(messageText, anonNameText);
-      $('#edit-chatroom-message-entry-box').val('').focus();
-    }
-  });
-
-  $('.chatroom-kick-user-link').click(function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    Drupal.chatroom.kickUser(e.target.parentNode.id);
-  });
-
-  $('.chatroom-ban-user-link').click(function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    Drupal.chatroom.banUser(e.target.parentNode.id);
-  });
-
-  $('.chatroom-remove-user-link').click(function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    Drupal.chatroom.removeUser(e.target.parentNode.id);
-  });
-}
 
 Drupal.chatroom.banUser = function(uid) {
   $.ajax({
