@@ -974,13 +974,18 @@ function chatroom_chat_register_user($node) {
     if (chatroom_chat_user_has_invite($node, $user)) {
       chatroom_chat_accept_invite($node, $user);
     }
-    $params = array(':nid' => $node->nid, ':uid' => $user->uid, ':sid' => $session_id, ':last_seen_time' => time());
+    $params = array(
+      ':nid' => $node->nid,
+      ':uid' => $user->uid,
+      ':sid' => $session_id,
+      ':last_seen_time' => time()
+    );
     if ($user->uid) {
       $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, last_seen_time) VALUES (:nid, :uid, :sid, :last_seen_time)";
     }
     else {
       $sql = "INSERT INTO {chatroom_chat_online_list} (ccid, uid, sid, guest_id, last_seen_time)
-                SELECT :nid, :uid, ':sid', COALESCE(MAX(guest_id) + 1, 1), :last_seen_time
+                SELECT :nid, :uid, :sid, COALESCE(MAX(guest_id) + 1, 1), :last_seen_time
                 FROM {chatroom_chat_online_list}
                 WHERE ccid = :nid2";
       $params[':nid2'] = $node->nid;
