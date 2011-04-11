@@ -1,34 +1,38 @@
 
-Drupal.chatroom = Drupal.chatroom || {};
+(function ($) {
 
-/**
- * only run this code once.
- */
-$(document).ready(function () {
-  setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
-  Drupal.settings.chatroom.pageTitle = document.title;
-  Drupal.settings.chatroom.hasFocus = true;
-  if (Drupal.settings.chatroom.latestMsgId > 0) {
-    var targetOffset = $('div.new-message:last').offset().top;
-    var boardOffset = $('#chatroom-board').offset().top;
-    var scrollAmount = targetOffset - boardOffset;
-    $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
-    $('.new-message').removeClass('new-message');
-  }
-  $(self).focus(
-    function() {
-      clearInterval(Drupal.settings.chatroom.warnInterval);
+Drupal.chatroom = Drupal.chatroom || {'initialised' : false};
+
+Drupal.behaviors.chatroom = {
+  attach: function (context, settings) {
+    if (!Drupal.chatroom.initialised) {
+      setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
+      Drupal.settings.chatroom.pageTitle = document.title;
       Drupal.settings.chatroom.hasFocus = true;
-      document.title = Drupal.settings.chatroom.pageTitle;
+      if (Drupal.settings.chatroom.latestMsgId > 0) {
+        var targetOffset = $('div.new-message:last').offset().top;
+        var boardOffset = $('#chatroom-board').offset().top;
+        var scrollAmount = targetOffset - boardOffset;
+        $('#chatroom-board').animate({scrollTop: '+='+ scrollAmount +'px'}, 500);
+        $('.new-message').removeClass('new-message');
+      }
+      $(self).focus(
+        function() {
+          clearInterval(Drupal.settings.chatroom.warnInterval);
+          Drupal.settings.chatroom.hasFocus = true;
+          document.title = Drupal.settings.chatroom.pageTitle;
+        }
+      );
+      $(self).blur(
+        function() {
+          Drupal.settings.chatroom.hasFocus = false;
+        }
+      );
+      Drupal.settings.chatroom.isPopout = opener == undefined ? 'false' : 'true';
+      Drupal.chatroom.initialised = true;
     }
-  );
-  $(self).blur(
-    function() {
-      Drupal.settings.chatroom.hasFocus = false;
-    }
-  );
-  Drupal.settings.chatroom.isPopout = opener == undefined ? 'false' : 'true';
-});
+  }
+};
 
 /**
  * Add behaviours to chatroom elements.
@@ -247,6 +251,8 @@ Drupal.chatroom.warnNewMsgLoop = function() {
     document.title = Drupal.settings.chatroom.pageTitle;
   }
 }
+
+})(jQuery);
 
 // vi:ai:expandtab:sw=2 ts=2
 
