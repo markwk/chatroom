@@ -737,10 +737,10 @@ function chatroom_chat_view($node, $view_mode) {
         $content .= drupal_get_form('chatroom_unarchive_chat_form', $node);
       }
     }
-    $node->content['chatroom_chat_interface'] = array('#value' => $content);
+    $node->content['chatroom_chat_interface'] = array('#markup' => $content);
   }
   else {
-    $node->content['teaser'] = array('#value' => theme('chatroom_chat_teaser', array('node' => $node)));
+    $node->content['teaser'] = array('#markup' => theme('chatroom_chat_teaser', array('node' => $node)));
   }
   return $node;
 }
@@ -1068,13 +1068,19 @@ function chatroom_chat_load_messages($chat_id, $last_cmid = 0, $limit = FALSE) {
  * @return array
  */
 function chatroom_chat_load_latest_messages($node) {
+  if (preg_match('/^\d+$/', $node->chat->previous_messages_display_count)) {
+    $limit = $node->chat->previous_messages_display_count;
+  }
+  else {
+    $limit = 10;
+  }
   $sql = "SELECT cm.*, u.name, 0 AS guest_id
           FROM {chatroom_msg} cm
           INNER JOIN {users} u ON u.uid = cm.uid
           WHERE cm.ccid = :ccid 
           ORDER BY cm.cmid DESC
-          LIMIT :limit";
-  $messages = chatroom_chat_load_messages_helper($sql, array(':ccid' => $node->nid, ':limit' => $node->chat->previous_messages_display_count));
+          LIMIT $limit";
+  $messages = chatroom_chat_load_messages_helper($sql, array(':ccid' => $node->nid));
   return array_reverse($messages, TRUE);
 }
 
@@ -1086,12 +1092,12 @@ function chatroom_chat_load_latest_messages($node) {
  * @return array
  */
 function chatroom_chat_load_messages_helper($sql, $args) {
-  $result = db_query($sql, $args);
+  $result = db_query($sql, $args)->fetchAll(PDO::FETCH_OBJ);
   $messages = array();
   $guest_sids = array();
   $guest_prefix = variable_get('chatroom_guest_user_prefix', t('guest-'));
   $allow_anon_names = variable_get('chatroom_allow_anon_name', TRUE);
-  while ($message = db_fetch_object($result)) {
+  foreach ($result as $message) {
     if ($message->uid == 0 && !in_array($message->sid, $guest_sids)) {
       $guest_sids[] = $message->sid;
     }
@@ -1099,9 +1105,13 @@ function chatroom_chat_load_messages_helper($sql, $args) {
   }
 
   if (!empty($guest_sids)) {
-    $sql = "SELECT sid, guest_id FROM {chatroom_chat_online_list} WHERE sid IN (" . db_placeholders($guest_sids, 'varchar') . ")";
-    $result = db_query($sql, $guest_sids);
-    while ($guest = db_fetch_object($result)) {
+    $result = db_select('chatroom_chat_online_list')
+      ->fields('sid')
+      ->fields('guest_id')
+      ->condition('sid', $guest_sids, 'IN')
+      ->execute()
+      ->fetchAll(PDO::FETCH_OBJ);
+    foreach ($result as $guest) {
       foreach ($messages as $message) {
         if ($message->sid == $guest->sid) {
           if ($message->anon_name && $allow_anon_names) {
@@ -1868,9 +1878,9 @@ function chatroom_chat_get_allowed_users($node) {
   $sql = "SELECT u.uid, u.name
           FROM {users} u
           INNER JOIN {chatroom_chat_user} ccu ON ccu.uid = u.uid
-          WHERE ccu.nid = %d";
-  $result = db_query($sql, $node->nid);
-  while ($allowed_user = db_fetch_object($result)) {
+          WHERE ccu.nid = :nid";
+  $result = db_query($sql, array(':nid' => $node->nid))->fetchAll(PDO::FETCH_OBJ);
+  foreach ($result as $allowed_user) {
     $allowed_users[$allowed_user->uid] = $allowed_user;
   }
   return $allowed_users;

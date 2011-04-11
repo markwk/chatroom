@@ -552,7 +552,7 @@ function chatroom_chat_management_form_submit($form, &$form_state) {
  * @param mixed $node
  * @return array
  */
-function chatroom_chat_management_form(&$form_state, $node) {
+function chatroom_chat_management_form($form, &$form_state, $node) {
   $allowed_users_form = array();
   $settings = array(
     'userAddPath' => 'chatroom/ajax/user/add',

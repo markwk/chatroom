@@ -388,7 +388,7 @@ function theme_chatroom_chat($variables) {
   $output .= '</div></div>';
   $output .= theme('chatroom_buttons', array('node' => $node));
   if ($node->uid == $user->uid || user_access('administer chats')) {
-    $output .= drupal_get_form('chatroom_chat_management_form', $node);
+    $output .= drupal_render(drupal_get_form('chatroom_chat_management_form', $node));
   }
   return $output;
 }
@@ -446,7 +446,7 @@ function chatroom_chat_buttons($form_state, $node) {
  */
 function theme_chatroom_buttons($variables) {
   $node = $variables['node'];
-  $output = drupal_get_form('chatroom_chat_buttons', $node);
+  $output = drupal_render(drupal_get_form('chatroom_chat_buttons', $node));
   return '<div id="chatroom-chat-buttons">' . $output . '</div>';
 }
 
