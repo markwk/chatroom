@@ -1204,18 +1204,18 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
   global $user;
 
   if (!chatroom_chat_user_has_access($node, $user)) {
-    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
-    return;
+    drupal_json_output(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    drupal_exit();
   }
 
   if (chatroom_chat_is_banned_user($user, $node)) {
-    drupal_json(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
-    return;
+    drupal_json_output(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
+    drupal_exit();
   }
 
   if (chatroom_chat_is_kicked_user($user, $node)) {
-    drupal_json(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
-    return;
+    drupal_json_output(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
+    drupal_exit();
   }
 
   if (!$cached_chat_user = chatroom_get_cached_user()) {
@@ -1285,7 +1285,8 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
       $response['commandResponse'] = $command_response;
     }
   }
-  drupal_json(array('data' => $response));
+  drupal_json_output(array('data' => $response));
+  drupal_exit();
 }
 
 /**
