@@ -1004,7 +1004,6 @@ function chatroom_add_js($node) {
     'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
     'idleInterval' => (int) $node->chat->idle_freq,
     'chatId'       => (int) $node->nid,
-    'popoutParams' => chatroom_get_popout_params($node),
     'cacheDirectory' => file_directory_temp(),
     'postMessagePath' => 'chatroom/chat/post/message',
     'banUserPath' => 'chatroom/ajax/user/ban',
@@ -1015,7 +1014,6 @@ function chatroom_add_js($node) {
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
     'accessDeniedPath' => 'chatroom/access-denied',
-    'popoutRedirect' => 'chatroom/popout/redirect',
   );
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
@@ -1826,30 +1824,6 @@ function chatroom_chat_is_banned_user($chat_user, $node) {
 }
 
 /**
- * Redirect page if someone tries to view a popout chat in a full page.
- *
- * @param mixed $node
- * @access public
- * @return void
- */
-function chatroom_popout_redirect($node) {
-  drupal_set_message(t('The chat "!chat" has been loaded in a popout window.', array('!chat' => $node->title)));
-  drupal_goto(variable_get('chatroom_popout_redirect_path', base_path() == '/' ? '' : base_path()));
-}
-
-/**
- * Get the popout params for a chat.
- *
- * TODO: make this configurable.
- *
- * @param mixed $node
- * @return string
- */
-function chatroom_get_popout_params($node) {
-  return 'height=600,width=600';
-}
-
-/**
  * Check to see if the given user has access to this chat.
  *
  * @param mixed $node
@@ -2121,11 +2095,6 @@ function chatroom_chat_get_active_user_links($node) {
   global $user;
 
   $links = array();
-  if (!isset($_GET['chatroom_popout']) && (!isset($_POST['is_popout']) || $_POST['is_popout'] == 'false')) {
-    $options = array('attributes' => array('id' => 'chatroom-popout-link'));
-    $links[] = chatroom_chat_user_link(t('View in popout'), 'view-in-popout', $options, FALSE, TRUE);
-  }
-
   foreach (module_implements('chatroom_active_user_links') as $module) {
     $function = $module . '_chatroom_active_user_links';
     foreach ($function($node, $user) as $link) {

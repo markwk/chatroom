@@ -9,11 +9,7 @@
  * Implementation of hook_theme().
  */
 function chatroom_theme($existing, $type, $theme, $path) {
-  // Add the path to our module folder so we can pick up popout template.
-  $page = $existing['page'];
-  $page['theme paths'][] = drupal_get_path('module', 'chatroom');
   return array(
-    'page' => $page,
     'chatroom_message_username' => array(
       'arguments' => array('message', 'skip_permission_check'),
     ),
@@ -492,18 +488,6 @@ function theme_chatroom_chat_archive($variables) {
   }
   $html .= '</div>';
   return $html;
-}
-
-/**
- * Implementation of hook_preprocess_page().
- */
-function chatroom_preprocess_page(&$vars) {
-  // Add a template hint for the popout page template.
-  if (isset($vars['node']) && arg(2) != 'edit' && $vars['node']->type == 'chat' && isset($_GET['chatroom_popout'])) {
-    if ($vars['node']->chat->when_archived === NULL) {
-      $vars['template_files'] = array('page-chat-popout');
-    }
-  }
 }
 
 /**

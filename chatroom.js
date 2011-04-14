@@ -31,15 +31,8 @@ Drupal.behaviors.chatroom = {
           Drupal.settings.chatroom.hasFocus = false;
         }
       );
-      Drupal.settings.chatroom.isPopout = opener == undefined ? 'false' : 'true';
       Drupal.chatroom.initialised = true;
     }
-    $("#chatroom-popout-link").click(function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' +
-      window.open(Drupal.settings.basePath + 'node/' + Drupal.settings.chatroom.chatId + '?chatroom_popout=true', '', Drupal.settings.chatroom.popoutParams);
-    });
 
     $('#edit-chatroom-message-entry-box').keyup(function(e) {
       var messageText = $('#edit-chatroom-message-entry-box').val().replace(/^\s+|\s+$/g, '');
@@ -112,8 +105,7 @@ Drupal.chatroom.kickUser = function(uid) {
     data: {
       uid: uid,
       formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
-      formId: 'chatroom_chat_management_form',
-      is_popout: Drupal.settings.chatroom.isPopout
+      formId: 'chatroom_chat_management_form'
     }
   });
 }
@@ -126,7 +118,6 @@ Drupal.chatroom.removeUser = function(uid) {
     success: Drupal.chatroom.pollHandler,
     data: {
       uid: uid,
-      is_popout: Drupal.settings.chatroom.isPopout,
       formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
       formId: 'chatroom_chat_management_form'
     }
@@ -149,7 +140,6 @@ Drupal.chatroom.poll = function() {
       chat_cache_directory: Drupal.settings.chatroom.cacheDirectory,
       chat_id: Drupal.settings.chatroom.chatId,
       skip_cache: skipCacheCheck,
-      is_popout: Drupal.settings.chatroom.isPopout,
       successive_cache_hits: Drupal.settings.chatroom.successiveCacheHits
     }
   });
