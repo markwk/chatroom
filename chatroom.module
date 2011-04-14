@@ -990,7 +990,9 @@ function chatroom_chat_register_user($node) {
                 WHERE ccid = :nid2";
       $params[':nid2'] = $node->nid;
     }
-    return db_query($sql, $params);
+    db_query($sql, $params);
+    module_invoke_all('chatroom_chat_register_user', $node, $user);
+    return TRUE;
   }
   return FALSE;
 }
@@ -1010,11 +1012,16 @@ function chatroom_add_js($node) {
     'kickUserPath' => 'chatroom/ajax/user/kick',
     'removeUserPath' => 'chatroom/ajax/user/remove',
     'chatPath' => 'node/' . $node->nid,
-		'successiveCacheHits' => 0,
+    'successiveCacheHits' => 0,
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
     'accessDeniedPath' => 'chatroom/access-denied',
   );
+
+  // Allow other modules to supply a polling backend.
+  if (variable_get('chatroom_custom_polling_backend', FALSE)) {
+    $js['customPollingBackend'] = 1;
+  }
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
     $js['timezone'] = $user->timezone;
