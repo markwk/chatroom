@@ -226,6 +226,7 @@ Drupal.chatroom.scrollToLatestMessage = function() {
 }
 
 Drupal.chatroom.postMessage = function(message, anonName) {
+  // Fix the resolution of the form tokens
   $.ajax({
     type: 'POST',
     url: Drupal.settings.basePath + Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
@@ -235,7 +236,7 @@ Drupal.chatroom.postMessage = function(message, anonName) {
       message: message,
       anonName: anonName,
       formToken: $('#edit-chatroom-chat-buttons-form-token').val(),
-      formId: $('#edit-chatroom-chat-buttons').val()
+      formId: 'chatroom_chat_buttons'
     }
   })
 }

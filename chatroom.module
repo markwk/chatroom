@@ -1242,6 +1242,7 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
 
     $message_cache = chatroom_get_cached_messages($node->nid);
     $save_to_cache = FALSE;
+
     foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
       $save_to_cache = TRUE;
       $msg = new StdClass();
@@ -1256,8 +1257,8 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
       $msg->date_format = variable_get('chatroom_msg_date_format', 'H:i:s');
       $msg->public_css_class = variable_get('chatroom_msg_public_class', 'chatroom-msg');
       $msg->private_css_class = variable_get('chatroom_msg_private_class', 'chatroom-private');
-      $msg->themed_username = theme('chatroom_message_username', $message, TRUE);
-      $msg->themed_message = theme('chatroom_message', $message, $node);
+      $msg->themed_username = theme('chatroom_message_username', array('message' => $message, 'skip_permission_check' => TRUE));
+      $msg->themed_message = theme('chatroom_message', array('message' => $message, 'node' => $node));
       $msg->recipient_uid = $message->recipient_uid;
       $msg->viewed_uid = $user->uid;
 
