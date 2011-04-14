@@ -1598,6 +1598,7 @@ function chatroom_chat_ban_user($node, $user_to_ban, $chat_admin_user) {
 
     db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = %d AND ccid = %d", $user_to_ban->uid, $node->nid);
     cache_clear_all('chatroom_chat_ban_list_' . $node->nid, 'cache');
+    module_invoke_all('chatroom_chat_ban_user', $node, $user_to_ban, $chat_admin_user);
     return TRUE;
   }
   return FALSE;
@@ -1634,6 +1635,7 @@ function chatroom_chat_kick_user($node, $user_to_kick, $chat_admin_user) {
 
     db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = %d AND ccid = %d", $user_to_kick->uid, $node->nid);
     cache_clear_all('chatroom_chat_kicked_list_' . $node->nid, 'cache');
+    module_invoke_all('chatroom_chat_kick_user', $node, $user_to_ban, $chat_admin_user);
     return TRUE;
   }
   return FALSE;
