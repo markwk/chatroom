@@ -320,9 +320,11 @@ function chatroom_admin_settings_validate($form, &$form_state) {
     form_set_error('chatroom_online_list_timeout', t('The online timeout length must be a a valid number from 10 to 999.'));
   }
   // Validate that the entered desk node is indeed a chatroom.
-  $chatroom_desk_node = node_load($form_state['values']['chatroom_desk_nid']);
-  if (empty($chatroom_desk_node->type) || $chatroom_desk_node->type != 'chatroom') {
-    form_set_error('chatroom_desk_nid', t('The chatroom desk node id must be for a chatroom'));
+  if (!empty($form_state['values']['chatroom_desk_nid'])) {
+    $chatroom_desk_node = node_load($form_state['values']['chatroom_desk_nid']);
+    if (empty($chatroom_desk_node->type) || $chatroom_desk_node->type != 'chatroom') {
+      form_set_error('chatroom_desk_nid', t('The chatroom desk node id must be for a chatroom'));
+    }
   }
 }
 
