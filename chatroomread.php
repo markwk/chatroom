@@ -106,6 +106,8 @@ if (!$skip_cache) {
 
 // Make this look like a normal request to Drupal, then execute index.php.
 $_GET['q'] = "chatroom/chat/get/latest/messages/$chat_id/$client_latest_msg_id";
+// Some contrib modules (like strongarm) rely on $_REQUEST['q'].
+$_REQUEST['q'] = $_GET['q'];
 require_once './index.php';
 
 /**
