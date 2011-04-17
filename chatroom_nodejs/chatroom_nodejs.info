@@ -1,0 +1,8 @@
+name = Chatroom Nodejs integration
+description = Adds Node.js backend to Chatroom
+package = Nodejs
+version = VERSION
+core = 7.x
+files[] = chatroom_nodejs.module
+dependencies[] = nodejs
+dependencies[] = chatroom
