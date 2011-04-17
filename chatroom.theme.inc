@@ -498,25 +498,27 @@ function theme_chatroom_chat_archive($variables) {
  */
 function theme_chatroom_chat_teaser($variables) {
   $node = $variables['node'];
-  if ($node->chat->when_archived) {
-    $params = array(
-      '!date' => format_date($node->chat->when_archived, 'medium'),
-      '%message_count', $node->chat->msg_count,
-    );
-    return t('Archived on !date, contains %message_count messages.', $params);
-  }
-  else {
-    if ($node->chat->latest_msg) {
+  if (isset($node->chat)) {
+    if ($node->chat->when_archived) {
       $params = array(
-        '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
-        '%message' => $node->chat->latest_msg->msg,
-        '!user' => theme('username', array('account' => user_load($node->chat->latest_msg->uid))),
-        '%message_count' => $node->chat->msg_count,
+        '!date' => format_date($node->chat->when_archived, 'medium'),
+        '%message_count', $node->chat->msg_count,
       );
-      return t("Last message at !date: %message by !user. Total messages: %message_count.", $params);
+      return t('Archived on !date, contains %message_count messages.', $params);
     }
     else {
-      return t('There are no messages in this chat.');
+      if ($node->chat->latest_msg) {
+        $params = array(
+          '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
+          '%message' => $node->chat->latest_msg->msg,
+          '!user' => theme('username', array('account' => user_load($node->chat->latest_msg->uid))),
+          '%message_count' => $node->chat->msg_count,
+        );
+        return t("Last message at !date: %message by !user. Total messages: %message_count.", $params);
+      }
+      else {
+        return t('There are no messages in this chat.');
+      }
     }
   }
 }
