@@ -170,38 +170,51 @@ Drupal.chatroom.pollHandler = function(response, responseStatus) {
   }
 
   if (response.data.messages) {
-    var newMessage = false;
-    for (var i = 0; i < response.data.messages.length; i++) {
-      // Poll requests can pass each other over the wire, so we can't rely on
-      // getting a given message once only, so only add if we haven't already
-      // done so.
-      if (response.data.messages[i].cmid > Drupal.settings.chatroom.latestMsgId) {
-        Drupal.settings.chatroom.latestMsgId = response.data.messages[i].cmid;
-        $('#chatroom-board').append(response.data.messages[i].html);
-        newMessage = response.data.messages[i];
-        if (response.data.messages[i].newDayHtml) {
-          $('#chatroom-board').append(response.data.messages[i].newDayHtml);
-        }
-      }
-    }
-    if (newMessage) {
-      Drupal.chatroom.scrollToLatestMessage();
-      if (Drupal.settings.chatroom.hasFocus == false) {
-        Drupal.settings.chatroom.newMsg = newMessage;
-        clearInterval(Drupal.settings.chatroom.warnInterval);
-        Drupal.settings.chatroom.warnInterval = setInterval("Drupal.chatroom.warnNewMsgLoop()", 1500);
-      }
-    }
+    Drupal.chatroom.addMessagesToBoard(response.data.messages);
   }
 
   if (response.data.usersHtml) {
-    $('#chatroom-user-list-wrapper').replaceWith(response.data.usersHtml);
-    Drupal.attachBehaviors('#chatroom-user-list-wrapper');
+    Drupal.chatroom.updateUserList(response.data.usersHtml);
   }
 
   if (response.data.commandResponse) {
     Drupal.chatroom.addCommandMessage(response.data.commandResponse);
   }
+}
+
+Drupal.chatroom.updateUserList  = function(usersHtml) {
+  $('#chatroom-user-list-wrapper').replaceWith(usersHtml);
+  Drupal.attachBehaviors('#chatroom-user-list-wrapper');
+}
+
+Drupal.chatroom.addMessagesToBoard = function(messages) {
+  var newMessage = false;
+  for (var i = 0; i < messages.length; i++) {
+    // Poll requests can pass each other over the wire, so we can't rely on
+    // getting a given message once only, so only add if we haven't already
+    // done so.
+    if (messages[i].cmid > Drupal.settings.chatroom.latestMsgId) {
+      Drupal.settings.chatroom.latestMsgId = messages[i].cmid;
+      $('#chatroom-board').append(messages[i].html);
+      newMessage = messages[i];
+      if (messages[i].newDayHtml) {
+        $('#chatroom-board').append(messages[i].newDayHtml);
+      }
+    }
+  }
+  if (newMessage) {
+    Drupal.chatroom.scrollToLatestMessage();
+    if (Drupal.settings.chatroom.hasFocus == false) {
+      Drupal.settings.chatroom.newMsg = newMessage;
+      clearInterval(Drupal.settings.chatroom.warnInterval);
+      Drupal.settings.chatroom.warnInterval = setInterval("Drupal.chatroom.warnNewMsgLoop()", 1500);
+    }
+  }
+}
+
+Drupal.chatroom.addCommandMessage = function(response) {
+  $('#chatroom-board').append('<div class="new-message command-message">** ' + response.msg + '</div>');
+  Drupal.chatroom.scrollToLatestMessage();
 }
 
 Drupal.chatroom.addCommandMessage = function(response) {
