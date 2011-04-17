@@ -510,7 +510,7 @@ function theme_chatroom_chat_teaser($variables) {
       $params = array(
         '!date' => format_date($node->chat->latest_msg->modified, 'medium'),
         '%message' => $node->chat->latest_msg->msg,
-        '!user' => theme('username', user_load($node->chat->latest_msg->uid)),
+        '!user' => theme('username', array('account' => user_load($node->chat->latest_msg->uid))),
         '%message_count' => $node->chat->msg_count,
       );
       return t("Last message at !date: %message by !user. Total messages: %message_count.", $params);
