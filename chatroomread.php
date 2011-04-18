@@ -1,5 +1,7 @@
 <?php
 
+define('DRUPAL_ROOT', dirname(__FILE__));
+
 /**
  * @file
  * Process chatroom polling requests.
