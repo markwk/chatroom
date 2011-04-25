@@ -46,13 +46,18 @@ function chatroom_form(&$node, $form_state) {
     '#default_value' => check_plain($node->title),
     '#required' => TRUE,
   );
-  $form['body_filter']['body'] = array(
+  $body_element = array(
     '#type' => 'textarea',
+    '#base_type' => 'textarea',
+    '#parents' => array('body','body_filter'),
     '#title' => t('Description'),
     '#default_value' => (isset($node->body)) ? $node->body : '',
     '#rows' => 3,
     '#description' => t('Describe your chat room so other people will know if they want to join.'),
   );
+  $body_element = filter_process_format($body_element);
+  $form['body_filter']['body'] = $body_element['value'];
+  $form['body_filter']['format'] = $body_element['format'];
   $form['kicked_out_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat room kicked out message'),
