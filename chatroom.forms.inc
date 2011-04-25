@@ -35,17 +35,10 @@ function chatroom_forms($form_id, $args) {
 }
 
 /**
- * Implements chatroom_prepare().
- */
-function chatroom_prepare() {
-}
-
-/**
  * Implementation of hook_form().
  */
 function chatroom_form(&$node, $form_state) {
   global $user;
-  drupal_set_message(print_r($node, TRUE));
 
   $form['title'] = array(
     '#type' => 'textfield',
@@ -56,11 +49,10 @@ function chatroom_form(&$node, $form_state) {
   $form['body_filter']['body'] = array(
     '#type' => 'textarea',
     '#title' => t('Description'),
-    '#default_value' => $node->body,
+    '#default_value' => (isset($node->body)) ? $node->body : '',
     '#rows' => 3,
     '#description' => t('Describe your chat room so other people will know if they want to join.'),
   );
-  $form['body_filter']['format'] = filter_form($node->format);
   $form['kicked_out_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Chat room kicked out message'),
