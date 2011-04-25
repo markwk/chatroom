@@ -195,7 +195,7 @@ function chatroom_admin_settings() {
   $form['chatroom_chat_date_format'] = array(
     '#type' => 'textfield',
     '#title' => t('Chat date format'),
-    '#attributes' => array('class' => 'custom-format'),
+    '#attributes' => array('class' => array('custom-format')),
     '#default_value' => variable_get('chatroom_chat_date_format', '* \S\e\n\t \a\t G:i'),
     '#description' => t('Format for system time messages in chats. See the <a href="@url">PHP manual</a> for available options. This format is currently set to display as <span>%date</span>.', array('@url' => 'http://php.net/manual/function.date.php', '%date' => format_date(time(), 'custom', variable_get('chatroom_chat_date_format', '* \S\e\n\t \a\t G:i')))),
   );
