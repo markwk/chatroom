@@ -216,44 +216,44 @@ function chatroom_permission() {
  */
 function chatroom_menu() {
   $items['chatroom/chat/user/autocomplete/%node'] = array(
-    'description' => t('Load user suggestions for autocomplete widget'),
+    'description' => 'Load user suggestions for autocomplete widget',
     'page callback' => 'chatroom_chat_user_autocomplete',
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
   $items['chatroom/ajax/user/invite/%node'] = array(
-    'description' => t('Invite a user to a chat.'),
+    'description' => 'Invite a user to a chat.',
     'page callback' => 'chatroom_chat_ajax_user_invite',
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
   $items['chatroom/ajax/user/add/%node'] = array(
-    'description' => t('Add a user to a private chat.'),
+    'description' => 'Add a user to a private chat.',
     'page callback' => 'chatroom_chat_ajax_user_add',
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
   $items['chatroom/ajax/user/remove/%node'] = array(
-    'description' => t('Remove a user from a private chat.'),
+    'description' => 'Remove a user from a private chat.',
     'page callback' => 'chatroom_chat_ajax_user_remove',
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
   $items['chatroom/ajax/user/ban/%node'] = array(
-    'description' => t('Ban a user from a chat.'),
+    'description' => 'Ban a user from a chat.',
     'page callback' => 'chatroom_chat_ajax_user_ban',
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
   $items['chatroom/ajax/user/kick/%node'] = array(
-    'description' => t('Kick a user from a chat.'),
+    'description' => 'Kick a user from a chat.',
     'page callback' => 'chatroom_chat_ajax_user_kick',
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
   $items['admin/settings/chatroom'] = array(
     'title' => 'Chat room',
-    'description' => t('Configure global settings for chat rooms and chats.'),
+    'description' => 'Configure global settings for chat rooms and chats.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('chatroom_admin_settings'),
     'access arguments' => array('administer chat rooms'),
@@ -279,7 +279,7 @@ function chatroom_menu() {
 
   $items['admin/config/chatroom'] = array(
     'title' => 'Chat room',
-    'description' => t('Configure global settings for chat rooms and chats.'),
+    'description' => 'Configure global settings for chat rooms and chats.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('chatroom_admin_settings'),
     'access arguments' => array('administer chat rooms'),
