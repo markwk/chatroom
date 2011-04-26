@@ -463,5 +463,23 @@ function chatroom_install() {
  * Implements hook_uninstall().
  */
 function chatroom_uninstall() {
+  $result = db_query("SELECT nid FROM {node} WHERE type = 'chatroom' OR type = 'chat'");
+  foreach($result as $nid) {
+    $nids[] = $nid;
+  }
+  node_delete_multiple($nids);
+
+  db_delete('block')
+    ->condition('module', 'chatroom')
+    ->execute();
+
+  $result = db_query("SELECT name FROM {variable} WHERE name LIKE 'chatroom\_%'");
+  foreach ($result as $variable_name) {
+    variable_del($variable_name);
+  }
+
+  db_delete('role_permission')
+    ->condition('permission', array_keys(chatroom_permission()))
+    ->execute();
 }
 
