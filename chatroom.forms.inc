@@ -274,7 +274,7 @@ function chatroom_admin_settings() {
     '#default_value' => variable_get('chatroom_desk_staff_rids', array()),
   );
 
-  $form['chatroom_desk']['chatroom_desk_seconds_online'] = array(
+  $form['chatroom_desk']['chatroom_desk_minutes_online'] = array(
     '#type' => 'textfield',
     '#title' => t('Auto-close desk when staff are inactive'),
     '#default_value' => variable_get('chatroom_desk_minutes_online', 15),
