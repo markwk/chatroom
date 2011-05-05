@@ -773,8 +773,8 @@ function chatroom_get_banned_users($node) {
  */
 function chatroom_chat_unarchive_chat($node) {
   cache_clear_all('chatroom_chat_list', 'cache');
-  db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE nid = %d', $node->nid);
-  return db_affected_rows();
+  $query = db_query('UPDATE {chatroom_chat} SET when_archived = NULL WHERE nid = :nid', array(':nid' => $node->nid));
+  return $query->rowCount();
 }
 
 /**
@@ -785,8 +785,8 @@ function chatroom_chat_unarchive_chat($node) {
  */
 function chatroom_chat_archive_chat($node) {
   cache_clear_all('chatroom_chat_list', 'cache');
-  db_query('UPDATE {chatroom_chat} SET when_archived = %d WHERE nid = %d', time(), $node->nid);
-  return db_affected_rows();
+  $query = db_query('UPDATE {chatroom_chat} SET when_archived = :when_archived WHERE nid = :nid', array(':when_archived' => time(), ':nid' => $node->nid));
+  return $query->rowCount();
 }
 
 /**
