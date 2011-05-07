@@ -500,7 +500,7 @@ function chatroom_create_chatroom_chat($chatroom, $values, $chat_user) {
  * @param integer $node
  * @return array
  */
-function chatroom_unarchive_chat_form($node, &$form_state) {
+function chatroom_unarchive_chat_form($form, &$form_state, $node) {
   $form_state['chat'] = $node;
   $form['unarchive'] = array(
     '#type' => 'submit',
