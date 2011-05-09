@@ -429,7 +429,7 @@ function chatroom_chat_form(&$node, $form_state) {
 /**
  * Return a create chat form.
  */
-function chatroom_create_chat_form(&$form_state, $room) {
+function chatroom_create_chat_form($form, &$form_state, $room) {
   $form_state['chatroom'] = $room;
   $form['chatroom_create_chat'] = array(
     '#type' => 'fieldset',

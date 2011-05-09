@@ -296,6 +296,7 @@ function theme_chatroom_user_list($variables) {
  * Format a message for display in a summary table.
  */
 function theme_chatroom_latest_message($message) {
+  $message = $variables['message'];
   $output = check_plain($message->msg) . '<br />';
   $output .= t('Posted by <strong>!user</strong> on !date', array(
     '!user' => $message->uid ? l($message->name, "user/$message->uid") : variable_get('chatroom_guest_user_prefix', t('guest-')) . $message->guest_id,
@@ -529,7 +530,8 @@ function theme_chatroom_chat_teaser($variables) {
  * @param mixed $node
  * @return string
  */
-function theme_chatroom_teaser($node) {
+function theme_chatroom_teaser($variables) {
+  $node = $variables['node'];
   $params = array(
     '%open_chats' => count($node->chatroom->chats),
   );
@@ -563,7 +565,8 @@ function theme_chatroom_chat_max_users($variables) {
  * @param mixed $chat
  * @return string
  */
-function theme_chatroom_chat_admin_buttons($chat) {
+function theme_chatroom_chat_admin_buttons($variables) {
+  $chat = $variables['chat'];
   return '<div class="chatroom-chat-admin-buttons">' . drupal_get_form('chatroom_chat_admin_buttons_form_' . $chat->nid, $chat) . '</div>';
 }
 
