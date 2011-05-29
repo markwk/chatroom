@@ -6,3 +6,10 @@ core = 7.x
 files[] = chatroom_nodejs.module
 dependencies[] = nodejs
 dependencies[] = chatroom
+
+; Information added by drupal.org packaging script on 2011-05-10
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "chatroom"
+datestamp = "1304985892"
+
