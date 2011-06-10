@@ -238,7 +238,7 @@ Drupal.chatroom.postMessage = function(message, anonName) {
   // Fix the resolution of the form tokens
   $.ajax({
     type: 'POST',
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
+    url: Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
@@ -247,7 +247,7 @@ Drupal.chatroom.postMessage = function(message, anonName) {
       formToken: $('#edit-chatroom-chat-buttons-form-token').val(),
       formId: 'chatroom_chat_buttons'
     }
-  })
+  });
 }
 
 Drupal.chatroom.warnNewMsgLoop = function() {

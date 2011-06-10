@@ -214,6 +214,8 @@ function chatroom_permission() {
  * Implements hook_menu().
  */
 function chatroom_menu() {
+  $items = array();
+
   $items['chatroom/chat/user/autocomplete/%node'] = array(
     'description' => 'Load user suggestions for autocomplete widget',
     'page callback' => 'chatroom_chat_user_autocomplete',
@@ -1009,7 +1011,7 @@ function chatroom_add_js($node) {
     'idleInterval' => (int) $node->chat->idle_freq,
     'chatId'       => (int) $node->nid,
     'cacheDirectory' => file_directory_temp(),
-    'postMessagePath' => 'chatroom/chat/post/message',
+    'postMessagePath' => url('chatroom/chat/post/message', array('absolute' => TRUE)),
     'banUserPath' => 'chatroom/ajax/user/ban',
     'kickUserPath' => 'chatroom/ajax/user/kick',
     'removeUserPath' => 'chatroom/ajax/user/remove',
