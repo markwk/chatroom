@@ -7,9 +7,9 @@ files[] = chatroom_nodejs.module
 dependencies[] = nodejs
 dependencies[] = chatroom
 
-; Information added by drupal.org packaging script on 2011-05-10
+; Information added by drupal.org packaging script on 2011-06-03
 version = "7.x-1.x-dev"
 core = "7.x"
 project = "chatroom"
-datestamp = "1304985892"
+datestamp = "1307059542"
 

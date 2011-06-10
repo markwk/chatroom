@@ -88,8 +88,7 @@ function chatroom_chat_notify_user_of_invites($chat_user, $invites) {
     $function = $module . '_chatroom_chat_invites_notify';
     $function($chat_user, $invites);
   }
-  $sql = "UPDATE {chatroom_chat_invite} SET notified = 1 WHERE cciid IN (" . db_placeholders(array_keys($invites)) . ')';
-  db_query($sql, array_keys($invites));
+  db_query('UPDATE {chatroom_chat_invite} SET notified = 1 WHERE cciid IN (:invites)', array(':invites' => array_keys($invites)));
 }
 
 /**
@@ -398,22 +397,21 @@ function chatroom_load_chats($nid) {
   if (!empty($chats)) {
     // Load the message count info.
     $ccids = array_keys($chats);
-    $sql = "SELECT ccid, COUNT(*) msg_count, MAX(cmid) last_cmid
+    $result = db_query("SELECT ccid, COUNT(*) msg_count, MAX(cmid) last_cmid
             FROM {chatroom_msg}
-            WHERE ccid IN (" . db_placeholders($ccids) . ")
-            GROUP BY ccid";
-    $result = db_query($sql, $ccids);
-    while ($count = db_fetch_object($result)) {
+            WHERE ccid IN (:ccids)
+            GROUP BY ccid", array(':ccids' => $ccids));
+    foreach ($result as $count) {
       $chats[$count->ccid]->msg_count = $count->msg_count;
       $chats[$count->ccid]->last_cmid = $count->last_cmid;
       $cmids[] = $count->last_cmid;
     }
 
     // Load the allowed users for each chat.
-    $sql = "SELECT nid, uid
+    $result = db_query('SELECT nid, uid
             FROM {chatroom_chat_user}
-            WHERE nid IN (" . db_placeholders($ccids) . ")";
-    while ($allowed_user = db_fetch_object($result)) {
+            WHERE nid IN (:ccids)', array(':ccids' => $ccids));
+    foreach ($result as $allowed_user) {
       $chats[$allowed_user->nid]->allowed_uids = $allowed_user->uid;
     }
   }
@@ -422,13 +420,12 @@ function chatroom_load_chats($nid) {
   if (!empty($cmids)) {
     // Note we join on the session not the uid, because anon users all have
     // the same uid.
-    $sql = "SELECT cm.*, u.name, col.guest_id
+    $result = db_query("SELECT cm.*, u.name, col.guest_id
             FROM {chatroom_msg} cm
             INNER JOIN {chatroom_chat_online_list} col ON col.sid = cm.sid
             INNER JOIN {users} u ON u.uid = col.uid
-            WHERE cm.cmid IN (" . db_placeholders($cmids) . ")";
-    $result = db_query($sql, $cmids);
-    while ($message = db_fetch_object($result)) {
+            WHERE cm.cmid IN (:cmids)", array(':cmids' => $cmids));
+    foreach ($result as $message) {
       $chats[$message->ccid]->last_msg = $message;
     }
   }
@@ -1594,7 +1591,7 @@ function chatroom_command_msg_user($command, $node) {
  */
 function chatroom_chat_kick_guest($node, $guest_id, $chat_admin_user) {
   if (user_access('administer chats', $chat_admin_user) || $node->uid == $chat_admin_user->uid) {
-    $guest = db_fetch_object(db_query("SELECT * FROM {chatroom_chat_online_list} WHERE ccid = %d AND guest_id = %d", $node->nid, $guest_id));
+    $guest = db_query("SELECT * FROM {chatroom_chat_online_list} WHERE ccid = :nid AND guest_id = :gid", array(':nid' => $node->nid, ':gid' => $guest_id))->fetch();
 
     $kick_data = array(
       'sid' => $guest->sid,
@@ -1612,7 +1609,7 @@ function chatroom_chat_kick_guest($node, $guest_id, $chat_admin_user) {
     );
     watchdog('chatroom', 'Guest !guest_name banned from chat !chat by !chat_admin_username.', $params);
 
-    db_query("DELETE FROM {chatroom_chat_online_list} WHERE sid = '%s' AND ccid = %d", $guest->sid, $node->nid);
+    db_query("DELETE FROM {chatroom_chat_online_list} WHERE sid = :sid AND ccid = :nid", array(':sid' => $guest->sid, ':nid' => $node->nid));
     cache_clear_all('chatroom_chat_kicked_list_' . $node->nid, 'cache');
     return TRUE;
   }
@@ -1646,7 +1643,7 @@ function chatroom_chat_ban_user($node, $user_to_ban, $chat_admin_user) {
     );
     watchdog('chatroom', 'User !banned_username banned from chat !chat by !chat_admin_username.', $params);
 
-    db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = %d AND ccid = %d", $user_to_ban->uid, $node->nid);
+    db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = :uid AND ccid = :nid", array(':uid' => $user_to_ban->uid, ':nid' => $node->nid));
     cache_clear_all('chatroom_chat_ban_list_' . $node->nid, 'cache');
     module_invoke_all('chatroom_chat_ban_user', $node, $user_to_ban, $chat_admin_user);
     return TRUE;
@@ -1683,7 +1680,7 @@ function chatroom_chat_kick_user($node, $user_to_kick, $chat_admin_user) {
     );
     watchdog('chatroom', 'User !kicked_username kicked out of chat !chat by !chat_admin_username.', $params);
 
-    db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = %d AND ccid = %d", $user_to_kick->uid, $node->nid);
+    db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = :uid AND ccid = :nid", array(':uid' => $user_to_kick->uid, ':nid' => $node->nid));
     cache_clear_all('chatroom_chat_kicked_list_' . $node->nid, 'cache');
     module_invoke_all('chatroom_chat_kick_user', $node, $user_to_ban, $chat_admin_user);
     return TRUE;
@@ -2276,8 +2273,8 @@ function chatroom_chat_make_chat_private($node) {
  * @return boolean
  */
 function chatroom_chat_make_chat_public($node) {
-  db_query("DELETE FROM {chatroom_chat_user} WHERE nid = %d", $node->nid);
-  db_query("UPDATE {chatroom_chat} SET private = 0 WHERE nid = %d", $node->nid);
+  db_query("DELETE FROM {chatroom_chat_user} WHERE nid = :nid", array(':nid' => $node->nid));
+  db_query("UPDATE {chatroom_chat} SET private = 0 WHERE nid = :nid", array(':nid' => $node->nid));
   cache_clear_all('chatroom_chat_list', 'cache');
   return db_affected_rows();
 }
@@ -2295,9 +2292,12 @@ function chatroom_get_staff_on_duty() {
     $interval = time() - (variable_get('chatroom_desk_minutes_online', 15) * 60);
 
     $args = array_merge(array($interval), $rids);
-    $staffers = db_query('SELECT DISTINCT u.uid, u.name FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid INNER JOIN {users_roles} ur ON s.uid = ur.uid WHERE s.timestamp >= %d AND s.uid > 0 AND ur.rid in ('. db_placeholders($rids) .') ORDER BY s.timestamp DESC', $args);
+    $staffers = db_query('SELECT DISTINCT u.uid, u.name FROM {users} u INNER JOIN {sessions} s ON u.uid = s.uid INNER JOIN {users_roles} ur ON s.uid = ur.uid WHERE s.timestamp >= :timestamp AND s.uid > 0 AND ur.rid in :rids ORDER BY s.timestamp DESC', array(
+      ':rids' => $rids,
+      ':timestamp' => $interval,
+    ));
 
-    while ($record = db_fetch_object($staffers)) {
+    foreach ($staffers as $record) {
       $staff[$record->uid] = check_plain($record->name);
     }
   }
