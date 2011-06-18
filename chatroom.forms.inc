@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_forms()
+ * Implements hook_forms().
  */
 function chatroom_forms($form_id, $args) {
   // Look for the admin buttons form.
@@ -35,7 +35,7 @@ function chatroom_forms($form_id, $args) {
 }
 
 /**
- * Implementation of hook_form().
+ * Implements hook_form().
  */
 function chatroom_form(&$node, $form_state) {
   global $user;
@@ -49,7 +49,7 @@ function chatroom_form(&$node, $form_state) {
   $body_element = array(
     '#type' => 'textarea',
     '#base_type' => 'textarea',
-    '#parents' => array('body','body_filter'),
+    '#parents' => array('body', 'body_filter'),
     '#title' => t('Description'),
     '#default_value' => (isset($node->body)) ? $node->body : '',
     '#rows' => 3,
@@ -157,7 +157,7 @@ function chatroom_form(&$node, $form_state) {
 /**
  * Menu callback; display site-wide chat room settings.
  */
-function chatroom_admin_settings() {
+function chatroom_admin_settings($form, &$form_state) {
   $form['chatroom_auto_archive'] = array(
     '#type' => 'checkbox',
     '#title' => t('Automatically archive old messages.'),
@@ -197,7 +197,7 @@ function chatroom_admin_settings() {
     '#title' => t('Chat date format'),
     '#attributes' => array('class' => array('custom-format')),
     '#default_value' => variable_get('chatroom_chat_date_format', '* \S\e\n\t \a\t G:i'),
-    '#description' => t('Format for system time messages in chats. See the <a href="@url">PHP manual</a> for available options. This format is currently set to display as <span>%date</span>.', array('@url' => 'http://php.net/manual/function.date.php', '%date' => format_date(time(), 'custom', variable_get('chatroom_chat_date_format', '* \S\e\n\t \a\t G:i')))),
+    '#description' => t('Format for system time messages in chats. See the <a href="@url">PHP manual</a> for available options. This format is currently set to display as <span>%date</span>.', array('@url' => 'http://php.net/manual/function.date.php', '%date' => format_date(REQUEST_TIME, 'custom', variable_get('chatroom_chat_date_format', '* \S\e\n\t \a\t G:i')))),
   );
   $form['chatroom_allow_anon_name'] = array(
     '#type' => 'checkbox',
@@ -282,21 +282,21 @@ function chatroom_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Auto-close desk when staff are inactive'),
     '#default_value' => variable_get('chatroom_desk_minutes_online', 15),
-    '#description' => t('Desk will change to a closed state after the staff member has been idle for the minutes indicated.')
+    '#description' => t('Desk will change to a closed state after the staff member has been idle for the minutes indicated.'),
   );
 
   $form['chatroom_desk']['chatroom_desk_open_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Desk open message'),
     '#default_value' => variable_get('chatroom_desk_open_message', ''),
-    '#description' => t('A message to show when staff are active on the site.')
+    '#description' => t('A message to show when staff are active on the site.'),
   );
 
   $form['chatroom_desk']['chatroom_desk_closed_message'] = array(
     '#type' => 'textarea',
     '#title' => t('Desk closed message'),
     '#default_value' => variable_get('chatroom_desk_closed_message', 'Our help desk is closed, please try again later.'),
-    '#description' => t('A message to show when staff are not active on the site.')
+    '#description' => t('A message to show when staff are not active on the site.'),
   );
 
   return system_settings_form($form);
@@ -331,7 +331,7 @@ function chatroom_admin_settings_validate($form, &$form_state) {
 }
 
 /**
- * Implementation of hook_form().
+ * Implements hook_form().
  */
 function chatroom_chat_form(&$node, $form_state) {
   global $user;
@@ -477,7 +477,7 @@ function chatroom_create_chatroom_chat($chatroom, $values, $chat_user) {
   $node->type = 'chat';
   $node->title = $values->chat_name;
   $node->uid = $chat_user->uid;
-  $node->created = isset($values->created) ? $values->created : time();
+  $node->created = isset($values->created) ? $values->created : REQUEST_TIME;
   $node->chatroom_nid = $chatroom->nid;
   $node->idle_freq = $chatroom->chatroom->idle_freq;
   $node->poll_freq = $chatroom->chatroom->poll_freq;
@@ -561,7 +561,7 @@ function chatroom_chat_management_form($form, &$form_state, $node) {
   foreach (chatroom_chat_get_allowed_users($node) as $allowed_user) {
     $settings['allowedUsers'][] = $allowed_user;
   }
-  drupal_add_js(array('chatroomChatForm' => $settings), 'setting');
+  drupal_add_js(array('chatroomChatForm' => $settings), array('type' => 'setting', 'scope' => JS_DEFAULT));
 
   $form_state['chat'] = $node;
 
@@ -704,7 +704,7 @@ function chatroom_desk_open_form($form_state) {
         $help = t('<a href="@login">Login</a> to chat', array('@login' => url('user/login', array('query' => $destination))));
       }
       $form['chatroom_chatdesk']['help'] = array(
-        '#value' => '<p>'. $help .'</p>'
+        '#value' => '<p>' . $help . '</p>',
       );
     }
   }
@@ -717,6 +717,13 @@ function chatroom_desk_open_form($form_state) {
   return $form;
 }
 
+/**
+ * Handle submission of form to open a chat desk.
+ *
+ * @param mixed $form
+ * @param mixed $form_state
+ * @return void
+ */
 function chatroom_desk_open_form_submit($form, &$form_state) {
   global $user;
 
@@ -732,17 +739,22 @@ function chatroom_desk_open_form_submit($form, &$form_state) {
   do {
     $i++;
     $name = t('Question from @name - @number', array('@name' => $user->name, '@number' => $i));
-    $nid = db_result(db_query("SELECT nid FROM {node} WHERE title = '%s' AND type = 'chat'", $name));
-  } while(!empty($nid));
+    $nid = db_query("SELECT nid FROM {node} WHERE title = :title AND type = :type", array(':title' => $name, ':type' => 'chat'))->fetchField();
+  } while (!empty($nid));
 
   $values['chat_name'] = $name;
   $values = (object) $values;
 
   $chat = chatroom_create_chatroom_chat($chatroom, $values, $user);
-  db_query("UPDATE {chatroom_chat} SET private = 1 WHERE nid = %d", $chat->nid);
+  db_update('chatroom_chat')
+  ->fields(array(
+    'private' => 1,
+  ))
+  ->condition('nid', $chat->nid)
+  ->execute();
   cache_clear_all('chatroom_chat_list', 'cache');
 
-  $_REQUEST['destination'] = 'node/'. $chat->nid;
+  $_GET['destination'] = 'node/' . $chat->nid;
 
   return;
 }
