@@ -12,6 +12,10 @@ Drupal.behaviors.chatroom = {
       if (!Drupal.settings.chatroom.customPollingBackend) {
         setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
       }
+      else {
+        
+        
+      }
       Drupal.settings.chatroom.pageTitle = document.title;
       Drupal.settings.chatroom.hasFocus = true;
       if (Drupal.settings.chatroom.latestMsgId > 0) {
@@ -238,7 +242,7 @@ Drupal.chatroom.postMessage = function(message, anonName) {
   // Fix the resolution of the form tokens
   $.ajax({
     type: 'POST',
-    url: Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
+    url: Drupal.settings.basePath + Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {

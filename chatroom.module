@@ -1011,7 +1011,7 @@ function chatroom_add_js($node) {
     'idleInterval' => (int) $node->chat->idle_freq,
     'chatId'       => (int) $node->nid,
     'cacheDirectory' => file_directory_temp(),
-    'postMessagePath' => url('chatroom/chat/post/message', array('absolute' => TRUE)),
+    'postMessagePath' => 'chatroom/chat/post/message',
     'banUserPath' => 'chatroom/ajax/user/ban',
     'kickUserPath' => 'chatroom/ajax/user/kick',
     'removeUserPath' => 'chatroom/ajax/user/remove',
