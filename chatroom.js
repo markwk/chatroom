@@ -12,8 +12,7 @@ Drupal.behaviors.chatroom = {
       if (!Drupal.settings.chatroom.customPollingBackend) {
         setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
       }
-      else {
-        
+      else {  
         
       }
       Drupal.settings.chatroom.pageTitle = document.title;

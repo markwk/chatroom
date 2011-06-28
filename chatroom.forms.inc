@@ -205,6 +205,21 @@ function chatroom_admin_settings($form, &$form_state) {
     '#description' => t('Like other chat type services, this adds a name textfield for anonymous users.'),
     '#default_value' => variable_get('chatroom_allow_anon_name', TRUE),
   );
+  $form['chatroom_backend'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Chatroom backend'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+  $options = array('0' => t('AJAX'), '1' => t('Node.js'));
+  $form['chatroom_backend']['chatroom_custom_polling_backend'] = array(
+    '#type' => 'radios',
+    '#title' => t('Chatroom backend options'),
+    '#default_value' =>  (variable_get('chatroom_custom_polling_backend', FALSE))?1:0,
+    '#options' => $options,
+    '#description' => t('The log.'),
+    '#disabled' => !module_exists('chatroom_nodejs'),
+  );  
   if (module_exists('smileys')) {
     $form['chatroom_smileys_support'] = array(
       '#type' => 'fieldset',
@@ -324,9 +339,11 @@ function chatroom_admin_settings_validate($form, &$form_state) {
     form_set_error('chatroom_online_list_timeout', t('The online timeout length must be a a valid number from 10 to 999.'));
   }
   // Validate that the entered desk node is indeed a chatroom.
-  $chatroom_desk_node = node_load($form_state['values']['chatroom_desk_nid']);
-  if (empty($chatroom_desk_node->type) || $chatroom_desk_node->type != 'chatroom') {
-    form_set_error('chatroom_desk_nid', t('The chatroom desk node id must be for a chatroom'));
+  if ($form_state['values']['chatroom_desk_nid']!="") {
+    $chatroom_desk_node = node_load($form_state['values']['chatroom_desk_nid']);
+    if (empty($chatroom_desk_node->type) || $chatroom_desk_node->type != 'chatroom') {
+      form_set_error('chatroom_desk_nid', t('The chatroom desk node id must be for a chatroom'));
+    }
   }
 }
 
