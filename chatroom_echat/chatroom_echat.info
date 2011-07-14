@@ -1,0 +1,10 @@
+name = Chatroom Chat Entity
+description = An entity for Chatroom module
+core = 7.x
+package = Chat
+files[] = chatroom_echat.module
+files[] = chatroom_echat.pages.inc
+files[] = chatroom_echat.admin.inc
+files[] = chatroom_echat.install
+files[] = chatroom_echat.controller.inc
+dependencies[] = chatroom
