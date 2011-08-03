@@ -1704,16 +1704,17 @@ function chatroom_msg_user($node, $to_user, $from_user, $message) {
     '!chat' => $node->title,
   );
   watchdog('chatroom', 'User !from_user sent a private message "!message" to !to_user in chat !chat.', $params);
-  $message_data = array(
+  $private_message_data = array(
     'ccid' => $node->chat->nid,
     'uid' => $from_user->uid,
     'msg' => $message,
     'sid' => session_id(),
     'msg_type' => 'private_message',
     'recipient_uid' => $to_user->uid,
-    'modified' => time(),
+    'modified' => chatroom_get_utc_timestamp(),
+    'anon_name' => '',
   );
-  return chatroom_chat_save_message($message_data, $node);
+  return chatroom_chat_save_message($private_message_data, $node);
 }
 
 /**
@@ -1727,7 +1728,7 @@ function chatroom_get_user_from_command_arg($command_arg) {
     return user_load($command_arg);
   }
   else {
-    return user_load(array('name' => $command_arg));
+    return user_load_by_name($command_arg);
   }
 }
 
