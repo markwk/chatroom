@@ -1500,6 +1500,9 @@ function chatroom_chat_commands() {
     'msg' => array(
       'callback' => 'chatroom_command_msg_user',
     ),
+    'pm' => array(
+      'callback' => 'chatroom_command_pm_user',
+    ),
   );
 }
 
@@ -1583,6 +1586,26 @@ function chatroom_command_msg_user($command, $node) {
   }
   if ($to_user = chatroom_get_user_from_command_arg(array_shift($command->args))) {
     return chatroom_msg_user($node, $to_user, $user, implode(' ', $command->args));
+  }
+  return FALSE;
+}
+
+/**
+ * Respond to a command to send a private message to a specific user globally.
+ *
+ * @param mixed $command
+ * @param mixed $node
+ * @return boolean
+ */
+function chatroom_command_pm_user($command, $node) {
+  global $user;
+
+  // The second arg is the message, so if there isn't one, just bail.
+  if (count($command->args) < 2) {
+    return FALSE;
+  }
+  if ($to_user = chatroom_get_user_from_command_arg(array_shift($command->args))) {
+    return chatroom_pm_user($node, $to_user, $user, implode(' ', $command->args));
   }
   return FALSE;
 }
@@ -1721,6 +1744,62 @@ function chatroom_msg_user($node, $to_user, $from_user, $message) {
     'anon_name' => '',
   );
   return chatroom_chat_save_message($private_message_data, $node);
+}
+
+/**
+ * Send a private message to a specific user globally.
+ *
+ * @param mixed $node
+ * @param mixed $chat_user
+ * @param mixed $message
+ * @return boolean
+ */
+function chatroom_pm_user($node, $to_user, $from_user, $message) {
+  $params = array(
+    '!from_user' => $from_user->name,
+    '!to_user' => $to_user->name,
+    '!message' => $message,
+    '!chat' => $node->title,
+  );
+  watchdog('chatroom', 'User !from_user sent a private message "!message" to !to_user globally.', $params);
+  $users = array('0' => $to_user->uid, '1' => $from_user->uid,);
+  sort($users);
+  $result = db_query("SELECT nid FROM {chatroom_chat_user} 
+    WHERE uid = :uid1 OR uid = :uid2
+    GROUP BY nid
+    HAVING count(nid) = 2", 
+    array(':uid1' => $from_user->uid, ':uid2' => $to_user->uid), 
+    array('fetch' => PDO::FETCH_ASSOC)
+  )->fetchObject();
+
+  if (!$result) {
+    $new_node = new stdClass();
+    $new_node->type = 'chat';
+    node_object_prepare($new_node);
+    $new_node->title    = 'Private Chat for ' . $users[0] . ' and ' . $users[1];
+    $new_node->language = LANGUAGE_NONE;
+    $new_node->body[$new_node->language][0]['value']   = '';
+    $new_node->max_users = 2;
+    $new_node->private = 1;
+    $new_node->uid = 1;
+    node_save($new_node);
+    foreach ($users as $user) {
+      $user_data = array('uid' => $user, 'nid' => $new_node->nid);
+      drupal_write_record('chatroom_chat_user', $user_data);
+    }
+  }
+  
+  $private_message = array(
+    'ccid' => isset($result)?$result->nid:$new_node->nid,
+    'uid' => $from_user->uid,
+    'msg' => $message,
+    'sid' => session_id(),
+    'msg_type' => 'message',
+    'recipient_uid' => $to_user->uid,
+    'modified' => chatroom_get_utc_timestamp(),
+    'anon_name' => '',
+  );
+  return chatroom_chat_save_message($private_message, $node);
 }
 
 /**
@@ -2268,9 +2347,9 @@ function chatroom_max_users_reached($node) {
  * @return boolean
  */
 function chatroom_chat_make_chat_private($node) {
-  db_query("UPDATE {chatroom_chat} SET private = 1 WHERE nid = %d", $node->nid);
+  db_query("UPDATE {chatroom_chat} SET private = 1 WHERE nid = :nid", array(':nid' => $node->nid));
   cache_clear_all('chatroom_chat_list', 'cache');
-  return db_affected_rows();
+  //return db_affected_rows();
 }
 
 /**
@@ -2283,7 +2362,7 @@ function chatroom_chat_make_chat_public($node) {
   db_query("DELETE FROM {chatroom_chat_user} WHERE nid = :nid", array(':nid' => $node->nid));
   db_query("UPDATE {chatroom_chat} SET private = 0 WHERE nid = :nid", array(':nid' => $node->nid));
   cache_clear_all('chatroom_chat_list', 'cache');
-  return db_affected_rows();
+  //return db_affected_rows();
 }
 
 /**
