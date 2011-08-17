@@ -1767,7 +1767,7 @@ function chatroom_pm_user($node, $to_user, $from_user, $message) {
     array(':uid1' => $from_user->uid, ':uid2' => $to_user->uid), 
     array('fetch' => PDO::FETCH_ASSOC)
   )->fetchObject();
-
+  
   if (!$result) {
     $new_node = new stdClass();
     $new_node->type = 'chat';
@@ -1783,10 +1783,22 @@ function chatroom_pm_user($node, $to_user, $from_user, $message) {
       $user_data = array('uid' => $user, 'nid' => $new_node->nid);
       drupal_write_record('chatroom_chat_user', $user_data);
     }
+    $private_message = array(
+      'ccid' => $new_node->nid,
+      'uid' => $from_user->uid,
+      'msg' => $message,
+      'sid' => session_id(),
+      'msg_type' => 'message',
+      'recipient_uid' => $to_user->uid,
+      'modified' => chatroom_get_utc_timestamp(),
+      'anon_name' => '',
+    );
+    chatroom_chat_save_invite($to_user, $from_user, node_load($new_node->nid));
+    return chatroom_chat_save_message($private_message, node_load($new_node->nid));
   }
   
   $private_message = array(
-    'ccid' => isset($result)?$result->nid:$new_node->nid,
+    'ccid' => $result->nid,
     'uid' => $from_user->uid,
     'msg' => $message,
     'sid' => session_id(),
@@ -1795,7 +1807,7 @@ function chatroom_pm_user($node, $to_user, $from_user, $message) {
     'modified' => chatroom_get_utc_timestamp(),
     'anon_name' => '',
   );
-  return chatroom_chat_save_message($private_message, $node);
+  return chatroom_chat_save_message($private_message, node_load($result->nid));
 }
 
 /**
@@ -2150,8 +2162,15 @@ function chatroom_chat_save_invite($invitee, $inviter, $node) {
 
   // Make sure that the user can access the chat if its private.
   if ($node->chat->private) {
-    $user_data = array('uid' => $invitee->uid, 'nid' => $node->nid);
-    drupal_write_record('chatroom_chat_user', $user_data);
+    $result = db_query("SELECT nid FROM {chatroom_chat_user} 
+      WHERE uid = :uid AND nid = :nid", 
+      array(':uid' => $invitee->uid, ':nid' => $node->nid), 
+      array('fetch' => PDO::FETCH_ASSOC)
+    )->fetchObject();
+    if(!$result) {
+      $user_data = array('uid' => $invitee->uid, 'nid' => $node->nid);
+      drupal_write_record('chatroom_chat_user', $user_data);
+    }
   }
 
   $user_data = array(
