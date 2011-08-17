@@ -946,8 +946,11 @@ function chatroom_archive_old_msgs($chat_id) {
  * @return void
  */
 function chatroom_chat_accept_invite($node, $chat_user) {
-  $sql = "UPDATE {chatroom_chat_invite} SET accepted = 1 WHERE nid = %d AND invitee_uid = %d";
-  db_query($sql, $node->nid, $chat_user->uid);
+  db_update('chatroom_chat_invite')
+    ->condition(db_and()->condition('nid', $node->nid)->condition('invitee_uid', $chat_user->uid))
+    ->fields(array('accepted' => 1))
+    ->execute();
+
   foreach (module_implements('chatroom_chat_invite_accepted') as $module) {
     $function = $module . '_chatroom_chat_invite_accepted';
     $function($node, $chat_user);
