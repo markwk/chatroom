@@ -60,19 +60,19 @@ function chatroom_chat_user_autocomplete($node, $string = '') {
   if (!($node->uid == $user->uid || user_access('administer chats'))) {
     return;
   }
-
   $matches = array();
   if ($string) {
-    $sql = "SELECT name 
-            FROM {users} 
-            WHERE LOWER(name) LIKE LOWER(':string%') 
-            AND uid != :uid
-            LIMIT 10";
-    $result = db_query($sql, array(':string' => $string, ':uid' => $user->uid))->fetchAll(PDO::FETCH_OBJ);
+    $result = db_select('users')
+      ->fields('users', array('name'))
+      ->condition('name', db_like(strtolower($string)) . '%', 'LIKE')
+      ->condition('uid', $user->uid, '!=')
+      ->range(0, 10)
+      ->execute();
     foreach ($result as $chat_user) {
       $matches[$chat_user->name] = check_plain($chat_user->name);
     }
   }
+
   drupal_json_output($matches);
 }
 
