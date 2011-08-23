@@ -10,9 +10,9 @@ function chatroom_nodejs_nodejs_handlers_info() {
 }
 
 /**
- * Implements hook_nodejs_auth_check().
+ * Implements hook_nodejs_user_channels().
  */
-function chatroom_nodejs_nodejs_auth_check($auth_user) {
+function chatroom_nodejs_nodejs_user_channels($auth_user) {
   $channels = array();
   foreach (chatroom_user_load_allowed_chat_nids($auth_user->uid) as $chat_nid) {
     $channels[] = 'chatroom_chat_' . $chat_nid;

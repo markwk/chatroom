@@ -266,13 +266,13 @@ function chatroom_menu() {
   $items['chatroom/chat/post/message/%node/%'] = array(
     'page callback' => 'chatroom_chat_post_message',
     'page arguments' => array(4, 5),
-    'access arguments' => array('access chat rooms'),
+    'access arguments' => array('access chats'),
     'type' => MENU_CALLBACK,
   );
   $items['chatroom/chat/get/latest/messages/%node/%'] = array(
     'page callback' => 'chatroom_chat_get_latest_messages',
     'page arguments' => array(5, 6),
-    'access arguments' => array('access chat rooms'),
+    'access arguments' => array('access chats'),
     'type' => MENU_CALLBACK,
   );
 
@@ -1321,6 +1321,8 @@ function chatroom_chat_load_message($cmid) {
  * @return stdClass $msg
  */
 function chatroom_chat_prepare_message($message, $node) {
+  global $user;
+
   $msg = new StdClass();
   $msg->html = chatroom_chat_get_themed_message($message, $node);
   $msg->text = strip_tags($message->msg);
@@ -2384,9 +2386,16 @@ function chatroom_staff_chat_access($account, $chat) {
  * Load the list of chats this user is allowed to see.
  */
 function chatroom_user_load_allowed_chat_nids($uid) {
-  $sql = "SELECT * FROM {chatroom_chat_user} WHERE uid = :uid";
-  $result = db_query($sql, array(':uid' => $uid))->fetchAll(PDO::FETCH_OBJ);
   $chat_nids = array();
+
+  $sql = "SELECT nid FROM {chatroom_chat_user} WHERE uid = :uid";
+  $result = db_query($sql, array(':uid' => $uid))->fetchAll(PDO::FETCH_OBJ);
+  foreach ($result as $chat_nid) {
+    $chat_nids[] = $chat_nid->nid;
+  }
+
+  $sql = "SELECT nid FROM {chatroom_chat} WHERE private = :private AND when_archived IS NULL";
+  $result = db_query($sql, array(':private' => 0))->fetchAll(PDO::FETCH_OBJ);
   foreach ($result as $chat_nid) {
     $chat_nids[] = $chat_nid->nid;
   }
