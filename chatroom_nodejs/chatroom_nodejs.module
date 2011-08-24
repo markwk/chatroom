@@ -65,7 +65,7 @@ function chatroom_nodejs_chat_msg_saved($message, $node) {
     'channel' => 'chatroom_chat_' . $node->nid,
     'broadcast' => FALSE,
     'type' => 'newMessage',
-    'callback' => 'chatroomNodejsMessageHandler',
+    'callback' => isset($message['js_callback']) ? $message['js_callback'] : 'chatroomNodejsMessageHandler',
     'data' => chatroom_chat_prepare_message(chatroom_chat_load_message($message['cmid']), $node),
   );
   nodejs_send_message($nodejs_message);
