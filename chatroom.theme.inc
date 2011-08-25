@@ -374,7 +374,7 @@ function theme_chatroom_chat($variables) {
   $output = '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
   $output .= theme('chatroom_user_list', array('users' => $node->chat->users, 'node' => $node));
   $output .= '<div id="chatroom-board-container">';
-  $output .= '<div id="chatroom-board">';
+  $output .= '<div id="chatroom-board" role="log">';
   foreach ($node->chat->latest_messages as $message) {
     $output .= chatroom_chat_get_themed_message($message, $node);
   }
