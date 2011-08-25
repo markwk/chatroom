@@ -974,16 +974,16 @@ function chatroom_add_js($node) {
     'chatId'       => (int) $node->nid,
     'popoutParams' => chatroom_get_popout_params($node),
     'cacheDirectory' => file_directory_temp(),
-    'postMessagePath' => 'chatroom/chat/post/message',
-    'banUserPath' => 'chatroom/ajax/user/ban',
-    'kickUserPath' => 'chatroom/ajax/user/kick',
-    'removeUserPath' => 'chatroom/ajax/user/remove',
+    'postMessagePath' => url('chatroom/chat/post/message', array('absolute' => TRUE)),
+    'banUserPath' => url('chatroom/ajax/user/ban', array('absolute' => TRUE)),
+    'kickUserPath' => url('chatroom/ajax/user/kick', array('absolute' => TRUE)),
+    'accessDeniedPath' => url('chatroom/access-denied', array('absolute' => TRUE)),
+    'popoutRedirect' => url('chatroom/popout/redirect', array('absolute' => TRUE)),
+    'removeUserPath' => url('chatroom/ajax/user/remove', array('absolute' => TRUE)),
     'chatPath' => 'node/' . $node->nid,
-		'successiveCacheHits' => 0,
+    'successiveCacheHits' => 0,
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
-    'accessDeniedPath' => 'chatroom/access-denied',
-    'popoutRedirect' => 'chatroom/popout/redirect',
   );
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
