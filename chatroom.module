@@ -524,6 +524,7 @@ function chatroom_chat_set_user_list($node) {
 function chatroom_chat_delete(&$node) {
   cache_clear_all('chatroom_chat_list', 'cache');
   db_query('DELETE FROM {chatroom_chat} WHERE nid = :nid', array(':nid' => $node->nid));
+  db_query('DELETE FROM {chatroom_chat_user} WHERE nid = :nid', array(':nid' => $node->nid));
   db_query('DELETE FROM {chatroom_chat_online_list} WHERE ccid = :ccid', array(':ccid' => $node->nid));
   db_query('DELETE FROM {chatroom_chat_ban_list} WHERE nid = :nid', array(':nid' => $node->nid));
   db_query('DELETE FROM {chatroom_chat_kicked_list} WHERE nid = :nid', array(':nid' => $node->nid));
