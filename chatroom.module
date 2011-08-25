@@ -214,6 +214,8 @@ function chatroom_permission() {
  * Implements hook_menu().
  */
 function chatroom_menu() {
+  $items = array();
+
   $items['chatroom/chat/user/autocomplete/%node'] = array(
     'description' => 'Load user suggestions for autocomplete widget',
     'page callback' => 'chatroom_chat_user_autocomplete',
@@ -1008,20 +1010,21 @@ function chatroom_chat_register_user($node) {
  */
 function chatroom_add_js($node) {
   global $user;
+
   $js = array(
     'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
     'idleInterval' => (int) $node->chat->idle_freq,
-    'chatId'       => (int) $node->nid,
+    'chatId' => (int) $node->nid,
     'cacheDirectory' => file_directory_temp(),
-    'postMessagePath' => 'chatroom/chat/post/message',
-    'banUserPath' => 'chatroom/ajax/user/ban',
-    'kickUserPath' => 'chatroom/ajax/user/kick',
-    'removeUserPath' => 'chatroom/ajax/user/remove',
+    'postMessagePath' => url('chatroom/chat/post/message', array('absolute' => TRUE)),
+    'banUserPath' => url('chatroom/ajax/user/ban', array('absolute' => TRUE)),
+    'kickUserPath' => url('chatroom/ajax/user/kick', array('absolute' => TRUE)),
+    'removeUserPath' => url('chatroom/ajax/user/remove', array('absolute' => TRUE)),
+    'accessDeniedPath' => url('chatroom/access-denied', array('absolute' => TRUE)),
     'chatPath' => 'node/' . $node->nid,
     'successiveCacheHits' => 0,
     'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
-    'accessDeniedPath' => 'chatroom/access-denied',
   );
 
   // Allow other modules to supply a polling backend.
