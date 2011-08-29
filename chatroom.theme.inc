@@ -248,6 +248,7 @@ function theme_chatroom_system_message($message, $node) {
 function theme_chatroom_user_list($variables) {
   global $user;
 
+  $output = '<div class="chatroom-user-list-wrapper">';
   $users = $variables['users'];
   $node = $variables['node'];
   $is_admin = $user->uid == $node->uid || user_access('administer chats');
@@ -256,12 +257,16 @@ function theme_chatroom_user_list($variables) {
   $user_links = chatroom_chat_get_user_links($node, $users);
   $active_user_links = chatroom_chat_get_active_user_links($node);
 
-  $html = '<div id="chatroom-user-list-wrapper"><ul id="chatroom-user-list">';
   foreach ($users as $chat_user) {
+    $item = array('data' => NULL);
+
     $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
+    $item['class'] = explode(' ', $class);
     $id = 'chatroom_' . ($chat_user->uid ? "user_$chat_user->uid" : "guest_$chat_user->guest_id");
-    $html .= '<li id="' . $id . '" class="' . $class . '">';
-    $html .= theme('username', array('account' => $chat_user));
+    $item['id'] = array($id);
+
+    //tack-on the user-name
+    $item['data'] .= theme('username', array('account' => $chat_user));
 
     // Add links after the user name.
     $visible_links = array();
@@ -282,10 +287,30 @@ function theme_chatroom_user_list($variables) {
       }
       $visible_links[] = theme('chatroom_chat_user_link', array('link' => $link));
     }
-    $html.= ' ' . implode(' ', $visible_links) . '</li>';
+
+    //tack-on links after the username:
+    $vars = array(
+      'items' => $visible_links,
+      'title' => NULL,
+      'type' => 'ul',
+      'attributes' => array(),
+    );
+    $item['data'] .= theme('item_list', $vars);
+    $item_list[] = $item;
   }
-  $html .= '</ul></div>';
-  return $html;
+
+  $vars = array(
+    'items' => $item_list,
+    'title' => NULL,
+    'type' => 'ul',
+    'attributes' => array(
+      'id' => array('chatroom-user-list'),
+    ),
+  );
+  $output .= theme('item_list', $vars);
+
+  $output .= '</div><!--//#chatroom-user-list-wrapper-->';
+  return $output;
 }
 
 /**
