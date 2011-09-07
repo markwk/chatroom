@@ -92,6 +92,9 @@
 .chatroom-msg {
   background-color: #f5f5f5;
 }
+.chatroom-username {
+  background-color: #DDD;
+}
 .chatroom-old-msg .header,
 .chatroom-msg .header {
   font-weight: bold;;
