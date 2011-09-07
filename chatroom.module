@@ -1280,8 +1280,9 @@ function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_respons
     if (isset($latest_msg_id)) {
       chatroom_chat_update_cache($node->nid, $latest_msg_id);
     }
-
-    $response['usersHtml'] = theme('chatroom_user_list', chatroom_load_online_users($node), $node);
+    
+    $user_list_args = array('users' => chatroom_load_online_users($node), 'node' => $node);
+    $response['usersHtml'] = theme('chatroom_user_list', $user_list_args));
     if (is_object($command_response)) {
       $response['commandResponse'] = $command_response;
     }
@@ -2050,7 +2051,7 @@ function chatroom_chat_ajax_user_add($node) {
   $user_data = array('uid' => $chat_user->uid, 'nid' => $node->nid);
   drupal_write_record('chatroom_chat_user', $user_data);
 
-  $new_user_list_html = theme('chatroom_user_list', chatroom_load_online_users($node), $node);
+  $new_user_list_html = theme('chatroom_user_list', array('users' => chatroom_load_online_users($node), 'node' => $node));
   $user_added_message = theme('chatroom_system_message', t('User %username added', array('%username' => $chat_user->name)), $node);
   drupal_json(array('data' => array('userAdded' => $user_added_message, 'usersHtml' => $new_user_list_html)));
 }

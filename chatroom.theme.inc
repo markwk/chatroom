@@ -231,11 +231,12 @@ function theme_chatroom_message($variables) {
 /**
  * Format a single system message for display.
  *
- * @param mixed $message
- * @param mixed $node
+ * @param $variables
  * @return string
  */
-function theme_chatroom_system_message($message, $node) {
+function theme_chatroom_system_message($variables) {
+  $node = $variables['node'];
+  $message = $variables['message'];
   return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format, FALSE) . '</div>';
 }
 
@@ -331,8 +332,10 @@ function theme_chatroom_latest_message($message) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_list($rooms) {
+function theme_chatroom_list($variables) {
   global $user;
+
+  $rooms = $variables['rooms'];
 
   if ($rooms) {
     $header = array(t('Chat room'), t('Chats'), t('Messages'), t('Last message'));
@@ -371,7 +374,8 @@ function theme_chatroom_list($rooms) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_kicked_user($node) {
+function theme_chatroom_chat_kicked_user($variables) {
+  $node = $variables['node'];
   $msg = $node->chat->kicked_out_message ? $node->chat->kicked_out_message : t('You have been kicked out of %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-kicked-msg">'. $msg .'</div>';
 }
@@ -381,7 +385,8 @@ function theme_chatroom_chat_kicked_user($node) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_banned_user($node) {
+function theme_chatroom_chat_banned_user($variables) {
+  $node = $variables['node'];
   $msg = $node->chat->banned_message ? $node->chat->banned_message : t('You have been banned from %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-banned-msg">'. $msg .'</div>';
 }
@@ -414,10 +419,10 @@ function theme_chatroom_chat($variables) {
 /**
  * Theme the make private button.
  *
- * @param mixed $node
+ * @param $variables
  * @return string
  */
-function theme_chatroom_chat_make_private_button($node) {
+function theme_chatroom_chat_make_private_button($variables) {
   return '<div id="chatroom-make-private-button"><a href="#make-private-button">[' . t("Make this chat private") . ']</a></div>';
 }
 
