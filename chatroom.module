@@ -1,40 +1,12 @@
 <?php
 
 require_once dirname(__FILE__) . '/chatroom.forms.inc';
-require_once dirname(__FILE__) . '/chatroom.cache.' . variable_get('chatroom_cache_backend', 'apc') . '.inc';
 require_once dirname(__FILE__) . '/chatroom.theme.inc';
 
 /**
  * @file
  * Enable chat room support in Drupal.
  */
-
-/**
- * Implements hook_user_update().
- */
-function chatroom_user_update(&$edit, $account, $category = NULL) {
-  chatroom_clear_cached_user($account);
-}
-
-/**
- * Implements hook_user_delete().
- */
-function chatroom_user_delete($account) {
-  chatroom_clear_cached_user($account);
-}
-
-/**
- * Clear any cache entries for the given $account.
- *
- * @param mixed $account
- */
-function chatroom_clear_cached_user(StdClass $account) {
-  $sids = db_query("SELECT sid FROM {sessions} WHERE uid = :uid", array(':uid' => $account->uid))
-    ->fetchCol();
-  foreach ($sids as $sid) {
-    chatroom_delete_cached_user($sid);
-  }
-}
 
 /**
  * Implements hook_init().
@@ -152,27 +124,6 @@ function chatroom_chat_access($op, $node, $account) {
 }
 
 /**
- * Implements hook_access().
- */
-function chatroom_access($op, $node, $account) {
-  if (user_access('administer chat rooms', $account)) {
-    return TRUE;
-  }
-  if ($op == 'view') {
-    return user_access('access chat rooms', $account);
-  }
-  if ($op == 'create') {
-    return user_access('create chat rooms', $account);
-  }
-  if ($op == 'update' || $op == 'delete') {
-    if (user_access('edit own chat rooms', $account) && ($account->uid == $node->uid)) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-/**
  * Implements hook_perm().
  */
 function chatroom_permission() {
@@ -180,23 +131,11 @@ function chatroom_permission() {
     'access chats' => array(
       'title' => t('Access chats'),
     ),
-    'access chat rooms' => array(
-      'title' => t('Access chat rooms'),
-    ),
-    'create chat rooms' => array(
-      'title' => t('Create chat rooms'),
-    ),
     'edit own chats' => array(
       'title' => t('Edit own chats'),
     ),
-    'edit own chat rooms' => array(
-      'title' => t('Edit own chat rooms'),
-    ),
     'administer chats' => array(
       'title' => t('Administer chats'),
-    ),
-    'administer chat rooms' => array(
-      'title' => t('Administer chat rooms'),
     ),
     'create chats' => array(
       'title' => t('Create chats'),
@@ -252,13 +191,6 @@ function chatroom_menu() {
     'page arguments' => array(4),
     'access callback' => TRUE,
   );
-  $items['admin/settings/chatroom'] = array(
-    'title' => 'Chat room',
-    'description' => 'Configure global settings for chat rooms and chats.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('chatroom_admin_settings'),
-    'access arguments' => array('administer chat rooms'),
-  );
   $items['chatroom/access-denied/%node/%'] = array(
     'type' => MENU_CALLBACK,
     'page callback' => 'chatroom_access_denied',
@@ -277,14 +209,6 @@ function chatroom_menu() {
     'access arguments' => array('access chats'),
     'type' => MENU_CALLBACK,
   );
-
-  $items['admin/config/chatroom'] = array(
-    'title' => 'Chat room',
-    'description' => 'Configure global settings for chat rooms and chats.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('chatroom_admin_settings'),
-    'access arguments' => array('administer chat rooms'),
-  );
   return $items;
 }
 
@@ -293,145 +217,12 @@ function chatroom_menu() {
  */
 function chatroom_node_info() {
   return array(
-    'chatroom' => array(
-      'name' => t('Chat room'),
-      'base' => 'chatroom',
-      'description' => t('A chat room provides access to chats and chat archives.'),
-    ),
     'chat' => array(
       'name' => t('Chat'),
       'base' => 'chatroom_chat',
       'description' => t('A chat provides the chat interface.'),
     ),
   );
-}
-
-/**
- * Implements hook_insert().
- */
-function chatroom_insert($node) {
-  cache_clear_all('chatroom_room_list', 'cache');
-  $chatroom = array(
-    'nid' => $node->nid,
-    'poll_freq' => isset($node->poll_freq) ? $node->poll_freq : 1,
-    'idle_freq' => isset($node->idle_freq) ? $node->idle_freq : 20,
-    'max_users' => isset($node->max_users) ? $node->max_users : 0,
-    'kicked_out_message' => isset($node->kicked_out_message) ? $node->kicked_out_message : '',
-    'banned_message' => isset($node->banned_message) ? $node->banned_message : '',
-    'module' => isset($node->module) ? $node->module : 'chatroom',
-    'previous_messages_display_count' => isset($node->previous_messages_display_count) ? $node->previous_messages_display_count : 20,
-    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
-    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
-  );
-  drupal_write_record('chatroom', $chatroom);
-}
-
-/**
- * Implements hook_update().
- */
-function chatroom_update($node) {
-  cache_clear_all('chatroom_room_list', 'cache');
-  $chatroom = array(
-    'nid' => $node->nid,
-    'poll_freq' => $node->poll_freq,
-    'idle_freq' => $node->idle_freq,
-    'max_users' => $node->max_users,
-    'kicked_out_message' => $node->kicked_out_message,
-    'banned_message' => $node->banned_message,
-    'module' => isset($node->module) ? $node->module : 'chatroom',
-    'previous_messages_display_count' => $node->previous_messages_display_count,
-    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
-    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
-  );
-  drupal_write_record('chatroom', $chatroom, 'nid');
-}
-
-/**
- * Implements hook_delete().
- */
-function chatroom_delete(&$node) {
-  cache_clear_all('chatroom_room_list', 'cache');
-  db_query('DELETE FROM {chatroom} WHERE nid = :nid', array(':nid' => $node->nid));
-  db_query("DELETE FROM {chatroom_chat} WHERE crid = :crid", array(':crid' => $node->nid));
-  db_query('DELETE FROM {chatroom_ban_list} WHERE nid = :nid', array(':nid' => $node->nid));
-  if (!empty($node->chats)) {
-    $ccids = implode(',', array_keys($node->chats));
-    db_query('DELETE FROM {chatroom_msg} WHERE ccid IN (%s)', $ccids);
-    db_query('DELETE FROM {chatroom_online_list} WHERE ccid IN (%s)', $ccids);
-  }
-}
-
-/**
- * Implements hook_load().
- */
-function chatroom_load($nodes) {
-  $result = db_query("SELECT * FROM {chatroom} WHERE nid IN (:nids)", array(':nids' => array_keys($nodes)));
-  foreach ($result as $chatroom) {
-    $chatroom->banned_users = chatroom_get_banned_users($chatroom);
-    $chatroom->chats = chatroom_load_chats($chatroom->nid);
-    $nodes[$chatroom->nid] = $chatroom;
-  }
-}
-
-/**
- * Load chats for a given chatroom.
- *
- * @param mixed $nid
- * @return array - a list of chats.
- */
-function chatroom_load_chats($nid) {
-  $chats = array();
-  $cmids = array();
-
-  $sql = "SELECT cc.*, n.uid, n.title
-          FROM {chatroom_chat} cc
-          INNER JOIN {node} n ON n.nid = cc.nid
-          WHERE cc.crid = :nid";
-  $result = db_query($sql, array(':nid' => $nid))->fetchAll(PDO::FETCH_OBJ);
-  foreach ($result as $chat) {
-    $chat->allowed_uids = array($chat->uid);
-    $chat->last_msg = NULL;
-    $chat->last_cmid = 0;
-    $chat->msg_count = 0;
-    $chats[$chat->nid] = $chat;
-  }
-
-  if (!empty($chats)) {
-    // Load the message count info.
-    $ccids = array_keys($chats);
-    $result = db_query("SELECT ccid, COUNT(*) msg_count, MAX(cmid) last_cmid
-            FROM {chatroom_msg}
-            WHERE ccid IN (:ccids)
-            GROUP BY ccid", array(':ccids' => $ccids));
-    foreach ($result as $count) {
-      $chats[$count->ccid]->msg_count = $count->msg_count;
-      $chats[$count->ccid]->last_cmid = $count->last_cmid;
-      $cmids[] = $count->last_cmid;
-    }
-
-    // Load the allowed users for each chat.
-    $result = db_query('SELECT nid, uid
-            FROM {chatroom_chat_user}
-            WHERE nid IN (:ccids)', array(':ccids' => $ccids));
-    foreach ($result as $allowed_user) {
-      $chats[$allowed_user->nid]->allowed_uids = $allowed_user->uid;
-    }
-  }
-
-  // Fetch the last message if there is one.
-  if (!empty($cmids)) {
-    // Note we join on the session not the uid, because anon users all have
-    // the same uid.
-    $result = db_query("SELECT cm.*, u.name, col.guest_id
-            FROM {chatroom_msg} cm
-            INNER JOIN {chatroom_chat_online_list} col ON col.sid = cm.sid
-            INNER JOIN {users} u ON u.uid = col.uid
-            WHERE cm.cmid IN (:cmids)", array(':cmids' => $cmids));
-    foreach ($result as $message) {
-      $chats[$message->ccid]->last_msg = $message;
-    }
-  }
-  return $chats;
 }
 
 /**
@@ -467,9 +258,6 @@ function chatroom_chat_update($node) {
   cache_clear_all('chatroom_chat_list', 'cache');
   $chat = array(
     'nid' => $node->nid,
-    'crid' => $node->chatroom_nid,
-    'poll_freq' => $node->poll_freq,
-    'idle_freq' => $node->idle_freq,
     'max_users' => $node->max_users,
     'kicked_out_message' => $node->kicked_out_message,
     'banned_message' => $node->banned_message,
@@ -588,103 +376,6 @@ function chatroom_chat_get_latest_message($ccid) {
 function chatroom_chat_get_message_count($ccid) {
   $sql = 'SELECT COUNT(*) FROM {chatroom_msg} WHERE ccid = :ccid';
   return db_query($sql, array(':ccid' => $ccid))->fetchField();
-}
-
-/**
- * Implements hook_view().
- */
-function chatroom_view($node, $view_mode) {
-  global $user;
-
-  if ($view_mode == 'full' && node_is_page($node)) {
-    // if the user is banned, just tell them why
-    if (chatroom_is_banned_user($node)) {
-      $node->content['body']['#value'] = !empty($node->banned_message) ? $node->banned_message : t('You have been banned from %chatroom.', array('%chatroom' => $node->title));
-    }
-    else {
-      $is_admin = $node->uid == $user->uid || user_access('administer chat rooms');
-
-      // if the user can create chats, show the form
-      if (user_access('create chats')) {
-        $node->content['add_chat'] = array(
-          '#value' => drupal_render(drupal_get_form('chatroom_create_chat_form', $node)),
-          '#weight' => 1,
-        );
-      }
-
-      // if there are some chats, build some tables to display them
-      if (!empty($node->chatroom->chats)) {
-        $archived_count = 0;
-        $open_count = 0;
-        foreach ($node->chatroom->chats as $chat) {
-          if ($chat->private) {
-            if (in_array($user->uid, $chat->allowed_uids) || chatroom_staff_chat_access($user, $chat)) {
-              $chat->title .= ' (Private)';
-            }
-            else {
-              continue;
-            }
-          }
-          if ($chat->when_archived) {
-            $rows['archived'][$archived_count] = array(
-              array('data' => l($chat->title, "node/$chat->nid")),
-              array('data' => isset($chat->msg_count) ? $chat->msg_count : 0),
-              array('data' => t('Archived on !date.', array('!date' => format_date($chat->when_archived, 'medium')))),
-            );
-            if ($is_admin) {
-              $rows['archived'][$archived_count][] = theme('chatroom_chat_admin_buttons', $chat);
-            }
-            $archived_count++;
-          }
-          else {
-            $rows['open'][$open_count] = array(
-              array('data' => l($chat->title, "node/$chat->nid")),
-              array('data' => isset($chat->msg_count) ? $chat->msg_count : 0),
-              array('data' => $chat->last_msg ? theme('chatroom_latest_message', array('message' => $chat->last_msg)) : t('No messages.')),
-            );
-            if ($is_admin) {
-              $rows['open'][$open_count][] = theme('chatroom_chat_admin_buttons', array('chat' => $chat));
-            }
-            $open_count++;
-          }
-        }
-        if ($open_count > 0) {
-          $node->content['open_chats']['#weight'] = 2;
-          $node->content['open_chats']['title'] = array(
-            '#value' => '<h2>'. t('Open chats in this room') .'</h2>',
-            '#weight' => 0,
-          );
-          $headers = array(t('Chat name'), t('Message count'), t('Last message'));
-          if ($is_admin) {
-            $headers[] = t('Manage chat');
-          }
-          $node->content['open_chats']['table'] = array(
-            '#value' => theme('table', array('headers' => $headers, 'rows' => $rows['open'])),
-            '#weight' => 1,
-          );
-        }
-        if ($archived_count > 0) {
-          $node->content['archived_chats']['#weight'] = 3;
-          $node->content['archived_chats']['header'] = array(
-            '#value' => '<h2>'. t('Archived chats in this room') .'</h2>',
-            '#weight' => 0,
-          );
-          $headers = array(t('Chat name'), t('Message count'), t('When archived'));
-          if ($is_admin) {
-            $headers[] = t('Manage chat');
-          }
-          $node->content['archived_chats']['table'] = array(
-            '#value' => theme('table', array('headers' => $headers, 'rows' => $rows['archived'])),
-            '#weight' => 1,
-          );
-        }
-      }
-    }
-  }
-  else {
-    $node->content['teaser'] = array('#value' => theme('chatroom_teaser', array('node' => $node)));
-  }
-  return $node;
 }
 
 /**
@@ -877,23 +568,6 @@ function chatroom_block($op = 'list', $delta = 0, $edit = array()) {
 }
 
 /**
- * Get a list of active rooms.
- */
-function chatroom_get_active_chatrooms($start = NULL, $end = NULL) {
-  if ($cache = cache_get('chatroom_room_list')) {
-    return $cache->data;
-  }
-  $result = db_query("SELECT nid FROM {node} WHERE type = 'chatroom' AND status = 1");
-  $chatrooms = array();
-  while ($nid = db_result($result)) {
-    $chatrooms[] = node_load($nid);
-  }
-  drupal_alter('chatroom_room_list', $chatrooms);
-  cache_set('chatroom_room_list', $chatrooms);
-  return $chatrooms;
-}
-
-/**
  * Get a list of active chats.
  */
 function chatroom_get_active_chats() {
@@ -1012,25 +686,13 @@ function chatroom_add_js($node) {
   global $user;
 
   $js = array(
-    'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
-    'idleInterval' => (int) $node->chat->idle_freq,
-    'chatId' => (int) $node->nid,
-    'cacheDirectory' => file_directory_temp(),
     'postMessagePath' => url('chatroom/chat/post/message', array('absolute' => TRUE)),
     'banUserPath' => url('chatroom/ajax/user/ban', array('absolute' => TRUE)),
     'kickUserPath' => url('chatroom/ajax/user/kick', array('absolute' => TRUE)),
     'removeUserPath' => url('chatroom/ajax/user/remove', array('absolute' => TRUE)),
     'accessDeniedPath' => url('chatroom/access-denied', array('absolute' => TRUE)),
-    'chatPath' => 'node/' . $node->nid,
-    'successiveCacheHits' => 0,
-    'skipCacheCheckCount' => 5,
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
   );
-
-  // Allow other modules to supply a polling backend.
-  if (variable_get('chatroom_custom_polling_backend', FALSE)) {
-    $js['customPollingBackend'] = 1;
-  }
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
     $js['timezone'] = $user->timezone;
@@ -1189,14 +851,6 @@ function chatroom_load_online_users($chat) {
 }
 
 /**
- * updates chat's cache file modified time
- */
-function chatroom_chat_update_cache($chat_id, $latest_msg_id) {
-  $cache_file = file_directory_temp() . '/chatroom.chat.' . $chat_id . '.cache';
-  file_put_contents($cache_file, "$latest_msg_id\n");
-}
-
-/**
  * Check if the current user is banned from the chat room.
  *
  * @param mixed $node
@@ -1210,85 +864,6 @@ function chatroom_is_banned_user($node) {
   else {
     return db_query("SELECT nid FROM {chatroom_ban_list} WHERE nid = :nid AND uid = :uid", array(':nid' => $node->nid, ':uid' => $user->uid))->fetchField();
   }
-}
-
-/**
- * Get the latest messages for a chat, and send back to the client.
- */
-function chatroom_chat_get_latest_messages($node, $last_msg_id, $command_response = FALSE) {
-  global $user;
-
-  if (!chatroom_chat_user_has_access($node, $user)) {
-    drupal_json_output(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
-    drupal_exit();
-  }
-
-  if (chatroom_chat_is_banned_user($user, $node)) {
-    drupal_json_output(array('data' => array('accessDenied' => 'banned', 'messages' => array())));
-    drupal_exit();
-  }
-
-  if (chatroom_chat_is_kicked_user($user, $node)) {
-    drupal_json_output(array('data' => array('accessDenied' => 'kicked', 'messages' => array())));
-    drupal_exit();
-  }
-
-  if (!$cached_chat_user = chatroom_get_cached_user()) {
-    $cached_chat_user = (object) array(
-      'uid' => $user->uid,
-      'allowed_chats' => array(),
-      'is_chat_admin' => $user->is_chat_admin,
-      'can_access_user_profiles' => $user->can_access_user_profiles,
-      'chat_timezone_offset' => $user->chat_timezone_offset,
-    );
-  }
-  if (!in_array($node->nid, $cached_chat_user->allowed_chats)) {
-    $cached_chat_user->allowed_chats[] = $node->nid;
-  }
-  chatroom_save_cached_user($cached_chat_user);
-
-  $response['messages'] = array();
-  if ($node->chat->when_archived) {
-    $response['archived'] = $node->chat->when_archived;
-    drupal_set_message(t('This chat has been archived.'));
-  }
-  else {
-    chatroom_update_last_seen_time($node, session_id());
-
-    $message_cache = chatroom_get_cached_messages($node->nid);
-    $save_to_cache = FALSE;
-
-    foreach (chatroom_chat_load_messages($node->nid, $last_msg_id) as $message) {
-      $save_to_cache = TRUE;
-      $msg = chatroom_chat_prepare_message($message, $node);
-
-      // Store everything in the cache, we'll run an access check when we pull
-      // the messages out.
-      $message_cache[$msg->cmid] = $msg;
-
-      // Don't send private messages to anyone accept the intended recipient.
-      if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
-        continue;
-      }
-      $response['messages'][] = $msg;
-      $latest_msg_id = $message->cmid;
-    }
-    if ($save_to_cache) {
-      chatroom_save_cached_messages($node->nid, $message_cache);
-    }
-
-    if (isset($latest_msg_id)) {
-      chatroom_chat_update_cache($node->nid, $latest_msg_id);
-    }
-    
-    $user_list_args = array('users' => chatroom_load_online_users($node), 'node' => $node);
-    $response['usersHtml'] = theme('chatroom_user_list', $user_list_args);
-    if (is_object($command_response)) {
-      $response['commandResponse'] = $command_response;
-    }
-  }
-  drupal_json_output(array('data' => $response));
-  drupal_exit();
 }
 
 /**
@@ -2367,7 +1942,6 @@ function chatroom_max_users_reached($node) {
 function chatroom_chat_make_chat_private($node) {
   db_query("UPDATE {chatroom_chat} SET private = 1 WHERE nid = :nid", array(':nid' => $node->nid));
   cache_clear_all('chatroom_chat_list', 'cache');
-  //return db_affected_rows();
 }
 
 /**
@@ -2380,7 +1954,6 @@ function chatroom_chat_make_chat_public($node) {
   db_query("DELETE FROM {chatroom_chat_user} WHERE nid = :nid", array(':nid' => $node->nid));
   db_query("UPDATE {chatroom_chat} SET private = 0 WHERE nid = :nid", array(':nid' => $node->nid));
   cache_clear_all('chatroom_chat_list', 'cache');
-  //return db_affected_rows();
 }
 
 /**
