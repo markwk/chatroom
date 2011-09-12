@@ -29,6 +29,7 @@ function chatroom_init() {
  */
 function chatroom_chat_user_autocomplete($node, $string = '') {
   global $user;
+
   if (!($node->uid == $user->uid || user_access('administer chats'))) {
     return;
   }
@@ -213,73 +214,6 @@ function chatroom_menu() {
 }
 
 /**
- * Implements hook_node_info().
- */
-function chatroom_node_info() {
-  return array(
-    'chat' => array(
-      'name' => t('Chat'),
-      'base' => 'chatroom_chat',
-      'description' => t('A chat provides the chat interface.'),
-    ),
-  );
-}
-
-/**
- * Chatroom chat node hook functions.
- */
-/**
- * Implements hook_insert().
- */
-function chatroom_chat_insert($node) {
-  cache_clear_all('chatroom_chat_list', 'cache');
-  $chat = array(
-    'nid' => $node->nid,
-    'crid' => isset($node->chatroom_nid) ? $node->chatroom_nid : 0,
-    'poll_freq' => isset($node->poll_freq) ? $node->poll_freq : 1,
-    'idle_freq' => isset($node->idle_freq) ? $node->idle_freq : 20,
-    'max_users' => isset($node->max_users) ? $node->max_users : 0,
-    'kicked_out_message' => isset($node->kicked_out_message) ? $node->kicked_out_message : '',
-    'banned_message' => isset($node->banned_message) ? $node->banned_message : '',
-    'module' => isset($node->module) ? $node->module : 'chatroom',
-    'previous_messages_display_count' => isset($node->previous_messages_display_count) ? $node->previous_messages_display_count : 20,
-    'private' => isset($node->private) ? $node->private : 0,
-    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
-    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
-  );
-  drupal_write_record('chatroom_chat', $chat);
-  chatroom_chat_update_cache($node->nid, 0);
-}
-
-/**
- * Implements hook_update().
- */
-function chatroom_chat_update($node) {
-  cache_clear_all('chatroom_chat_list', 'cache');
-  $chat = array(
-    'nid' => $node->nid,
-    'max_users' => $node->max_users,
-    'kicked_out_message' => $node->kicked_out_message,
-    'banned_message' => $node->banned_message,
-    'module' => isset($node->module) ? $node->module : 'chatroom',
-    'previous_messages_display_count' => $node->previous_messages_display_count,
-    'private' => isset($node->private) ? $node->private : 0,
-    'profile_picture' => isset($node->profile_picture) ? $node->profile_picture : '',
-    'imagecache_preset' => isset($node->imagecache_preset) ? $node->imagecache_preset : '',
-  );
-  drupal_write_record('chatroom_chat', $chat, 'nid');
-
-  // Unban any users selected to be unbanned.
-  $uids = array();
-  if (!empty($node->unban_list)) {
-    $uids = array_diff($node->unban_list, array(0));
-  }
-  if (!empty($uids)) {
-    chatroom_chat_unban_multiple($node->nid, $uids);
-  }
-}
-
-/**
  * Unban one or more users from a chat.
  *
  * @param $nid
@@ -305,38 +239,6 @@ function chatroom_chat_set_user_list($node) {
   foreach ($node->chat->allowed_uids as $uid) {
     $row = array('uid' => $uid, 'nid' => $node->nid);
     drupal_write_record('chatroom_chat_user', $row);
-  }
-}
-
-/**
- * Implements hook_delete().
- */
-function chatroom_chat_delete(&$node) {
-  cache_clear_all('chatroom_chat_list', 'cache');
-  db_query('DELETE FROM {chatroom_chat} WHERE nid = :nid', array(':nid' => $node->nid));
-  db_query('DELETE FROM {chatroom_chat_user} WHERE nid = :nid', array(':nid' => $node->nid));
-  db_query('DELETE FROM {chatroom_chat_online_list} WHERE ccid = :ccid', array(':ccid' => $node->nid));
-  db_query('DELETE FROM {chatroom_chat_ban_list} WHERE nid = :nid', array(':nid' => $node->nid));
-  db_query('DELETE FROM {chatroom_chat_kicked_list} WHERE nid = :nid', array(':nid' => $node->nid));
-  $cache_file = file_directory_temp() . '/chatroom.chat.' . $node->nid . '.cache';
-  unlink($cache_file);
-}
-
-/**
- * Implements hook_load().
- */
-function chatroom_chat_load($nodes) {
-  $result = db_query("SELECT * FROM {chatroom_chat} WHERE nid IN (:nids)", array(':nids' => array_keys($nodes)));
-  foreach ($result as $chat) {
-    $chat->chatroom = $chat->crid ? node_load($chat->crid) : FALSE;
-    $chat->latest_msg = chatroom_chat_get_latest_message($chat->nid);
-    $chat->msg_count = chatroom_chat_get_message_count($chat->nid);
-    $chat->banned_list = chatroom_chat_get_banned_list($chat);
-    $chat->kicked_list = chatroom_chat_get_kicked_list($chat);
-    if ($chat->private) {
-      $chat->allowed_uids = chatroom_chat_load_allowed_uids($chat);
-    }
-    $nodes[$chat->nid]->chat = $chat;
   }
 }
 
@@ -376,65 +278,6 @@ function chatroom_chat_get_latest_message($ccid) {
 function chatroom_chat_get_message_count($ccid) {
   $sql = 'SELECT COUNT(*) FROM {chatroom_msg} WHERE ccid = :ccid';
   return db_query($sql, array(':ccid' => $ccid))->fetchField();
-}
-
-/**
- * Implements hook_view().
- */
-function chatroom_chat_view($node, $view_mode) {
-  global $user;
-
-  if ($view_mode == 'full' && node_is_page($node)) {
-
-    if (chatroom_chat_is_banned_user($user, $node)) {
-      drupal_goto("chatroom/access-denied/$node->nid/banned");
-    }
-    else if (chatroom_chat_is_kicked_user($user, $node)) {
-      drupal_goto("chatroom/access-denied/$node->nid/kicked");
-    }
-
-    drupal_add_css(drupal_get_path('module', 'chatroom') .'/chatroom.css');
-
-    $bc = drupal_get_breadcrumb();
-    if ($node->chat->chatroom) {
-      $bc[] = l($node->chat->chatroom->title, "node/{$node->chat->chatroom->nid}");
-    }
-    $bc[] = l($node->title, "node/$node->nid");
-    drupal_set_breadcrumb($bc);
-
-    if (!isset($node->chat->when_archived)) {
-      if (chatroom_max_users_reached($node)) {
-        $content = theme('chatroom_chat_max_users', array('node' => $node));
-      }
-      else {
-        if (!chatroom_chat_register_user($node)) {
-          chatroom_update_last_seen_time($node, session_id());
-          module_invoke_all('chatroom_chat_user_seen', $user, $node);
-        }
-        $node->chat->users = chatroom_load_online_users($node);
-        chatroom_add_js($node);
-        $node->chat->latest_messages = array();
-        foreach (chatroom_chat_load_latest_messages($node) as $message) {
-          if ($message->msg_type == 'private_message' && $user->uid != $message->recipient_uid) {
-            continue;
-          }
-          $node->chat->latest_messages[] = $message;
-        }
-        $content = theme('chatroom_chat', array('node' => $node));
-      }
-    }
-    else {
-      $content = theme('chatroom_chat_archive', array('node' => $node));
-      if (user_access('administer chat rooms')) {
-        $content .= drupal_render(drupal_get_form('chatroom_unarchive_chat_form', $node));
-      }
-    }
-    $node->content['chatroom_chat_interface'] = array('#markup' => $content);
-  }
-  else {
-    $node->content['teaser'] = array('#markup' => theme('chatroom_chat_teaser', array('node' => $node)));
-  }
-  return $node;
 }
 
 /**
@@ -1021,9 +864,6 @@ function chatroom_chat_post_message($node, $last_msg_id) {
   }
   else {
     $result = chatroom_chat_save_message($message, $node);
-  }
-  if (!variable_get('chatroom_custom_polling_backend', FALSE)) {
-    chatroom_chat_get_latest_messages($node, $last_msg_id, $result);
   }
 }
 
@@ -2074,5 +1914,257 @@ function chatroom_user_load_allowed_chat_nids($uid) {
     $chat_nids[] = $chat_nid->nid;
   }
   return $chat_nids;
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function chatroom_field_extra_fields() {
+  $extra = array();
+
+  foreach (chatroom_types() as $type) {
+    $extra['chatroom'][$type->type] = array(
+      'form' => array(
+        'title' => array(
+          'label' => t('Title'),
+          'description' => t('The name of the chatroom'),
+          'weight' => -5,
+        ),
+      ),
+      'display' => array(
+        'title' => array(
+          'label' => t('Title'),
+          'description' => t('The name of the chatroom'),
+          'weight' => -5,
+        ),
+      ),
+    );
+  }
+  return $extra;
+}
+
+/**
+ * Sets the page title based on the specified chatroom.
+ *
+ * @param $chatroom
+ *   The chatroom object.
+ */
+function chatroom_page_title($chatroom) {
+  return $chatroom->title;
+}
+
+/**
+ * Implements hook_forms().
+ *
+ * All chatroom forms share the same form handler.
+ */
+function chatroom_forms() {
+  $forms = array();
+  if ($types = chatroom_types()) {
+    foreach (array_keys($types) as $type) {
+      $forms[$type . '_chatroom_form']['callback'] = 'chatroom_form';
+    }
+  }
+  return $forms;
+}
+
+/**
+ * Get a list of all chatroom types available.
+ *
+ * Usually this would be more full-featured.
+ *
+ * @return array
+ *   An array of chatroom type objects. Note that the "type" key matches what
+ *   was defined as the main key in hook_entity_info().
+ */
+function chatroom_types() {
+  $types = &drupal_static(__FUNCTION__);
+
+  if (empty($types)) {
+    $types['chat'] = (object)array(
+      'type' => 'chat',
+      'name' => t('Chat'),
+      'description' => t('Basic chat')
+    );
+  }
+  return $types;
+}
+
+/**
+ * Menu title callback.
+ *
+ * @param $type
+ *   The chatroom type.
+ * @return string
+ *   The human-friendly name of the chatroom type.
+ */
+function chatroom_type_page_title($type) {
+  return t('Manage @type', array('@type' => $type->name));
+}
+
+/**
+ * Get an individual chatroom type definition object.
+ *
+ * @param $type
+ *   The key of the chatroom type we want.
+ * @return object
+ *   The specified chatroom type.
+ */
+function chatroom_type_load($type) {
+  $types = chatroom_types();
+  $type = str_replace('-', '_', $type);
+  return isset($types[$type]) ? $types[$type] : FALSE;
+}
+
+/**
+ * Load chatroom entities from the database.
+ *
+ * This function should be used whenever you need to load more than one chatroom
+ * from the database. chatrooms are loaded into memory and will not require
+ * database access if loaded again during the same page request.
+ *
+ * @see entity_load()
+ *
+ * @param $nids
+ *   An array of chatroom IDs.
+ * @param $conditions
+ *   An array of conditions on the {chatroom} table in the form 'field' => $value.
+ * @param $reset
+ *   Whether to reset the internal entity_load cache.
+ *
+ * @return
+ *   An array of node objects indexed by nid.
+ */
+function chatroom_load_multiple($nids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('chatroom', $nids, $conditions, $reset);
+}
+
+/**
+ * Load an chatroom object from the database.
+ *
+ * @param $nid
+ *   The chatroom ID.
+ * @param $vid
+ *   The revision ID.
+ * @param $reset
+ *   Whether to reset the chatroom_load_multiple cache.
+ *
+ * @return
+ *   A fully-populated node object.
+ */
+function chatroom_load($nid = NULL, $vid = NULL, $reset = FALSE) {
+  $nids = (isset($nid) ? array(nnid) : array());
+  $conditions = (isset($vid) ? array('vid' => $vid) : array());
+  $chatroom = chatroom_load_multiple($nids, $conditions, $reset);
+  return $chatroom ? reset($chatroom) : FALSE;
+}
+
+/**
+ * Save an chatroom.
+ *
+ * @param $chatroom
+ *   The chatroom to be saved.
+ * @return
+ *   The saved chatroom, now with an nid if necessary.
+ */
+function chatroom_save($chatroom) {
+  return entity_get_controller('chatroom')->save($chatroom);
+}
+
+/**
+ * Returns an initialized chatroom object.
+ *
+ * @param $type
+ *   The machine-readable type of the chatroom.
+ *
+ * @return
+ *   An chatroom object with all default fields initialized.
+ */
+function chatroom_new($type = '') {
+  return entity_get_controller('chatroom')->create($type);
+}
+
+/**
+ * Deletes an chatroom by ID.
+ *
+ * @param $nid
+ *   The ID of the product to delete.
+ *
+ * @return
+ *   TRUE on success, FALSE otherwise.
+ */
+function chatroom_delete($nid) {
+  return chatroom_delete_multiple(array($nid));
+}
+
+/**
+ * Deletes multiple chatrooms by ID.
+ *
+ * @param $nids
+ *   An array of chatroom IDs to delete.
+ *
+ * @return
+ *   TRUE on success, FALSE otherwise.
+ */
+function chatroom_delete_multiple($nids) {
+  return entity_get_controller('chatroom')->delete($nids);
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function chatroom_entity_info() {
+  $return['chatroom'] = array(
+    'label' => t('Chatroom Chat entity'),
+    'controller class' => 'ChatroomController',
+    'base table' => 'chatroom',
+    'revision table' => 'chatroom_revision',
+    'uri callback' => 'chatroom_uri',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'nid',
+      'revision' => 'vid',
+      'bundle' => 'type',
+      'label' => 'title',
+     ),
+    'bundle keys' => array(
+      'bundle' => 'type',
+    ),
+    'static cache' => TRUE,
+    'bundles' => array(),
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Full content'),
+        'custom settings' => FALSE,
+      ),
+      'teaser' => array(
+        'label' => t('Teaser'),
+        'custom settings' => FALSE,
+      ),
+    ),
+  );
+
+  foreach (chatroom_types() as $type => $info) {
+    $return['chatroom']['bundles'][$type] = array(
+      'label' => $info->name,
+      'admin' => array(
+        'path' => 'admin/structure/chatroom/manage/%chatroom_type',
+        'real path' => 'admin/structure/chatroom/manage/' . str_replace('_', '-', $type),
+        'bundle argument' => 4,
+        'access arguments' => array('administer chatroom'),
+      ),
+    );
+  }
+
+  return $return;
+}
+
+/**
+ * Entity uri callback.
+ */
+function chatroom_uri($chatroom) {
+  return array(
+    'path' => 'chatroom/' . $chatroom->nid,
+  );
 }
 
