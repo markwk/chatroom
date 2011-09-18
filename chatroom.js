@@ -91,7 +91,7 @@ Drupal.behaviors.chatroom = function(context) {
 Drupal.chatroom.banUser = function(uid) {
   $.ajax({
     type: 'POST',
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.banUserPath + '/' + Drupal.settings.chatroom.chatId,
+    url: Drupal.settings.chatroom.banUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
@@ -105,7 +105,7 @@ Drupal.chatroom.banUser = function(uid) {
 Drupal.chatroom.kickUser = function(uid) {
   $.ajax({
     type: 'POST',
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.kickUserPath + '/' + Drupal.settings.chatroom.chatId,
+    url: Drupal.settings.chatroom.kickUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
@@ -120,7 +120,7 @@ Drupal.chatroom.kickUser = function(uid) {
 Drupal.chatroom.removeUser = function(uid) {
   $.ajax({
     type: 'POST',
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.removeUserPath + '/' + Drupal.settings.chatroom.chatId,
+    url: Drupal.settings.chatroom.removeUserPath + '/' + Drupal.settings.chatroom.chatId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
@@ -227,7 +227,7 @@ Drupal.chatroom.scrollToLatestMessage = function() {
 Drupal.chatroom.postMessage = function(message, anonName) {
   $.ajax({
     type: 'POST',
-    url: Drupal.settings.basePath + Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
+    url: Drupal.settings.chatroom.postMessagePath + '/' + Drupal.settings.chatroom.chatId + '/' + Drupal.settings.chatroom.latestMsgId,
     dataType: 'json',
     success: Drupal.chatroom.pollHandler,
     data: {
