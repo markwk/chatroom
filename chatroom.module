@@ -2053,8 +2053,8 @@ function chatroom_load_multiple($nids = array(), $conditions = array(), $reset =
  *   A fully-populated node object.
  */
 function chatroom_load($nid = NULL, $vid = NULL, $reset = FALSE) {
-  $nids = (isset($nid) ? array(nnid) : array());
-  $conditions = (isset($vid) ? array('vid' => $vid) : array());
+  $nids = isset($nid) ? array($nid) : array();
+  $conditions = isset($vid) ? array('vid' => $vid) : array();
   $chatroom = chatroom_load_multiple($nids, $conditions, $reset);
   return $chatroom ? reset($chatroom) : FALSE;
 }
