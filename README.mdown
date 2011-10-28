@@ -1,0 +1,17 @@
+# Drupal Chatroom 
+* Original Source: http://drupal.org/project/chatroom
+
+## INTRODUCTION
+* Chat Room allows users to talk together in real time. Users enter chat rooms which can have multiple chats. Permissions can be set to restrict who can access, edit, and create chats and chat rooms.
+* This branch uses Nodejs backend in order to get chat in realtime!
+
+## INSTALLATION
+1. Clone gsoc2011 branch of http://drupal.org/chatroom
+2. Download the Node.Js Module from Drupal http://drupal.org/project/nodejs
+3. Create Create your node.js server app directory by copying from nodejs module directory: server.js and package.json
+4. Copy from nodejs module directory nodejs.config.js.example and rename nodejs.config.js
+5. Configure nodejs.config.js and admin/settings/nodejs so the drupal site and node.js server match 
+6. Enable access to chatrooms and chat for some roles on your site.
+
+## HACKING
+
