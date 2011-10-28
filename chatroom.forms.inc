@@ -547,6 +547,7 @@ function chatroom_unarchive_chat_form_submit($form, &$form_state) {
  */
 function chatroom_chat_management_form_submit($form, &$form_state) {
   $op = $form_state['values']['op'];
+//  var_dump($op); exit;
   if ($op == t('Make chat private')) {
     chatroom_chat_make_chat_private($form_state['chat']);
   }

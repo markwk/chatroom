@@ -239,8 +239,11 @@ function theme_chatroom_message($variables) {
  * @param mixed $node
  * @return string
  */
-function theme_chatroom_system_message($message, $node) {
-  return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format, FALSE) . '</div>';
+function theme_chatroom_system_message($variables) {
+  $node = $variables['node'];
+  $message = $variables['message'];
+//  return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format, FALSE) . '</div>';
+  return '<div class="chatroom-system-msg new-message">' . $message . '</div>';
 }
 
 /**
@@ -350,7 +353,8 @@ function theme_chatroom_list($rooms) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_kicked_user($node) {
+function theme_chatroom_chat_kicked_user($variables) {
+  $node = $variables['node'];
   $msg = $node->chat->kicked_out_message ? $node->chat->kicked_out_message : t('You have been kicked out of %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-kicked-msg">'. $msg .'</div>';
 }
@@ -360,7 +364,8 @@ function theme_chatroom_chat_kicked_user($node) {
  *
  * @ingroup themeable
  */
-function theme_chatroom_chat_banned_user($node) {
+function theme_chatroom_chat_banned_user($variables) {
+    $node = $variables['node'];
   $msg = $node->chat->banned_message ? $node->chat->banned_message : t('You have been banned from %chat for misbehaving.', array('%chat' => $node->title));
   return '<div id="chatroom-banned-msg">'. $msg .'</div>';
 }
@@ -375,7 +380,8 @@ function theme_chatroom_chat($variables) {
 
   $node = $variables['node'];
 
-  $output = '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
+  $output = '<div id="fullchat">';
+  $output .= '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
   $output .= theme('chatroom_user_list', array('users' => $node->chat->users, 'node' => $node));
   $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
@@ -387,6 +393,7 @@ function theme_chatroom_chat($variables) {
   if ($node->uid == $user->uid || user_access('administer chats')) {
     $output .= drupal_render(drupal_get_form('chatroom_chat_management_form', $node));
   }
+  $output .= '</div>';
   return $output;
 }
 

@@ -1,39 +1,45 @@
+(function($){
 
-Drupal.behaviors.chatroomUserWidget = function(context) {
-  $('#edit-add-user').keypress(function (e) {
-    var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
-    if (key == 13) {
-      e.stopPropagation();
-      e.preventDefault();
-      var userName = $('#edit-add-user').val();
-      if (userName) {
-        var allowedUsers = Drupal.settings.chatroomChatForm.allowedUsers;
-        var currentUserCount = allowedUsers.length;
-        $('#edit-add-user').val('');
-        for (var i = 0; i < currentUserCount; i++) {
-          if (allowedUsers[i].name == userName) {
-            return false;
-          }
+
+    Drupal.behaviors.chatroomUserWidget = {
+        attach: function(context) {
+            $('#edit-add-user').keypress(function (e) {
+                var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
+                if (key == 13) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    var userName = $('#edit-add-user').val();
+                    if (userName) {
+                        var allowedUsers = Drupal.settings.chatroomChatForm.allowedUsers;
+                        var currentUserCount = allowedUsers.length;
+                        $('#edit-add-user').val('');
+                        for (var i = 0; i < currentUserCount; i++) {
+                            if (allowedUsers[i].name == userName) {
+                                return false;
+                            }
+                        }
+                        Drupal.chatroom.userAdd(userName);
+                    }
+                }
+            });
         }
-        Drupal.chatroom.userAdd(userName);
-      }
     }
-  });
-}
 
-Drupal.behaviors.chatroomInviteWidget = function(context) {
-  $('#edit-invite-user').keypress(function (e) {
-    var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
-    if (key == 13) {
-      e.preventDefault();
-      e.stopPropagation();
-      var userName = $('#edit-invite-user').val();
-      if (userName) {
-        $('#edit-invite-user').val('');
-        Drupal.chatroom.userInvite(userName);
-      }
+Drupal.behaviors.chatroomInviteWidget = {
+    attach:function(context) {
+        $('#edit-invite-user').keypress(function (e) {
+            var key = e.charCode ? e.charCode : e.keyCode ? e.keyCode : 0;
+            if (key == 13) {
+                e.preventDefault();
+                e.stopPropagation();
+                var userName = $('#edit-invite-user').val();
+                if (userName) {
+                    $('#edit-invite-user').val('');
+                    Drupal.chatroom.userInvite(userName);
+                }
+            }
+        });
     }
-  });
 }
 
 Drupal.chatroom.userAdd = function(userName) {
@@ -44,7 +50,7 @@ Drupal.chatroom.userAdd = function(userName) {
     success: Drupal.chatroom.userAddHandler,
     data: {
       user_name: userName,
-      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formToken: $('#chatroom-chat-management-form input[name="form_token"]').val(),
       formId: 'chatroom_chat_management_form'
     }
   });
@@ -58,7 +64,7 @@ Drupal.chatroom.userRemove = function(uid) {
     success: Drupal.chatroom.userRemoveHandler,
     data: {
       uid: uid,
-      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formToken: $('#chatroom-chat-management-form input[name="form_token"]').val(),
       formId: 'chatroom_chat_management_form'
     }
   });
@@ -88,7 +94,7 @@ Drupal.chatroom.userInvite = function(userName) {
     success: Drupal.chatroom.userInviteHandler,
     data: {
       user_name: userName,
-      formToken: $('#edit-chatroom-chat-management-form-form-token').val(),
+      formToken: $('#chatroom-chat-management-form input[name="form_token"]').val(),
       formId: 'chatroom_chat_management_form'
     }
   });
@@ -103,3 +109,4 @@ Drupal.chatroom.userInviteHandler = function(response, responseStatus) {
 
 // vi:ai:expandtab:sw=2 ts=2
 
+})(jQuery);
