@@ -6,10 +6,3 @@ version = VERSION
 files[] = chatroom.module
 configure = admin/config/chatroom
 
-
-; Information added by drupal.org packaging script on 2011-06-03
-version = "7.x-1.x-dev"
-core = "7.x"
-project = "chatroom"
-datestamp = "1307059542"
-

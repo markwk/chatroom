@@ -1,7 +1,6 @@
 <?php
 
 require_once dirname(__FILE__) . '/chatroom.forms.inc';
-require_once dirname(__FILE__) . '/chatroom.cache.' . variable_get('chatroom_cache_backend', 'apc') . '.inc';
 require_once dirname(__FILE__) . '/chatroom.theme.inc';
 
 /**
@@ -952,7 +951,7 @@ function chatroom_get_active_chats() {
  * @param mixed $node
  * @param mixed $type
  */
-function chatroom_access_denied($node, $type) {    
+function chatroom_access_denied($node, $type) {
   if ($type == 'banned') {
     $content = theme('chatroom_chat_banned_user', array('node' => $node));
   }
@@ -1040,6 +1039,7 @@ function chatroom_chat_register_user($node) {
  */
 function chatroom_add_js($node) {
   global $user;
+
   $js = array(
     'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
     'idleInterval' => (int) $node->chat->idle_freq,
@@ -1194,6 +1194,7 @@ function chatroom_load_online_users($chat) {
     ':last_seen_time' => time() - variable_get('chatroom_online_list_timeout', 1000)
   );
   $result = db_query($sql, $params)->fetchAll(PDO::FETCH_OBJ);
+
   // Keep track of logged in users because its possible that a user could be
   // watching a chat from multiple browsers, therefore multiple sid's, and
   // we don't want to list them twice.
@@ -1356,6 +1357,8 @@ function chatroom_chat_load_message($cmid) {
  * @return stdClass $msg
  */
 function chatroom_chat_prepare_message($message, $node) {
+  global $user;
+
   $msg = new StdClass();
   $msg->html = chatroom_chat_get_themed_message($message, $node);
   $msg->text = strip_tags($message->msg);
@@ -1382,6 +1385,8 @@ function chatroom_chat_prepare_message($message, $node) {
  * @param mixed $node
  */
 function chatroom_chat_get_themed_message($message, $node) {
+  global $user;
+
   if ($message->uid && user_access('access user profiles')) {
     $username = theme('chatroom_message_username', array('message' => $message, 'skip_permission_check' => FALSE));
   }
@@ -2013,7 +2018,7 @@ function chatroom_chat_is_banned_user($chat_user, $node) {
  * @param mixed $account
  * @return boolean
  */
-function chatroom_chat_user_has_access($node, $account) {    
+function chatroom_chat_user_has_access($node, $account) {
   if ($node->chat->private && $node->uid != $account->uid) {
     if (user_access('administer chats', $account)) {
       return TRUE;
@@ -2084,7 +2089,6 @@ function chatroom_chat_ajax_user_add($node) {
   }
 
   $user_data = array('uid' => $chat_user->uid, 'nid' => $node->nid);
-
   drupal_write_record('chatroom_chat_user', $user_data);
 
   $new_user_list_html = theme('chatroom_user_list', array('users' => chatroom_load_online_users($node), 'node' => $node));
