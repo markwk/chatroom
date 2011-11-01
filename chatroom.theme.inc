@@ -229,7 +229,7 @@ function theme_chatroom_messages(array $messages, $node) {
 function theme_chatroom_message($variables) {
   $message = $variables['message'];
   $node = $variables['node'];
-  return check_markup($message->msg, variable_get('chatroom_message_format', 'filtered_html'), FALSE);
+  return check_markup($message->msg, variable_get('chatroom_message_format', NULL),"", FALSE);
 }
 
 /**
@@ -242,8 +242,7 @@ function theme_chatroom_message($variables) {
 function theme_chatroom_system_message($variables) {
   $node = $variables['node'];
   $message = $variables['message'];
-//  return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format, FALSE) . '</div>';
-  return '<div class="chatroom-system-msg new-message">' . $message . '</div>';
+  return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format,"", FALSE) . '</div>';
 }
 
 /**
