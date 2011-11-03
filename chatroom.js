@@ -9,12 +9,6 @@ Drupal.chatroom = Drupal.chatroom || {'initialised' : false};
 Drupal.behaviors.chatroom = {
   attach: function (context, settings) {
     if (!Drupal.chatroom.initialised) {
-      if (!Drupal.settings.chatroom.customPollingBackend) {
-        setInterval("Drupal.chatroom.poll()", Drupal.settings.chatroom.pollInterval * 1000);
-      }
-      else {  
-        
-      }
       Drupal.settings.chatroom.pageTitle = document.title;
       Drupal.settings.chatroom.hasFocus = true;
       if (Drupal.settings.chatroom.latestMsgId > 0) {

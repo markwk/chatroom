@@ -92,13 +92,6 @@ function chatroom_form(&$node, $form_state) {
     '#title' => t('Chat settings'),
     '#collapsible' => TRUE,
   );
-  $form['chat_settings']['poll_freq'] = array(
-    '#type' => 'select',
-    '#title' => t('Update frequency'),
-    '#default_value' => empty($node->chatroom->poll_freq) ? 1 : $node->chatroom->poll_freq,
-    '#options' => drupal_map_assoc(range(1, 10)),
-    '#description' => t('How many seconds between each request for updates from the server.'),
-  );
   $form['chat_settings']['idle_freq'] = array(
     '#type' => 'select',
     '#title' => t('Idle time'),
@@ -211,15 +204,6 @@ function chatroom_admin_settings($form, &$form_state) {
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
   );
-  $options = array('0' => t('AJAX'), '1' => t('Node.js'));
-  $form['chatroom_backend']['chatroom_custom_polling_backend'] = array(
-    '#type' => 'radios',
-    '#title' => t('Chatroom backend options'),
-    '#default_value' =>  (variable_get('chatroom_custom_polling_backend', FALSE))?1:0,
-    '#options' => $options,
-    '#description' => t('The log.'),
-    '#disabled' => !module_exists('chatroom_nodejs'),
-  );  
   if (module_exists('smileys')) {
     $form['chatroom_smileys_support'] = array(
       '#type' => 'fieldset',
@@ -402,13 +386,6 @@ function chatroom_chat_form(&$node, $form_state) {
     '#title' => t('Chat settings'),
     '#collapsible' => TRUE,
   );
-  $form['chat_settings']['poll_freq'] = array(
-    '#type' => 'select',
-    '#title' => t('Update frequency'),
-    '#default_value' => isset($node->chat) ? $node->chat->poll_freq : 1,
-    '#options' => drupal_map_assoc(range(1, 10)),
-    '#description' => t('How many seconds between each request for updates from the server.'),
-  );
   $form['chat_settings']['private'] = array(
     '#type' => 'checkbox',
     '#title' => t('Make the chat private?'),
@@ -497,7 +474,6 @@ function chatroom_create_chatroom_chat($chatroom, $values, $chat_user) {
   $node->created = isset($values->created) ? $values->created : REQUEST_TIME;
   $node->chatroom_nid = $chatroom->nid;
   $node->idle_freq = $chatroom->chatroom->idle_freq;
-  $node->poll_freq = $chatroom->chatroom->poll_freq;
   $node->kicked_out_message = $chatroom->chatroom->kicked_out_message;
   $node->banned_message = $chatroom->chatroom->banned_message;
   $node->max_users = $chatroom->chatroom->max_users;
@@ -547,7 +523,6 @@ function chatroom_unarchive_chat_form_submit($form, &$form_state) {
  */
 function chatroom_chat_management_form_submit($form, &$form_state) {
   $op = $form_state['values']['op'];
-//  var_dump($op); exit;
   if ($op == t('Make chat private')) {
     chatroom_chat_make_chat_private($form_state['chat']);
   }

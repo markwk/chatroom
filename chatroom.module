@@ -237,6 +237,9 @@ function chatroom_permission() {
     'staff chat desk' => array(
       'title' => t('Staff chat desk'),
     ),
+    'send chat messages' => array(
+      'title' => t('Send chat messages'),
+    ),
   );
 }
 
@@ -298,7 +301,7 @@ function chatroom_menu() {
   $items['chatroom/chat/post/message/%node/%'] = array(
     'page callback' => 'chatroom_chat_post_message',
     'page arguments' => array(4, 5),
-    'access arguments' => array('access chat rooms'),
+    'access arguments' => array('send chat messages'),
     'type' => MENU_CALLBACK,
   );
   $items['chatroom/chat/get/latest/messages/%node/%'] = array(
@@ -343,7 +346,6 @@ function chatroom_insert($node) {
   cache_clear_all('chatroom_room_list', 'cache');
   $chatroom = array(
     'nid' => $node->nid,
-    'poll_freq' => isset($node->poll_freq) ? $node->poll_freq : 1,
     'idle_freq' => isset($node->idle_freq) ? $node->idle_freq : 20,
     'max_users' => isset($node->max_users) ? $node->max_users : 0,
     'kicked_out_message' => isset($node->kicked_out_message) ? $node->kicked_out_message : '',
@@ -363,7 +365,6 @@ function chatroom_update($node) {
   cache_clear_all('chatroom_room_list', 'cache');
   $chatroom = array(
     'nid' => $node->nid,
-    'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
     'max_users' => $node->max_users,
     'kicked_out_message' => $node->kicked_out_message,
@@ -475,7 +476,6 @@ function chatroom_chat_insert($node) {
   $chat = array(
     'nid' => $node->nid,
     'crid' => isset($node->chatroom_nid) ? $node->chatroom_nid : 0,
-    'poll_freq' => isset($node->poll_freq) ? $node->poll_freq : 1,
     'idle_freq' => isset($node->idle_freq) ? $node->idle_freq : 20,
     'max_users' => isset($node->max_users) ? $node->max_users : 0,
     'kicked_out_message' => isset($node->kicked_out_message) ? $node->kicked_out_message : '',
@@ -498,7 +498,6 @@ function chatroom_chat_update($node) {
   $chat = array(
     'nid' => $node->nid,
     'crid' => $node->chatroom_nid,
-    'poll_freq' => $node->poll_freq,
     'idle_freq' => $node->idle_freq,
     'max_users' => $node->max_users,
     'kicked_out_message' => $node->kicked_out_message,
@@ -747,6 +746,16 @@ function chatroom_chat_view($node, $view_mode) {
       else {
         if (!chatroom_chat_register_user($node)) {
           chatroom_update_last_seen_time($node, session_id());
+          // from chatroom_node.js module
+          $nodejs_message = (object) array(
+            'channel' => 'chatroom_chat_' . $node->nid,
+            'broadcast' => FALSE,
+            'type' => 'userSeen',
+            'callback' => 'chatroomNodejsMessageHandler',
+            'data' => theme('chatroom_user_list', array('users' => chatroom_load_online_users($node), 'node' => $node)),
+          );
+          nodejs_send_message($nodejs_message);
+          // -- 
           module_invoke_all('chatroom_chat_user_seen', $user, $node);
         }
         $node->chat->users = chatroom_load_online_users($node);
@@ -1028,6 +1037,9 @@ function chatroom_chat_register_user($node) {
       $params[':nid2'] = $node->nid;
     }
     db_query($sql, $params);
+    // from chatroom_nodejs module
+    nodejs_add_user_to_channel($user->uid, 'chatroom_chat_' . $node->nid);
+    // --     
     module_invoke_all('chatroom_chat_register_user', $node, $user);
     return TRUE;
   }
@@ -1041,7 +1053,6 @@ function chatroom_add_js($node) {
   global $user;
 
   $js = array(
-    'pollInterval' => (int) isset($node->chat) ? $node->chat->poll_freq : 1,
     'idleInterval' => (int) $node->chat->idle_freq,
     'chatId'       => (int) $node->nid,
     'cacheDirectory' => file_directory_temp(),
@@ -1055,11 +1066,6 @@ function chatroom_add_js($node) {
     'latestMsgId' => $node->chat->latest_msg ? $node->chat->latest_msg->cmid : 0,
     'accessDeniedPath' => 'chatroom/access-denied',
   );
-
-  // Allow other modules to supply a polling backend.
-  if (variable_get('chatroom_custom_polling_backend', FALSE)) {
-    $js['customPollingBackend'] = 1;
-  }
 
   if (variable_get('configurable_timezones', 1) && $user->uid && drupal_strlen($user->timezone)) {
     $js['timezone'] = $user->timezone;
@@ -1482,9 +1488,10 @@ function chatroom_chat_post_message($node, $last_msg_id) {
   else {
     $result = chatroom_chat_save_message($message, $node);
   }
-  if (!variable_get('chatroom_custom_polling_backend', FALSE)) {
-    chatroom_chat_get_latest_messages($node, $last_msg_id, $result);
-  }
+  // not necessary with nodejs ???
+//  if (!variable_get('chatroom_custom_polling_backend', FALSE)) {
+//    chatroom_chat_get_latest_messages($node, $last_msg_id, $result);
+//  }
 }
 
 /**
@@ -1511,6 +1518,18 @@ function chatroom_chat_save_message($message, $node) {
   drupal_alter('chatroom_chat_msg', $message);
   if (drupal_write_record('chatroom_msg', $message)) {
     $node->chat->latest_msg_id = $message['cmid'];
+    // from chatroom_node.js module
+    global $user;
+    $nodejs_message = (object) array(
+                    'channel' => 'chatroom_chat_' . $node->nid,
+                    'broadcast' => FALSE,
+                    'type' => 'newMessage',
+                    'callback' => 'chatroomNodejsMessageHandler',
+                    'data' => chatroom_chat_prepare_message(chatroom_chat_load_message($message['cmid']), $node),
+    );
+    nodejs_send_message($nodejs_message);
+    nodejs_add_user_to_channel($user->uid, 'chatroom_chat_' . $node->nid);
+    // --
     foreach (module_implements('chat_msg_saved') as $module) {
       $function = $module . '_chat_msg_saved';
       $function($message, $node);
@@ -1708,6 +1727,9 @@ function chatroom_chat_ban_user($node, $user_to_ban, $chat_admin_user) {
 
     db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = :uid AND ccid = :nid", array(':uid' => $user_to_ban->uid, ':nid' => $node->nid));
     cache_clear_all('chatroom_chat_ban_list_' . $node->nid, 'cache');
+    // from chatroom_nodejs module
+    nodejs_remove_user_from_channel($user_to_ban->uid, 'chatroom_chat_' . $node->nid);
+    // -- 
     module_invoke_all('chatroom_chat_ban_user', $node, $user_to_ban, $chat_admin_user);
     return TRUE;
   }
@@ -1745,6 +1767,9 @@ function chatroom_chat_kick_user($node, $user_to_kick, $chat_admin_user) {
 
     db_query("DELETE FROM {chatroom_chat_online_list} WHERE uid = :uid AND ccid = :nid", array(':uid' => $user_to_kick->uid, ':nid' => $node->nid));
     cache_clear_all('chatroom_chat_kicked_list_' . $node->nid, 'cache');
+    // from chatroom_nodejs module
+    nodejs_remove_user_from_channel($user_to_kick->uid, 'chatroom_chat_' . $node->nid);
+    // -- 
     module_invoke_all('chatroom_chat_kick_user', $node, $user_to_ban, $chat_admin_user);
     return TRUE;
   }
@@ -2534,3 +2559,25 @@ function chatroom_user_load_allowed_chat_nids($uid) {
   return $chat_nids;
 }
 
+// from chatroom_nodejs module
+/**
+ * Implements hook_nodejs_handlers_info().
+ */
+function chatroom_nodejs_handlers_info() {
+  return array(
+    drupal_get_path('module', 'chatroom') . '/chatroom_nodejs.js',
+  );
+}
+
+/**
+ * Implements hook_nodejs_auth_check().
+ */
+function chatroom_nodejs_auth_check($auth_user) {
+  $channels = array();
+  foreach (chatroom_user_load_allowed_chat_nids($auth_user->uid) as $chat_nid) {
+    $channels[] = 'chatroom_chat_' . $chat_nid;
+  }
+  return $channels;
+}
+
+// --

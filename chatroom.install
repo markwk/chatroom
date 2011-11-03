@@ -16,12 +16,12 @@ function chatroom_schema() {
         'not null' => TRUE,
         'description' => 'Primary key: node ID of the chatroom.',
       ),
-      'poll_freq' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 1000,
-        'description' => 'Default polling interval, in milliseconds, of all chats in this chatroom.',
-      ),
+//      'poll_freq' => array(
+//        'type' => 'int',
+//        'not null' => TRUE,
+//        'default' => 1000,
+//        'description' => 'Default polling interval, in milliseconds, of all chats in this chatroom.',
+//      ),
       'idle_freq' => array(
         'type' => 'int',
         'not null' => TRUE,
@@ -197,12 +197,12 @@ function chatroom_schema() {
         'default' => 0,
         'description' => 'ID of the chatroom the chat belongs to. 0 signifies this chat does not belong to a room.',
       ),
-      'poll_freq' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 1000,
-        'description' => 'Polling interval, in milliseconds, of the chat.',
-      ),
+//      'poll_freq' => array(
+//        'type' => 'int',
+//        'not null' => TRUE,
+//        'default' => 1000,
+//        'description' => 'Polling interval, in milliseconds, of the chat.',
+//      ),
       'idle_freq' => array(
         'type' => 'int',
         'not null' => TRUE,

@@ -242,7 +242,8 @@ function theme_chatroom_message($variables) {
 function theme_chatroom_system_message($variables) {
   $node = $variables['node'];
   $message = $variables['message'];
-  return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format,"", FALSE) . '</div>';
+//  return '<div class="chatroom-system-msg new-message">' . check_markup($message, $node->format,"", FALSE) . '</div>';
+  return '<div class="chatroom-system-msg new-message">' . $message . '</div>';
 }
 
 /**
@@ -388,7 +389,8 @@ function theme_chatroom_chat($variables) {
     $output .= chatroom_chat_get_themed_message($message, $node);
   }
   $output .= '</div></div>';
-  $output .= theme('chatroom_buttons', array('node' => $node));
+  if(user_access('send chat messages'))
+    $output .= theme('chatroom_buttons', array('node' => $node));
   if ($node->uid == $user->uid || user_access('administer chats')) {
     $output .= drupal_render(drupal_get_form('chatroom_chat_management_form', $node));
   }

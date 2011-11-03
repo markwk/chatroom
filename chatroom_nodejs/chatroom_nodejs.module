@@ -50,7 +50,7 @@ function chatroom_nodejs_chatroom_chat_user_seen($user, $node) {
     'broadcast' => FALSE,
     'type' => 'userSeen',
     'callback' => 'chatroomNodejsMessageHandler',
-    'data' => theme('chatroom_user_list', array('users' => chatroom_load_online_users($node), 'node' => $node)), 
+    'data' => theme('chatroom_user_list', array('users' => chatroom_load_online_users($node), 'node' => $node)),
   );
   nodejs_send_message($nodejs_message);
 }
