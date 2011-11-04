@@ -198,12 +198,7 @@ function chatroom_admin_settings($form, &$form_state) {
     '#description' => t('Like other chat type services, this adds a name textfield for anonymous users.'),
     '#default_value' => variable_get('chatroom_allow_anon_name', TRUE),
   );
-  $form['chatroom_backend'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Chatroom backend'),
-    '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
-  );
+/* D6 Legacy, replace able with: http://drupal.org/sandbox/Chi/1095624 ?
   if (module_exists('smileys')) {
     $form['chatroom_smileys_support'] = array(
       '#type' => 'fieldset',
@@ -223,6 +218,7 @@ function chatroom_admin_settings($form, &$form_state) {
       '#disabled' => !variable_get('chatroom_smileys_enabled', FALSE),
     );
   }
+*/
   $form['chatroom_alerts'] = array(
     '#type' => 'fieldset',
     '#title' => t('Chat alerts'),
@@ -249,7 +245,7 @@ function chatroom_admin_settings($form, &$form_state) {
     '#default_value' => variable_get('chatroom_alerts', FALSE) && variable_get('chatroom_custom_sounds', FALSE),
     '#disabled' => !variable_get('chatroom_alerts', FALSE),
   );
-
+/*  Untested Chatroom Desk, Remove Til Tested
   $form['chatroom_desk']  = array(
     '#type' => 'fieldset',
     '#title' => t('Chatroom "desk" options'),
@@ -297,7 +293,7 @@ function chatroom_admin_settings($form, &$form_state) {
     '#default_value' => variable_get('chatroom_desk_closed_message', 'Our help desk is closed, please try again later.'),
     '#description' => t('A message to show when staff are not active on the site.'),
   );
-
+*/
   return system_settings_form($form);
 }
 

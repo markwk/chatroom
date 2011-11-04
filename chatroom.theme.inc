@@ -263,7 +263,8 @@ function theme_chatroom_user_list($variables) {
   $user_links = chatroom_chat_get_user_links($node, $users);
   $active_user_links = chatroom_chat_get_active_user_links($node);
 
-  $html = '<div id="chatroom-user-list-wrapper"><ul id="chatroom-user-list">';
+  $html = '<div id="chatroom-user-list-wrapper">';
+  $html = '<ul id="chatroom-user-list">';
   foreach ($users as $chat_user) {
     $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
     $id = 'chatroom_' . ($chat_user->uid ? "user_$chat_user->uid" : "guest_$chat_user->guest_id");
@@ -382,7 +383,6 @@ function theme_chatroom_chat($variables) {
 
   $output = '<div id="fullchat">';
   $output .= '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
-  $output .= theme('chatroom_user_list', array('users' => $node->chat->users, 'node' => $node));
   $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
   foreach ($node->chat->latest_messages as $message) {
@@ -391,6 +391,7 @@ function theme_chatroom_chat($variables) {
   $output .= '</div></div>';
   if(user_access('send chat messages'))
     $output .= theme('chatroom_buttons', array('node' => $node));
+  $output .= theme('chatroom_user_list', array('users' => $node->chat->users, 'node' => $node));
   if ($node->uid == $user->uid || user_access('administer chats')) {
     $output .= drupal_render(drupal_get_form('chatroom_chat_management_form', $node));
   }
