@@ -149,6 +149,7 @@ function theme_chatroom_block_chatrooms() {
  * @return string
  * @ingroup themeable
  */
+/*
 function theme_chatroom_desk($open_message, $closed_message, $staff){
   global $user;
   if ($user->uid && (!user_access('access chat rooms') || !user_access('use chat desk'))) {
@@ -182,13 +183,14 @@ function theme_chatroom_desk($open_message, $closed_message, $staff){
     'subject' => t('Live Chat Desk'),
   );
 }
-
+/*
 /**
  * Return a block useful for for help desk staff.
  * @return string
  *
  * @ingroup themeable
  */
+/* Remove Chatroom Until Checked
 function theme_chatroom_desk_staff($rooms){
   // Show the message.
   if (empty($rooms)) {
@@ -206,7 +208,7 @@ function theme_chatroom_desk_staff($rooms){
     'subject' => t('Active chat desk rooms'),
   );
 }
-
+*/
 /**
  * Format an array of messages.
  *
@@ -264,7 +266,7 @@ function theme_chatroom_user_list($variables) {
   $active_user_links = chatroom_chat_get_active_user_links($node);
 
   $html = '<div id="chatroom-user-list-wrapper">';
-  $html = '<ul id="chatroom-user-list">';
+  $html .= '<ul id="chatroom-user-list">';
   foreach ($users as $chat_user) {
     $class = 'chatroom-user' . ($chat_user->sid == session_id() ? ' chatroom-current-user' : '');
     $id = 'chatroom_' . ($chat_user->uid ? "user_$chat_user->uid" : "guest_$chat_user->guest_id");
@@ -381,21 +383,23 @@ function theme_chatroom_chat($variables) {
 
   $node = $variables['node'];
 
-  $output = '<div id="fullchat">';
+  $output = '<div id="fullchat"><h2 id="chat-title">';
+  $output .= variable_get('chatroom_chat_title','');
+  $output .= '</h2>';
   $output .= '<style type="text/css">#chatroom-board-container { width: ' . variable_get('chatroom_message_board_width', '100%') . ';}</style>';
   $output .= '<div id="chatroom-board-container">';
   $output .= '<div id="chatroom-board">';
   foreach ($node->chat->latest_messages as $message) {
     $output .= chatroom_chat_get_themed_message($message, $node);
   }
-  $output .= '</div></div>';
+  $output .= '</div>';
   if(user_access('send chat messages'))
     $output .= theme('chatroom_buttons', array('node' => $node));
   $output .= theme('chatroom_user_list', array('users' => $node->chat->users, 'node' => $node));
   if ($node->uid == $user->uid || user_access('administer chats')) {
     $output .= drupal_render(drupal_get_form('chatroom_chat_management_form', $node));
   }
-  $output .= '</div>';
+  $output .= '</div></div>';
   return $output;
 }
 

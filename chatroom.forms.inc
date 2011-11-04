@@ -92,6 +92,7 @@ function chatroom_form(&$node, $form_state) {
     '#title' => t('Chat settings'),
     '#collapsible' => TRUE,
   );
+/*
   $form['chat_settings']['idle_freq'] = array(
     '#type' => 'select',
     '#title' => t('Idle time'),
@@ -99,6 +100,7 @@ function chatroom_form(&$node, $form_state) {
     '#options' => drupal_map_assoc(array(20, 40, 60, 80, 100, 120, 140, 160, 180)),
     '#description' => t('How many seconds between each message before a last message time is shown in the chat.'),
   );
+*/
   $form['chat_settings']['max_users'] = array(
     '#type' => 'textfield',
     '#title' => t('Maximum users'),
@@ -117,6 +119,7 @@ function chatroom_form(&$node, $form_state) {
     '#default_value' => empty($node->chatroom->previous_messages_display_count) ? 20 : $node->chatroom->previous_messages_display_count,
     '#options' => drupal_map_assoc($old_msg_range),
   );
+/* Legacy D7
   if (variable_get('user_pictures', FALSE)) {
     $form['chatroom_profile_picture_support'] = array(
       '#type' => 'fieldset',
@@ -144,6 +147,7 @@ function chatroom_form(&$node, $form_state) {
       );
     }
   }
+*/
   return $form;
 }
 
@@ -170,6 +174,13 @@ function chatroom_admin_settings($form, &$form_state) {
     '#default_value' => variable_get('chatroom_online_list_timeout', 10),
     '#description' => t('In seconds, sets length of time since use was last seen in chat before being removed from chat user list'),
     '#size' => 3,
+  );
+  $form['chatroom_chat_title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Chat Title'),
+    '#description' => t('If you want, provide title above chat.'),
+    '#default_value' => variable_get('chatroom_chat_title', ''),
+    '#size' => 20,
   );
   $form['chatroom_guest_user_prefix'] = array(
     '#type' => 'textfield',
