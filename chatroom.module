@@ -1527,8 +1527,8 @@ function chatroom_chat_save_message($message, $node) {
                     'callback' => 'chatroomNodejsMessageHandler',
                     'data' => chatroom_chat_prepare_message(chatroom_chat_load_message($message['cmid']), $node),
     );
-    nodejs_send_message($nodejs_message);
     nodejs_add_user_to_channel($user->uid, 'chatroom_chat_' . $node->nid);
+    nodejs_send_message($nodejs_message);
     // --
     foreach (module_implements('chat_msg_saved') as $module) {
       $function = $module . '_chat_msg_saved';
